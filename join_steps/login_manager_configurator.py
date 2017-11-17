@@ -58,8 +58,7 @@ class LoginManagerConfigurator(ConflictChecker):
 	def enable_login_with_foreign_usernames(self):
 		# TODO: Kubuntu 16.04 uses sddm, which doesn't quite work so well unconfigured.
 		# Need to check more distros for compatibility...
-		if self.login_manager_compatible():
-			self.enable_login_with_foreign_usernames_for_lightdm()
+		self.enable_login_with_foreign_usernames_for_lightdm()
 
 	def enable_login_with_foreign_usernames_for_lightdm(self):
 		print('Writing /etc/lightdm/lightdm.conf.d/99-show-manual-userlogin.conf ', end='... ')

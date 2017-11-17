@@ -27,12 +27,11 @@ class ConflictChecker(object):
 
 
 class SssdConfigurator(ConflictChecker):
-	def __init__(self):
+	def setup_sssd(self, master_ip, ldap_master, ldap_base, kerberos_realm):
 		self.hostname = subprocess.check_output(['hostname']).strip()
 		self.ldap_password = subprocess.check_output(['cat', '/etc/machine.secret']).strip()
-
-	def setup_sssd(self, master_ip, ldap_master, ldap_base, kerberos_realm):
 		RootCertificateProvider().provide_ucs_root_certififcate(ldap_master)
+
 		self.write_sssd_conf(master_ip, ldap_master, ldap_base, kerberos_realm)
 		self.write_sssd_profile()
 		self.configure_sssd()

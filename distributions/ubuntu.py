@@ -35,8 +35,8 @@ class Joiner(object):
 		# TODO: Stop avahi service like Jan-Christoph does?!
 
 	def configure_ldap(self, force=False):
-		if force or not LdapConfigurator().ldap_configured(self.master_ip, self.ldap_base):
-			LdapConfigurator().configure_ldap(self.master_ip, self.ldap_master, self.ldap_base)
+		if force or not LdapConfigurator().ldap_configured(self.master_ip, self.master_pw, self.ldap_base):
+			LdapConfigurator().configure_ldap(self.master_ip, self.master_pw, self.ldap_master, self.ldap_base)
 		else:
 			print('The LDAP seems to be configured already. Skipping this step.')
 
@@ -69,7 +69,7 @@ class Joiner(object):
 
 	def show_join_status(self):
 		if (
-			LdapConfigurator().ldap_configured(self.master_ip, self.ldap_base) and
+			LdapConfigurator().ldap_configured(self.master_ip, self.master_pw, self.ldap_base) and
 			SssdConfigurator().sssd_configured() and
 			PamConfigurator().pam_configured() and
 			LoginManagerConfigurator().login_manager_configured() and

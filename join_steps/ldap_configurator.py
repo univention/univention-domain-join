@@ -1,5 +1,6 @@
 from __future__ import print_function
 import os
+import paramiko
 import pipes
 import stat
 import subprocess
@@ -7,15 +8,13 @@ import sys
 
 from root_certificate_provider import RootCertificateProvider
 
-OUTPUT_SINK = open(os.devnull, 'w')
-
 
 class LdapConfigurationChecker(object):
-	def ldap_configured(self, master_ip, ldap_base):
+	def ldap_configured(self, master_ip, master_pw, ldap_base):
 		return (
 			self.ldap_conf_exists() and
 			self.machine_secret_exists() and
-			self.machine_exists_in_ldap(master_ip, ldap_base)
+			self.machine_exists_in_ldap(master_ip, master_pw, ldap_base)
 		)
 
 	def ldap_conf_exists(self):
@@ -24,42 +23,49 @@ class LdapConfigurationChecker(object):
 	def machine_secret_exists(self):
 		return os.path.isfile('/etc/machine.secret')
 
-	def machine_exists_in_ldap(self, master_ip, ldap_base):
+	def machine_exists_in_ldap(self, master_ip, master_pw, ldap_base):
 		udm_command = ['udm', 'computers/ubuntu', 'list', '--position', 'cn=%s,cn=computers,%s' % (self.hostname, ldap_base)]
-		escaped_udm_command = [pipes.quote(x) for x in udm_command]
-		ssh_command = ['ssh', '-n', 'root@%s' % (master_ip,), ' '.join(escaped_udm_command)]
-		return 0 == subprocess.call(ssh_command, stdout=OUTPUT_SINK, stderr=OUTPUT_SINK)
+		escaped_udm_command = ' '.join([pipes.quote(x) for x in udm_command])
+		with paramiko.SSHClient() as ssh_client:
+			ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+			ssh_client.connect(master_ip, username='root', password=master_pw)
+			stdin, stdout, stderr = ssh_client.exec_command(escaped_udm_command)
+			return stdout.channel.recv_exit_status() == 0
 
 
 class LdapConfigurator(LdapConfigurationChecker):
 	def __init__(self):
 		self.hostname = subprocess.check_output(['hostname']).strip()
 
-	def configure_ldap(self, master_ip, ldap_master, ldap_base):
+	def configure_ldap(self, master_ip, master_pw, ldap_master, ldap_base):
 		RootCertificateProvider().provide_ucs_root_certififcate(ldap_master)
 		password = self.random_password()
-		self.delete_old_entry_and_add_machine_to_ldap(password, master_ip, ldap_base)
+		self.delete_old_entry_and_add_machine_to_ldap(password, master_ip, master_pw, ldap_base)
 		self.write_hosts_entry_for_master(master_ip, ldap_master)
 		self.create_ldap_conf_file(ldap_master, ldap_base)
 		self.create_machine_secret_file(password)
 
-	def delete_old_entry_and_add_machine_to_ldap(self, password, master_ip, ldap_base):
-		if self.machine_exists_in_ldap(master_ip, ldap_base):
-			self.delete_machine_from_ldap(master_ip, ldap_base)
-		self.add_machine_to_ldap(password, master_ip, ldap_base)
+	def delete_old_entry_and_add_machine_to_ldap(self, password, master_ip, master_pw, ldap_base):
+		if self.machine_exists_in_ldap(master_ip, master_pw, ldap_base):
+			self.delete_machine_from_ldap(master_ip, master_pw, ldap_base)
+		self.add_machine_to_ldap(password, master_ip, master_pw, ldap_base)
 
-	def delete_machine_from_ldap(self, master_ip, ldap_base):
+	def delete_machine_from_ldap(self, master_ip, master_pw, ldap_base):
 		print('Removing old LDAP entry for this machine on the DC master', end='... ')
 		sys.stdout.flush()
 
 		udm_command = ['udm', 'computers/ubuntu', 'remove', '--dn', 'cn=%s,cn=computers,%s' % (self.hostname, ldap_base)]
-		escaped_udm_command = [pipes.quote(x) for x in udm_command]
-		ssh_command = ['ssh', '-n', 'root@%s' % (master_ip,), ' '.join(escaped_udm_command)]
-		subprocess.check_call(ssh_command, stdout=OUTPUT_SINK, stderr=OUTPUT_SINK)
+		escaped_udm_command = ' '.join([pipes.quote(x) for x in udm_command])
+		with paramiko.SSHClient() as ssh_client:
+			ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+			ssh_client.connect(master_ip, username='root', password=master_pw)
+			stdin, stdout, stderr = ssh_client.exec_command(escaped_udm_command)
+			if stdout.channel.recv_exit_status() != 0:
+				raise Exception('Removing the old LDAP entry for this computer failed.')
 
 		print('Done.')
 
-	def add_machine_to_ldap(self, password, master_ip, ldap_base):
+	def add_machine_to_ldap(self, password, master_ip, master_pw, ldap_base):
 		print('Adding LDAP entry for this machine on the DC master', end='... ')
 		sys.stdout.flush()
 
@@ -76,10 +82,14 @@ class LdapConfigurator(LdapConfigurationChecker):
 			'--set', 'operatingSystem=%s' % (release_id,),
 			'--set', 'operatingSystemVersion=%s' % (release,)
 		]
-		escaped_udm_command = [pipes.quote(x) for x in udm_command]
-		ssh_command = ['ssh', '-n', 'root@%s' % (master_ip,), ' '.join(escaped_udm_command)]
+		escaped_udm_command = ' '.join([pipes.quote(x) for x in udm_command])
+		with paramiko.SSHClient() as ssh_client:
+			ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+			ssh_client.connect(master_ip, username='root', password=master_pw)
+			stdin, stdout, stderr = ssh_client.exec_command(escaped_udm_command)
+			if stdout.channel.recv_exit_status() != 0:
+				raise Exception('Adding a LDAP object for this computer didn\'t work.')
 
-		subprocess.check_call(ssh_command, stdout=OUTPUT_SINK, stderr=OUTPUT_SINK)
 		print('Done.')
 
 	def write_hosts_entry_for_master(self, master_ip, ldap_master):

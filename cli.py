@@ -2,6 +2,7 @@ from getpass import getpass
 import argparse
 import importlib
 import os
+import paramiko
 import subprocess
 
 OUTPUT_SINK = open(os.devnull, 'w')
@@ -9,7 +10,9 @@ OUTPUT_SINK = open(os.devnull, 'w')
 # TODO: Make sure dependent packets are installed in the Debian package.
 # TODO: Back up (with timestamp) all files that will be touched into /var/univention/backup .
 #       Leaving out any old LDAP objects.
-# TODO: Check for any conflicts beforehand (checks) and abort if there is any.
+# TODO: Check for any conflicts beforehand (checks) and abort if there are any.
+# TODO: Is it required  for securtiy to do ssh_client.load_system_host_keys('/root/.ssh/known_hosts')
+#       instead of ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy()) ?
 
 
 def check_if_dns_is_set_up_correctly(master_ip):
@@ -39,18 +42,27 @@ def get_distribution():
 
 
 def get_masters_root_password(master_ip):
-	return getpass(prompt='Please enter the password for root@%s: ' % (master_ip,))
-	# TODO: Check if password works.
+	password = getpass(prompt='Please enter the password for root@%s: ' % (master_ip,))
+	with paramiko.SSHClient() as ssh_client:
+		ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+		try:
+			ssh_client.connect(master_ip, username='root', password=password)
+		except paramiko.ssh_exception.BadAuthenticationType:
+			raise Exception('It\'s not possible to connect to the DC master via ssh, with the given password.')
+	return password
 
 
 def get_ucr_variables_from_master(master_ip, master_pw):
-	masters_ucr_output = subprocess.check_output(
-		['ssh', 'root@%s' % (master_ip,), 'ucr shell | grep -v ^hostname='],
-	).splitlines()
-	ucr_variables = {}
-	for raw_ucr_variable in masters_ucr_output:
-		key, value = raw_ucr_variable.split('=', 1)
-		ucr_variables[key] = value
+	with paramiko.SSHClient() as ssh_client:
+		ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+		ssh_client.connect(master_ip, username='root', password=master_pw)
+		stdin, stdout, stderr = ssh_client.exec_command('ucr shell | grep -v ^hostname=')
+		if stdout.channel.recv_exit_status() != 0:
+			raise Exception('Fetching the UCR variables from the master failed.')
+		ucr_variables = {}
+		for raw_ucr_variable in stdout:
+			key, value = raw_ucr_variable.strip().split('=', 1)
+			ucr_variables[key] = value
 	return ucr_variables
 
 

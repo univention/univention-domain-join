@@ -9,19 +9,16 @@ import sys
 from root_certificate_provider import RootCertificateProvider
 
 
-class LdapConfigurationChecker(object):
-	def ldap_configured(self, master_ip, master_pw, ldap_base):
-		return (
-			self.ldap_conf_exists() and
-			self.machine_secret_exists() and
-			self.machine_exists_in_ldap(master_ip, master_pw, ldap_base)
-		)
+class ConflictChecker(object):
+	def configuration_conflicts(self):
+		# self.machine_exists_in_ldap() is not considered a problem here.
+		return self.ldap_conf_exists()
 
 	def ldap_conf_exists(self):
-		return os.path.isfile('/etc/ldap/ldap.conf')
-
-	def machine_secret_exists(self):
-		return os.path.isfile('/etc/machine.secret')
+		if os.path.isfile('/etc/ldap/ldap.conf'):
+			print('Warning: /etc/ldap/ldap.conf already exists.')
+			return True
+		return False
 
 	def machine_exists_in_ldap(self, master_ip, master_pw, ldap_base):
 		udm_command = ['udm', 'computers/ubuntu', 'list', '--position', 'cn=%s,cn=computers,%s' % (self.hostname, ldap_base)]
@@ -33,7 +30,7 @@ class LdapConfigurationChecker(object):
 			return stdout.channel.recv_exit_status() == 0
 
 
-class LdapConfigurator(LdapConfigurationChecker):
+class LdapConfigurator(ConflictChecker):
 	def __init__(self):
 		self.hostname = subprocess.check_output(['hostname']).strip()
 
@@ -41,7 +38,6 @@ class LdapConfigurator(LdapConfigurationChecker):
 		RootCertificateProvider().provide_ucs_root_certififcate(ldap_master)
 		password = self.random_password()
 		self.delete_old_entry_and_add_machine_to_ldap(password, master_ip, master_pw, ldap_base)
-		self.write_hosts_entry_for_master(master_ip, ldap_master)
 		self.create_ldap_conf_file(ldap_master, ldap_base)
 		self.create_machine_secret_file(password)
 
@@ -73,7 +69,6 @@ class LdapConfigurator(LdapConfigurationChecker):
 		release = subprocess.check_output(['lsb_release', '-rs'])
 
 		# TODO: Also add MAC address.
-		# TODO: Differentiate between computers/ubuntu and computers/linux.
 		udm_command = [
 			'udm', 'computers/ubuntu', 'create',
 			'--position', 'cn=computers,%s' % (ldap_base,),
@@ -91,37 +86,6 @@ class LdapConfigurator(LdapConfigurationChecker):
 				raise Exception('Adding a LDAP object for this computer didn\'t work.')
 
 		print('Done.')
-
-	def write_hosts_entry_for_master(self, master_ip, ldap_master):
-		self.remove_old_hosts_entry_if_exists(ldap_master)
-
-		print('Adding entry for the master to /etc/hosts ', end='... ')
-		sys.stdout.flush()
-
-		with open('/etc/hosts', 'a') as hosts_file:
-			hosts_file.write('%s %s\n' % (master_ip, ldap_master))
-
-		print('Done.')
-
-	def remove_old_hosts_entry_if_exists(self, name):
-		old_entry_exists = False
-		with open('/etc/hosts', 'r') as hosts_file:
-			new_hosts = []
-			for line in hosts_file:
-				if name in line:
-					old_entry_exists = True
-				else:
-					new_hosts.append(line)
-
-		if old_entry_exists:
-			print('Removing old entry for the master in /etc/hosts ', end='... ')
-			sys.stdout.flush()
-
-			with open('/etc/hosts', 'w') as hosts_file:
-				for line in new_hosts:
-					hosts_file.write(line)
-
-			print('Done.')
 
 	def create_ldap_conf_file(self, ldap_master, ldap_base):
 		print('Writing /etc/ldap/ldap.conf ', end='... ')

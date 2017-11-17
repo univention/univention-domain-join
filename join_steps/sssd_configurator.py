@@ -9,18 +9,24 @@ from root_certificate_provider import RootCertificateProvider
 OUTPUT_SINK = open(os.devnull, 'w')
 
 
-class SssdConfigurationChecker(object):
-	def sssd_configured(self):
+class ConflictChecker(object):
+	def configuration_conflicts(self):
 		return self.sssd_conf_file_exists() and self.sssd_profile_file_exists()
 
 	def sssd_conf_file_exists(self):
-		return os.path.isfile('/etc/sssd/sssd.conf')
+		if os.path.isfile('/etc/sssd/sssd.conf'):
+			print('Warning: /etc/sssd/sssd.conf already exists.')
+			return True
+		return False
 
 	def sssd_profile_file_exists(self):
-		return os.path.isfile('/etc/auth-client-config/profile.d/sss')
+		if os.path.isfile('/etc/auth-client-config/profile.d/sss'):
+			print('Warning: /etc/auth-client-config/profile.d/sss already exists.')
+			return True
+		return False
 
 
-class SssdConfigurator(SssdConfigurationChecker):
+class SssdConfigurator(ConflictChecker):
 	def __init__(self):
 		self.hostname = subprocess.check_output(['hostname']).strip()
 		self.ldap_password = subprocess.check_output(['cat', '/etc/machine.secret']).strip()

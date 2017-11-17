@@ -8,14 +8,16 @@ import subprocess
 OUTPUT_SINK = open(os.devnull, 'w')
 
 # TODO: Make sure dependent packets are installed in the Debian package.
-# TODO: Back up (with timestamp) all files that will be touched into /var/univention/backup .
+# TODO: Back up (with timestamp) all files that will be touched into /var/univention-backup .
 #       Leaving out any old LDAP objects.
-# TODO: Check for any conflicts beforehand (checks) and abort if there are any.
 # TODO: Is it required  for securtiy to do ssh_client.load_system_host_keys('/root/.ssh/known_hosts')
 #       instead of ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy()) ?
+# TODO: Should joining via a DC slave be possible?
+# TODO: Add join_steps backup functions.
 
 
 def check_if_dns_is_set_up_correctly(master_ip):
+	# TODO: Write an /etc/hosts entry instead?
 	# TODO: Is 'host' usable across distributions?
 	master_dns_works = 0 == subprocess.call(
 		['host', master_ip], stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
@@ -24,17 +26,14 @@ def check_if_dns_is_set_up_correctly(master_ip):
 
 
 def get_joiner_for_this_distribution(master_ip):
-	master_pw = get_masters_root_password(master_ip)
-	masters_ucr_variables = get_ucr_variables_from_master(master_ip, master_pw)
-
 	distribution = get_distribution()
 	try:
 		distribution_join_module = importlib.import_module('distributions.%s' % (distribution.lower(),))
+		master_pw = get_masters_root_password(master_ip)
+		masters_ucr_variables = get_ucr_variables_from_master(master_ip, master_pw)
+		return distribution_join_module.Joiner(masters_ucr_variables, master_ip, master_pw)
 	except ImportError:
 		raise Exception('The used distribution "%s" is not supported.' % (distribution,))
-	return distribution_join_module.Joiner(
-		masters_ucr_variables, master_ip, master_pw
-	)
 
 
 def get_distribution():
@@ -68,7 +67,7 @@ def get_ucr_variables_from_master(master_ip, master_pw):
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(
-		description='Tool for joining an Ubuntu client into an UCS domain.'
+		description='Tool for joining a client computer into an UCS domain.'
 	)
 	parser.add_argument('--force', action='store_true', help='Force the execution of the join steps, even if this overwrites configuration files.')
 	parser.add_argument('master_ip', help='IP of the DC master.')

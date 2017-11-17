@@ -21,60 +21,22 @@ class Joiner(object):
 		assert os.geteuid() == 0, 'This tool must be run as the root user.'
 
 	def check_if_join_is_possible_without_problems(self):
-		pass
+		if (
+			LdapConfigurator().configuration_conflicts() or
+			SssdConfigurator().configuration_conflicts() or
+			PamConfigurator().configuration_conflicts() or
+			LoginManagerConfigurator().configuration_conflicts() or
+			KerberosConfigurator().configuration_conflicts()
+		):
+			raise Exception('Joining the UCS is not safely possible. Use the --force parameter to ignore this warning.')
 
 	def create_backup_of_config_files(self):
 		pass
 
 	def join_domain(self, force=False):
-		self.configure_ldap(force)
-		self.configure_sssd(force)
-		self.configure_pam(force)
-		self.configure_login(force)
-		self.configure_kerberos(force)
+		LdapConfigurator().configure_ldap(self.master_ip, self.master_pw, self.ldap_master, self.ldap_base)
+		SssdConfigurator().setup_sssd(self.master_ip, self.ldap_master, self.ldap_base, self.kerberos_realm)
+		PamConfigurator().setup_pam()
+		LoginManagerConfigurator().enable_login_with_foreign_usernames()
+		KerberosConfigurator().configure_kerberos(self.kerberos_realm, self.master_ip, self.ldap_master)
 		# TODO: Stop avahi service like Jan-Christoph does?!
-
-	def configure_ldap(self, force=False):
-		if force or not LdapConfigurator().ldap_configured(self.master_ip, self.master_pw, self.ldap_base):
-			LdapConfigurator().configure_ldap(self.master_ip, self.master_pw, self.ldap_master, self.ldap_base)
-		else:
-			print('The LDAP seems to be configured already. Skipping this step.')
-
-	def configure_sssd(self, force=False):
-		if force or not SssdConfigurator().sssd_configured():
-			SssdConfigurator().setup_sssd(self.master_ip, self.ldap_master, self.ldap_base, self.kerberos_realm)
-		else:
-			print('sssd seems to be configured already. Skipping this step.')
-
-	def configure_pam(self, force=False):
-		if force or not PamConfigurator().pam_configured():
-			PamConfigurator().setup_pam()
-		else:
-			print('PAM seems to be configured already. Skipping this step.')
-
-	def configure_login(self, force=False):
-		if force or not LoginManagerConfigurator().login_manager_configured():
-			if LoginManagerConfigurator().login_manager_compatible():
-				LoginManagerConfigurator().enable_login_with_foreign_usernames()
-			else:
-				print('Warning: The login manager remains unconfigured.')
-		else:
-			print('PAM seems to be configured already. Skipping this step.')
-
-	def configure_kerberos(self, force=False):
-		if force or not KerberosConfigurator().kerberos_configured(self.ldap_master):
-			KerberosConfigurator().configure_kerberos(self.kerberos_realm, self.master_ip, self.ldap_master)
-		else:
-			print('Kerberos seems to be configured already. Skipping this step.')
-
-	def show_join_status(self):
-		if (
-			LdapConfigurator().ldap_configured(self.master_ip, self.master_pw, self.ldap_base) and
-			SssdConfigurator().sssd_configured() and
-			PamConfigurator().pam_configured() and
-			LoginManagerConfigurator().login_manager_configured() and
-			KerberosConfigurator().kerberos_configured(self.ldap_master)
-		):
-			print('This client has been joined into your UCS domain.')
-		else:
-			print('This client has not fully joined an UCS domain.')

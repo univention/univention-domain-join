@@ -6,22 +6,19 @@ import sys
 OUTPUT_SINK = open(os.devnull, 'w')
 
 
-class KerberosConfigurationChecker(object):
-	def kerberos_configured(self, ldap_master):
-		return self.config_file_contains_master(ldap_master)
+class ConflictChecker(object):
+	def configuration_conflicts(self):
+		return self.config_file_contains_master()
 
-	def config_file_contains_master(self, ldap_master):
+	def config_file_contains_master(self):
 		if os.path.isfile('/etc/krb5.conf'):
-			with open('/etc/krb5.conf', 'r') as conf_file:
-				for line in conf_file:
-					if ldap_master in line:
-						return True
+			print('Warning: /etc/krb5.conf already exists.')
+			return True
 		return False
 
 
-class KerberosConfigurator(KerberosConfigurationChecker):
+class KerberosConfigurator(ConflictChecker):
 	def configure_kerberos(self, kerberos_realm, master_ip, ldap_master):
-		# TODO: No TGT is requested here. Wouldn't that be easier for the user?
 		self.write_config_file(kerberos_realm, master_ip, ldap_master)
 		self.synchronize_time_with_master(ldap_master)
 

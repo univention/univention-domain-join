@@ -6,18 +6,24 @@ import sys
 OUTPUT_SINK = open(os.devnull, 'w')
 
 
-class PamConfigurationChecker(object):
-	def pam_configured(self):
+class ConflictChecker(object):
+	def configuration_conflicts(self):
 		return self.group_conf_file_exists() and self.home_dir_conf_file_exists()
 
 	def home_dir_conf_file_exists(self):
-		return os.path.isfile('/usr/share/pam-configs/ucs_mkhomedir')
+		if os.path.isfile('/usr/share/pam-configs/ucs_mkhomedir'):
+			print('Warning: /usr/share/pam-configs/ucs_mkhomedir already exists.')
+			return True
+		return False
 
 	def group_conf_file_exists(self):
-		return os.path.isfile('/usr/share/pam-configs/local_groups')
+		if os.path.isfile('/usr/share/pam-configs/local_groups'):
+			print('Warning: /usr/share/pam-configs/local_groups already exists.')
+			return True
+		return False
 
 
-class PamConfigurator(PamConfigurationChecker):
+class PamConfigurator(ConflictChecker):
 	def setup_pam(self):
 		self.configure_home_dir_creation()
 		self.add_users_to_requiered_system_groups()

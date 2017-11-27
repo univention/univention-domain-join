@@ -1,4 +1,5 @@
 from __future__ import print_function
+from shutil import copyfile
 import os
 import subprocess
 import sys
@@ -12,11 +13,11 @@ class ConflictChecker(object):
 		if login_manager == 'lightdm':
 			return self.lightdm_config_file_exists()
 		elif login_manager == 'lightdm_account_service':
-			print('Warning: The login won\'t work with your system, because you are using an incompatible login theme.')
-			print('         Please go to "System Settings" -> "Login Screen (LightDM)" and set your login theme to "Classic".')
+			print('Error: The login won\'t work with your system, because you are using an incompatible login theme.')
+			print('       Please go to "System Settings" -> "Login Screen (LightDM)" and set your login theme to "Classic".')
 		else:
-			print('Warning: Can\'t enable login with the login manager of your system.')
-			print('         Please use LightDM for full compatibility with UCS.')
+			print('Error: Can\'t enable login with the login manager of your system.')
+			print('       Please use LightDM for full compatibility with UCS.')
 		return False
 
 	def lightdm_config_file_exists(self):
@@ -55,6 +56,15 @@ class ConflictChecker(object):
 
 
 class LoginManagerConfigurator(ConflictChecker):
+
+	def backup(self, backup_dir):
+		if self.lightdm_config_file_exists():
+			os.makedirs(os.path.join(backup_dir, 'etc/lightdm/lightdm.conf.d'))
+			copyfile(
+				'/etc/lightdm/lightdm.conf.d/99-show-manual-userlogin.conf',
+				os.path.join(backup_dir, 'etc/lightdm/lightdm.conf.d/99-show-manual-userlogin.conf')
+			)
+
 	def enable_login_with_foreign_usernames(self):
 		# TODO: Kubuntu 16.04 uses sddm, which doesn't quite work so well unconfigured.
 		# Need to check more distros for compatibility...

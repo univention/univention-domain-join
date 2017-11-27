@@ -1,10 +1,12 @@
 from __future__ import print_function
+from shutil import copyfile
 import os
 import paramiko
 import pipes
 import stat
 import subprocess
 import sys
+
 
 from root_certificate_provider import RootCertificateProvider
 
@@ -33,6 +35,14 @@ class ConflictChecker(object):
 class LdapConfigurator(ConflictChecker):
 	def __init__(self):
 		self.hostname = subprocess.check_output(['hostname']).strip()
+
+	def backup(self, backup_dir):
+		if self.ldap_conf_exists():
+			os.makedirs(os.path.join(backup_dir, 'etc/ldap'))
+			copyfile(
+				'/etc/ldap/ldap.conf',
+				os.path.join(backup_dir, 'etc/ldap/ldap.conf')
+			)
 
 	def configure_ldap(self, master_ip, master_pw, ldap_master, ldap_base):
 		RootCertificateProvider().provide_ucs_root_certififcate(ldap_master)

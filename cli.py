@@ -8,9 +8,7 @@ import subprocess
 OUTPUT_SINK = open(os.devnull, 'w')
 
 # TODO: Make sure dependent packets are installed in the Debian package.
-# TODO: Back up (with timestamp) all files that will be touched into /var/univention-backup .
-#       Leaving out any old LDAP objects.
-# TODO: Is it required  for securtiy to do ssh_client.load_system_host_keys('/root/.ssh/known_hosts')
+# TODO: Is it required  for security to do ssh_client.load_system_host_keys('/root/.ssh/known_hosts')
 #       instead of ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy()) ?
 # TODO: Should joining via a DC slave be possible?
 # TODO: Add join_steps backup functions.

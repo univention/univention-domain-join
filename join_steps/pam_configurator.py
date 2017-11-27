@@ -1,4 +1,5 @@
 from __future__ import print_function
+from shutil import copyfile
 import os
 import subprocess
 import sys
@@ -24,6 +25,21 @@ class ConflictChecker(object):
 
 
 class PamConfigurator(ConflictChecker):
+
+	def backup(self, backup_dir):
+		if self.home_dir_conf_file_exists() or self.group_conf_file_exists():
+			os.makedirs(os.path.join(backup_dir, 'usr/share/pam-configs'))
+		if self.home_dir_conf_file_exists():
+			copyfile(
+				'/usr/share/pam-configs/ucs_mkhomedir',
+				os.path.join(backup_dir, 'usr/share/pam-configs/ucs_mkhomedir')
+			)
+		if self.group_conf_file_exists():
+			copyfile(
+				'/usr/share/pam-configs/local_groups',
+				os.path.join(backup_dir, 'usr/share/pam-configs/local_groups')
+			)
+
 	def setup_pam(self):
 		self.configure_home_dir_creation()
 		self.add_users_to_requiered_system_groups()

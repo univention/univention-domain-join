@@ -1,4 +1,5 @@
 from __future__ import print_function
+from shutil import copyfile
 import os
 import stat
 import subprocess
@@ -27,6 +28,21 @@ class ConflictChecker(object):
 
 
 class SssdConfigurator(ConflictChecker):
+
+	def backup(self, backup_dir):
+		if self.sssd_conf_file_exists():
+			os.makedirs(os.path.join(backup_dir, 'etc/sssd'))
+			copyfile(
+				'/etc/sssd/sssd.conf',
+				os.path.join(backup_dir, 'etc/sssd/sssd.conf')
+			)
+		if self.sssd_profile_file_exists():
+			os.makedirs(os.path.join(backup_dir, 'etc/auth-client-config/profile.d'))
+			copyfile(
+				'//etc/auth-client-config/profile.d/sss',
+				os.path.join(backup_dir, 'etc/auth-client-config/profile.d/sss')
+			)
+
 	def setup_sssd(self, master_ip, ldap_master, ldap_base, kerberos_realm):
 		self.hostname = subprocess.check_output(['hostname']).strip()
 		self.ldap_password = subprocess.check_output(['cat', '/etc/machine.secret']).strip()

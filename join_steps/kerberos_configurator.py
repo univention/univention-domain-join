@@ -1,4 +1,5 @@
 from __future__ import print_function
+from shutil import copyfile
 import os
 import subprocess
 import sys
@@ -8,9 +9,9 @@ OUTPUT_SINK = open(os.devnull, 'w')
 
 class ConflictChecker(object):
 	def configuration_conflicts(self):
-		return self.config_file_contains_master()
+		return self.config_file_exists()
 
-	def config_file_contains_master(self):
+	def config_file_exists(self):
 		if os.path.isfile('/etc/krb5.conf'):
 			print('Warning: /etc/krb5.conf already exists.')
 			return True
@@ -18,6 +19,15 @@ class ConflictChecker(object):
 
 
 class KerberosConfigurator(ConflictChecker):
+	def backup(self, backup_dir):
+		if self.config_file_exists():
+			if not os.path.exists(os.path.join(backup_dir, 'etc')):
+				os.makedirs(os.path.join(backup_dir, 'etc'))
+			copyfile(
+				'/etc/krb5.conf',
+				os.path.join(backup_dir, 'etc/krb5.conf')
+			)
+
 	def configure_kerberos(self, kerberos_realm, master_ip, ldap_master):
 		self.write_config_file(kerberos_realm, master_ip, ldap_master)
 		self.synchronize_time_with_master(ldap_master)

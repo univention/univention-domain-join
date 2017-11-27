@@ -1,3 +1,4 @@
+import time
 import os
 
 from join_steps.kerberos_configurator import KerberosConfigurator
@@ -21,17 +22,36 @@ class Joiner(object):
 		assert os.geteuid() == 0, 'This tool must be run as the root user.'
 
 	def check_if_join_is_possible_without_problems(self):
-		if (
-			LdapConfigurator().configuration_conflicts() or
-			SssdConfigurator().configuration_conflicts() or
-			PamConfigurator().configuration_conflicts() or
-			LoginManagerConfigurator().configuration_conflicts() or
+		# Using the list here, because `if ... or ... :` wouldn't show all conflicts.
+		conflicts = [
+			LdapConfigurator().configuration_conflicts(),
+			SssdConfigurator().configuration_conflicts(),
+			PamConfigurator().configuration_conflicts(),
+			LoginManagerConfigurator().configuration_conflicts(),
 			KerberosConfigurator().configuration_conflicts()
-		):
-			raise Exception('Joining the UCS is not safely possible. Use the --force parameter to ignore this warning.')
+		]
+		if True in conflicts:
+			raise Exception(
+				'Joining the UCS is not safely possible.\n'
+				'Please resolve all problems and run this tool again, or '
+				'use the --force parameter to ignore this warning.'
+			)
 
 	def create_backup_of_config_files(self):
-		pass
+		backup_dir = self.create_backup_dir()
+
+		LdapConfigurator().backup(backup_dir)
+		SssdConfigurator().backup(backup_dir)
+		PamConfigurator().backup(backup_dir)
+		LoginManagerConfigurator().backup(backup_dir)
+		KerberosConfigurator().backup(backup_dir)
+
+		print('Created a backup of all configuration files, that will be modified at \'%s\'.' % backup_dir)
+
+	def create_backup_dir(self):
+		backup_dir = os.path.join('/var/univention-backup', time.strftime("%Y%m%d%H%M%S", time.gmtime()))
+		os.makedirs(backup_dir)
+		return backup_dir
 
 	def join_domain(self, force=False):
 		LdapConfigurator().configure_ldap(self.master_ip, self.master_pw, self.ldap_master, self.ldap_base)

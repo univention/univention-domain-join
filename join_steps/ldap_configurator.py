@@ -25,11 +25,13 @@ class ConflictChecker(object):
 	def machine_exists_in_ldap(self, master_ip, master_pw, ldap_base):
 		udm_command = ['udm', 'computers/ubuntu', 'list', '--position', 'cn=%s,cn=computers,%s' % (self.hostname, ldap_base)]
 		escaped_udm_command = ' '.join([pipes.quote(x) for x in udm_command])
-		with paramiko.SSHClient() as ssh_client:
-			ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-			ssh_client.connect(master_ip, username='root', password=master_pw)
-			stdin, stdout, stderr = ssh_client.exec_command(escaped_udm_command)
-			return stdout.channel.recv_exit_status() == 0
+		ssh_client = paramiko.SSHClient()
+		ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+		ssh_client.connect(master_ip, username='root', password=master_pw)
+		stdin, stdout, stderr = ssh_client.exec_command(escaped_udm_command)
+		machine_exists = stdout.channel.recv_exit_status() == 0
+		ssh_client.close()
+		return machine_exists
 
 
 class LdapConfigurator(ConflictChecker):
@@ -62,12 +64,13 @@ class LdapConfigurator(ConflictChecker):
 
 		udm_command = ['udm', 'computers/ubuntu', 'remove', '--dn', 'cn=%s,cn=computers,%s' % (self.hostname, ldap_base)]
 		escaped_udm_command = ' '.join([pipes.quote(x) for x in udm_command])
-		with paramiko.SSHClient() as ssh_client:
-			ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-			ssh_client.connect(master_ip, username='root', password=master_pw)
-			stdin, stdout, stderr = ssh_client.exec_command(escaped_udm_command)
-			if stdout.channel.recv_exit_status() != 0:
-				raise Exception('Removing the old LDAP entry for this computer failed.')
+		ssh_client = paramiko.SSHClient()
+		ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+		ssh_client.connect(master_ip, username='root', password=master_pw)
+		stdin, stdout, stderr = ssh_client.exec_command(escaped_udm_command)
+		if stdout.channel.recv_exit_status() != 0:
+			raise Exception('Removing the old LDAP entry for this computer failed.')
+		ssh_client.close()
 
 		print('Done.')
 
@@ -88,12 +91,13 @@ class LdapConfigurator(ConflictChecker):
 			'--set', 'operatingSystemVersion=%s' % (release,)
 		]
 		escaped_udm_command = ' '.join([pipes.quote(x) for x in udm_command])
-		with paramiko.SSHClient() as ssh_client:
-			ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-			ssh_client.connect(master_ip, username='root', password=master_pw)
-			stdin, stdout, stderr = ssh_client.exec_command(escaped_udm_command)
-			if stdout.channel.recv_exit_status() != 0:
-				raise Exception('Adding a LDAP object for this computer didn\'t work.')
+		ssh_client = paramiko.SSHClient()
+		ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+		ssh_client.connect(master_ip, username='root', password=master_pw)
+		stdin, stdout, stderr = ssh_client.exec_command(escaped_udm_command)
+		if stdout.channel.recv_exit_status() != 0:
+			raise Exception('Adding a LDAP object for this computer didn\'t work.')
+		ssh_client.close()
 
 		print('Done.')
 

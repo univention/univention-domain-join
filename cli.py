@@ -40,26 +40,28 @@ def get_distribution():
 
 def get_masters_root_password(master_ip):
 	password = getpass(prompt='Please enter the password for root@%s: ' % (master_ip,))
-	with paramiko.SSHClient() as ssh_client:
-		ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-		try:
-			ssh_client.connect(master_ip, username='root', password=password)
-		except paramiko.ssh_exception.BadAuthenticationType:
-			raise Exception('It\'s not possible to connect to the DC master via ssh, with the given password.')
+	ssh_client = paramiko.SSHClient()
+	ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+	try:
+		ssh_client.connect(master_ip, username='root', password=password)
+	except paramiko.ssh_exception.BadAuthenticationType:
+		raise Exception('It\'s not possible to connect to the DC master via ssh, with the given password.')
+	ssh_client.close()
 	return password
 
 
 def get_ucr_variables_from_master(master_ip, master_pw):
-	with paramiko.SSHClient() as ssh_client:
-		ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-		ssh_client.connect(master_ip, username='root', password=master_pw)
-		stdin, stdout, stderr = ssh_client.exec_command('ucr shell | grep -v ^hostname=')
-		if stdout.channel.recv_exit_status() != 0:
-			raise Exception('Fetching the UCR variables from the master failed.')
-		ucr_variables = {}
-		for raw_ucr_variable in stdout:
-			key, value = raw_ucr_variable.strip().split('=', 1)
-			ucr_variables[key] = value
+	ssh_client = paramiko.SSHClient()
+	ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+	ssh_client.connect(master_ip, username='root', password=master_pw)
+	stdin, stdout, stderr = ssh_client.exec_command('ucr shell | grep -v ^hostname=')
+	if stdout.channel.recv_exit_status() != 0:
+		raise Exception('Fetching the UCR variables from the master failed.')
+	ucr_variables = {}
+	for raw_ucr_variable in stdout:
+		key, value = raw_ucr_variable.strip().split('=', 1)
+		ucr_variables[key] = value
+	ssh_client.close()
 	return ucr_variables
 
 

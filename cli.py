@@ -2,7 +2,6 @@ from getpass import getpass
 import argparse
 import importlib
 import os
-import paramiko
 import subprocess
 
 OUTPUT_SINK = open(os.devnull, 'w')
@@ -10,7 +9,7 @@ OUTPUT_SINK = open(os.devnull, 'w')
 # TODO: Make sure dependent packets are installed in the Debian package.
 # TODO: Is it required  for security to do ssh_client.load_system_host_keys('/root/.ssh/known_hosts')
 #       instead of ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy()) ?
-# TODO: Should joining via a DC slave be possible?
+# TODO: Should joining via a DC slave be possible? Would this work with this script?
 # TODO: Add join_steps backup functions.
 
 
@@ -40,28 +39,28 @@ def get_distribution():
 
 def get_masters_root_password(master_ip):
 	password = getpass(prompt='Please enter the password for root@%s: ' % (master_ip,))
-	ssh_client = paramiko.SSHClient()
-	ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-	try:
-		ssh_client.connect(master_ip, username='root', password=password)
-	except paramiko.ssh_exception.BadAuthenticationType:
+	ssh_process = subprocess.Popen(
+		['sshpass', '-d0', 'ssh', 'root@%s' % (master_ip,), 'echo foo'],
+		stdin=subprocess.PIPE, stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
+	)
+	ssh_process.communicate(password)
+	if ssh_process.returncode != 0:
 		raise Exception('It\'s not possible to connect to the DC master via ssh, with the given password.')
-	ssh_client.close()
 	return password
 
 
 def get_ucr_variables_from_master(master_ip, master_pw):
-	ssh_client = paramiko.SSHClient()
-	ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-	ssh_client.connect(master_ip, username='root', password=master_pw)
-	stdin, stdout, stderr = ssh_client.exec_command('ucr shell | grep -v ^hostname=')
-	if stdout.channel.recv_exit_status() != 0:
+	ssh_process = subprocess.Popen(
+		['sshpass', '-d0', 'ssh', 'root@%s' % (master_ip,), 'ucr shell | grep -v ^hostname='],
+		stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+	)
+	stdout, stderr = ssh_process.communicate(master_pw)
+	if ssh_process.returncode != 0:
 		raise Exception('Fetching the UCR variables from the master failed.')
 	ucr_variables = {}
-	for raw_ucr_variable in stdout:
+	for raw_ucr_variable in stdout.splitlines():
 		key, value = raw_ucr_variable.strip().split('=', 1)
 		ucr_variables[key] = value
-	ssh_client.close()
 	return ucr_variables
 
 

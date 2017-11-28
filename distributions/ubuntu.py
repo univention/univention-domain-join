@@ -49,7 +49,7 @@ class Joiner(object):
 		print('Created a backup of all configuration files, that will be modified at \'%s\'.' % backup_dir)
 
 	def create_backup_dir(self):
-		backup_dir = os.path.join('/var/univention-backup', time.strftime("%Y%m%d%H%M%S", time.gmtime()))
+		backup_dir = os.path.join('/var/univention-backup', time.strftime("%Y%m%d%H%M%S_domain-join", time.gmtime()))
 		os.makedirs(backup_dir)
 		return backup_dir
 

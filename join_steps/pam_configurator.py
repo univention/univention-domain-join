@@ -39,6 +39,11 @@ class PamConfigurator(ConflictChecker):
 				'/usr/share/pam-configs/local_groups',
 				os.path.join(backup_dir, 'usr/share/pam-configs/local_groups')
 			)
+		os.makedirs(os.path.join(backup_dir, 'etc/security'))
+		copyfile(
+			'/etc/security/group.conf',
+			os.path.join(backup_dir, 'etc/security/group.conf')
+		)
 
 	def setup_pam(self):
 		self.configure_home_dir_creation()

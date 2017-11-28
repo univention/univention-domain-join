@@ -1,6 +1,7 @@
 import time
 import os
 
+from join_steps.hosts_configurator import HostsConfigurator
 from join_steps.kerberos_configurator import KerberosConfigurator
 from join_steps.ldap_configurator import LdapConfigurator
 from join_steps.login_manager_configurator import LoginManagerConfigurator
@@ -40,6 +41,7 @@ class Joiner(object):
 	def create_backup_of_config_files(self):
 		backup_dir = self.create_backup_dir()
 
+		HostsConfigurator().backup(backup_dir)
 		LdapConfigurator().backup(backup_dir)
 		SssdConfigurator().backup(backup_dir)
 		PamConfigurator().backup(backup_dir)
@@ -54,9 +56,10 @@ class Joiner(object):
 		return backup_dir
 
 	def join_domain(self, force=False):
+		HostsConfigurator().configure_hosts(self.master_ip, self.ldap_master)
 		LdapConfigurator().configure_ldap(self.master_ip, self.master_pw, self.ldap_master, self.ldap_base)
 		SssdConfigurator().setup_sssd(self.master_ip, self.ldap_master, self.ldap_base, self.kerberos_realm)
 		PamConfigurator().setup_pam()
 		LoginManagerConfigurator().enable_login_with_foreign_usernames()
 		KerberosConfigurator().configure_kerberos(self.kerberos_realm, self.master_ip, self.ldap_master)
-		# TODO: Stop avahi service like Jan-Christoph does?!
+		# TODO: Stop avahi service like Jan-Christoph does?

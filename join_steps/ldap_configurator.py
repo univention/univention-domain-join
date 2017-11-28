@@ -81,7 +81,7 @@ class LdapConfigurator(ConflictChecker):
 		release_id = subprocess.check_output(['lsb_release', '-is'])
 		release = subprocess.check_output(['lsb_release', '-rs'])
 
-		# TODO: Also add MAC address.
+		# TODO: Also add MAC address. Which NIC's address should I use?
 		udm_command = [
 			'udm', 'computers/ubuntu', 'create',
 			'--position', 'cn=computers,%s' % (ldap_base,),

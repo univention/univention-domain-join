@@ -7,19 +7,8 @@ import subprocess
 OUTPUT_SINK = open(os.devnull, 'w')
 
 # TODO: Make sure dependent packets are installed in the Debian package.
-# TODO: Is it required  for security to do ssh_client.load_system_host_keys('/root/.ssh/known_hosts')
-#       instead of ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy()) ?
 # TODO: Should joining via a DC slave be possible? Would this work with this script?
-# TODO: Add join_steps backup functions.
-
-
-def check_if_dns_is_set_up_correctly(master_ip):
-	# TODO: Write an /etc/hosts entry instead?
-	# TODO: Is 'host' usable across distributions?
-	master_dns_works = 0 == subprocess.call(
-		['host', master_ip], stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
-	)
-	assert master_dns_works, 'The DC master is not set as DNS server.'
+# TODO: What should be done about /etc/ldap/ldap.conf and /etc/krb5.conf? They always exist and make --force necessary.
 
 
 def get_joiner_for_this_distribution(master_ip):
@@ -38,6 +27,7 @@ def get_distribution():
 
 
 def get_masters_root_password(master_ip):
+	# TODO: Don't ask for the password if ssh works passwordless already.
 	password = getpass(prompt='Please enter the password for root@%s: ' % (master_ip,))
 	ssh_process = subprocess.Popen(
 		['sshpass', '-d0', 'ssh', 'root@%s' % (master_ip,), 'echo foo'],
@@ -72,7 +62,6 @@ if __name__ == '__main__':
 	parser.add_argument('master_ip', help='IP of the DC master.')
 	args = parser.parse_args()
 
-	check_if_dns_is_set_up_correctly(args.master_ip)
 	distribution_joiner = get_joiner_for_this_distribution(args.master_ip)
 
 	if not args.force:

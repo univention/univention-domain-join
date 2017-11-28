@@ -77,7 +77,7 @@ class PamConfigurator(ConflictChecker):
 		print('Adding  groups to /etc/security/group.conf ', end='... ')
 		sys.stdout.flush()
 
-		# TODO: Research which groups would be adequate (on Ubuntu).
+		# TODO: Would additional groups be appropriate here?
 		with open('/etc/security/group.conf', 'a') as groups_file:
 			groups_file.write(
 				'*;*;*;Al0000-2400;audio,cdrom,dialout,floppy,plugdev,adm\n'

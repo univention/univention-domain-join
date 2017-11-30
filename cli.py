@@ -30,7 +30,7 @@ def get_masters_root_password(master_ip):
 	# TODO: Don't ask for the password if ssh works passwordless already.
 	password = getpass(prompt='Please enter the password for root@%s: ' % (master_ip,))
 	ssh_process = subprocess.Popen(
-		['sshpass', '-d0', 'ssh', 'root@%s' % (master_ip,), 'echo foo'],
+		['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', 'root@%s' % (master_ip,), 'echo foo'],
 		stdin=subprocess.PIPE, stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
 	)
 	ssh_process.communicate(password)
@@ -41,7 +41,7 @@ def get_masters_root_password(master_ip):
 
 def get_ucr_variables_from_master(master_ip, master_pw):
 	ssh_process = subprocess.Popen(
-		['sshpass', '-d0', 'ssh', 'root@%s' % (master_ip,), 'ucr shell | grep -v ^hostname='],
+		['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', 'root@%s' % (master_ip,), 'ucr shell | grep -v ^hostname='],
 		stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
 	)
 	stdout, stderr = ssh_process.communicate(master_pw)

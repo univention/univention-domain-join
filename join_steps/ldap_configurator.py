@@ -26,7 +26,7 @@ class ConflictChecker(object):
 		udm_command = ['udm', 'computers/ubuntu', 'list', '--position', 'cn=%s,cn=computers,%s' % (self.hostname, ldap_base)]
 		escaped_udm_command = ' '.join([pipes.quote(x) for x in udm_command])
 		ssh_process = subprocess.Popen(
-			['sshpass', '-d0', 'ssh', 'root@%s' % (master_ip,), escaped_udm_command],
+			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', 'root@%s' % (master_ip,), escaped_udm_command],
 			stdin=subprocess.PIPE, stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
 		)
 		ssh_process.communicate(master_pw)
@@ -65,7 +65,7 @@ class LdapConfigurator(ConflictChecker):
 		udm_command = ['udm', 'computers/ubuntu', 'remove', '--dn', 'cn=%s,cn=computers,%s' % (self.hostname, ldap_base)]
 		escaped_udm_command = ' '.join([pipes.quote(x) for x in udm_command])
 		ssh_process = subprocess.Popen(
-			['sshpass', '-d0', 'ssh', 'root@%s' % (master_ip,), escaped_udm_command],
+			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', 'root@%s' % (master_ip,), escaped_udm_command],
 			stdin=subprocess.PIPE, stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
 		)
 		ssh_process.communicate(master_pw)
@@ -92,7 +92,7 @@ class LdapConfigurator(ConflictChecker):
 		]
 		escaped_udm_command = ' '.join([pipes.quote(x) for x in udm_command])
 		ssh_process = subprocess.Popen(
-			['sshpass', '-d0', 'ssh', 'root@%s' % (master_ip,), escaped_udm_command],
+			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', 'root@%s' % (master_ip,), escaped_udm_command],
 			stdin=subprocess.PIPE, stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
 		)
 		ssh_process.communicate(master_pw)

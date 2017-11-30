@@ -23,15 +23,7 @@ class Joiner(object):
 		assert os.geteuid() == 0, 'This tool must be run as the root user.'
 
 	def check_if_join_is_possible_without_problems(self):
-		# Using the list here, because `if ... or ... :` wouldn't show all conflicts.
-		conflicts = [
-			LdapConfigurator().configuration_conflicts(),
-			SssdConfigurator().configuration_conflicts(),
-			PamConfigurator().configuration_conflicts(),
-			LoginManagerConfigurator().configuration_conflicts(),
-			KerberosConfigurator().configuration_conflicts()
-		]
-		if True in conflicts:
+		if LoginManagerConfigurator().configuration_conflicts():
 			raise Exception(
 				'Joining the UCS is not safely possible.\n'
 				'Please resolve all problems and run this tool again, or '

@@ -6,10 +6,6 @@ import subprocess
 
 OUTPUT_SINK = open(os.devnull, 'w')
 
-# TODO: Make sure dependent packets are installed in the Debian package.
-# TODO: Should joining via a DC slave be possible? Would this work with this script?
-# TODO: What should be done about /etc/ldap/ldap.conf and /etc/krb5.conf? They always exist and make --force necessary.
-
 
 def get_joiner_for_this_distribution(master_ip):
 	distribution = get_distribution()
@@ -58,7 +54,7 @@ if __name__ == '__main__':
 	parser = argparse.ArgumentParser(
 		description='Tool for joining a client computer into an UCS domain.'
 	)
-	parser.add_argument('--force', action='store_true', help='Force the execution of the join steps, even if this overwrites configuration files.')
+	parser.add_argument('--force', action='store_true', help='Force the execution of the join steps. Manual fixing will probably be required after this.')
 	parser.add_argument('master_ip', help='IP of the DC master.')
 	args = parser.parse_args()
 

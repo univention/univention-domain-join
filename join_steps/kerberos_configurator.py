@@ -8,9 +8,6 @@ OUTPUT_SINK = open(os.devnull, 'w')
 
 
 class ConflictChecker(object):
-	def configuration_conflicts(self):
-		return self.config_file_exists()
-
 	def config_file_exists(self):
 		if os.path.isfile('/etc/krb5.conf'):
 			print('Warning: /etc/krb5.conf already exists.')

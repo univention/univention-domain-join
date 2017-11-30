@@ -12,10 +12,6 @@ OUTPUT_SINK = open(os.devnull, 'w')
 
 
 class ConflictChecker(object):
-	def configuration_conflicts(self):
-		# self.machine_exists_in_ldap() is not considered a problem here.
-		return self.ldap_conf_exists()
-
 	def ldap_conf_exists(self):
 		if os.path.isfile('/etc/ldap/ldap.conf'):
 			print('Warning: /etc/ldap/ldap.conf already exists.')

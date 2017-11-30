@@ -10,21 +10,18 @@ OUTPUT_SINK = open(os.devnull, 'w')
 class ConflictChecker(object):
 	def configuration_conflicts(self):
 		login_manager = self.determin_used_login_manager()
-		if login_manager == 'lightdm':
-			return self.lightdm_config_file_exists()
+		if (
+			login_manager == 'lightdm' or
+			(login_manager == 'lightdm_account_service' and self.theme_with_accountsservice_is_ok())
+		):
+			return False
 		elif login_manager == 'lightdm_account_service':
 			print('Error: The login won\'t work with your system, because you are using an incompatible login theme.')
 			print('       Please go to "System Settings" -> "Login Screen (LightDM)" and set your login theme to "Classic".')
 		else:
 			print('Error: Can\'t enable login with the login manager of your system.')
 			print('       Please use LightDM for full compatibility with UCS.')
-		return False
-
-	def lightdm_config_file_exists(self):
-		if os.path.isfile('/etc/lightdm/lightdm.conf.d/99-show-manual-userlogin.conf'):
-			print('Warning: /etc/lightdm/lightdm.conf.d/99-show-manual-userlogin.conf already exists.')
-			return True
-		return False
+		return True
 
 	def determin_used_login_manager(self):
 		with open('/etc/X11/default-display-manager', 'r') as login_manager_file:
@@ -37,6 +34,12 @@ class ConflictChecker(object):
 				return 'lightdm_account_service'
 
 		return login_manager
+
+	def lightdm_config_file_exists(self):
+		if os.path.isfile('/etc/lightdm/lightdm.conf.d/99-show-manual-userlogin.conf'):
+			print('Warning: /etc/lightdm/lightdm.conf.d/99-show-manual-userlogin.conf already exists.')
+			return True
+		return False
 
 	def kde_greeter_is_installed(self):
 		return 0 == subprocess.call(

@@ -8,9 +8,6 @@ OUTPUT_SINK = open(os.devnull, 'w')
 
 
 class ConflictChecker(object):
-	def configuration_conflicts(self):
-		return self.group_conf_file_exists() and self.home_dir_conf_file_exists()
-
 	def home_dir_conf_file_exists(self):
 		if os.path.isfile('/usr/share/pam-configs/ucs_mkhomedir'):
 			print('Warning: /usr/share/pam-configs/ucs_mkhomedir already exists.')
@@ -27,14 +24,16 @@ class ConflictChecker(object):
 class PamConfigurator(ConflictChecker):
 
 	def backup(self, backup_dir):
-		if self.home_dir_conf_file_exists() or self.group_conf_file_exists():
+		copy_home_dir_conf = self.home_dir_conf_file_exists()
+		copy_group_conf = self.group_conf_file_exists()
+		if copy_home_dir_conf or copy_group_conf:
 			os.makedirs(os.path.join(backup_dir, 'usr/share/pam-configs'))
-		if self.home_dir_conf_file_exists():
+		if copy_home_dir_conf:
 			copyfile(
 				'/usr/share/pam-configs/ucs_mkhomedir',
 				os.path.join(backup_dir, 'usr/share/pam-configs/ucs_mkhomedir')
 			)
-		if self.group_conf_file_exists():
+		if copy_group_conf:
 			copyfile(
 				'/usr/share/pam-configs/local_groups',
 				os.path.join(backup_dir, 'usr/share/pam-configs/local_groups')
@@ -104,7 +103,6 @@ class PamConfigurator(ConflictChecker):
 			'Auth:\n' \
 			'	    required    pam_group.so use_first_pass\n'
 
-		# TODO: Is overwriting OK here?
 		with open('/usr/share/pam-configs/local_groups', 'w') as conf_file:
 			conf_file.write(group_conf)
 

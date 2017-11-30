@@ -11,9 +11,6 @@ OUTPUT_SINK = open(os.devnull, 'w')
 
 
 class ConflictChecker(object):
-	def configuration_conflicts(self):
-		return self.sssd_conf_file_exists() and self.sssd_profile_file_exists()
-
 	def sssd_conf_file_exists(self):
 		if os.path.isfile('/etc/sssd/sssd.conf'):
 			print('Warning: /etc/sssd/sssd.conf already exists.')

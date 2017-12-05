@@ -1,0 +1,6 @@
+univention-domain-join (0.1-1) unstable; urgency=low
+
+  * initial release
+
+ -- Richard Ulmer <ulmer@univention.de>  Mon, 4 Dec 2017 12:28:23 +0100
+

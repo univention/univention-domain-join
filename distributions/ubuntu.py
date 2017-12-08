@@ -1,7 +1,7 @@
+import dns.resolver
 import time
 import os
 
-from join_steps.hosts_configurator import HostsConfigurator
 from join_steps.kerberos_configurator import KerberosConfigurator
 from join_steps.ldap_configurator import LdapConfigurator
 from join_steps.login_manager_configurator import LoginManagerConfigurator
@@ -10,17 +10,22 @@ from join_steps.sssd_configurator import SssdConfigurator
 
 
 class Joiner(object):
-	def __init__(self, masters_ucr_variables, master_ip, master_pw):
+	def __init__(self, masters_ucr_variables, master, master_pw):
 		self.check_if_this_is_run_as_root()
 
-		self.master_ip = master_ip
 		self.master_pw = master_pw
+		self.master_ip = self.get_master_ip(master)
 		self.ldap_master = masters_ucr_variables['ldap_master']
 		self.ldap_base = masters_ucr_variables['ldap_base']
 		self.kerberos_realm = masters_ucr_variables['kerberos_realm']
 
 	def check_if_this_is_run_as_root(self):
 		assert os.geteuid() == 0, 'This tool must be run as the root user.'
+
+	def get_master_ip(self, master):
+		resolver = dns.resolver.Resolver()
+		response = resolver.query(master, 'A')
+		return response[0].address
 
 	def check_if_join_is_possible_without_problems(self):
 		if LoginManagerConfigurator().configuration_conflicts():
@@ -33,7 +38,6 @@ class Joiner(object):
 	def create_backup_of_config_files(self):
 		backup_dir = self.create_backup_dir()
 
-		HostsConfigurator().backup(backup_dir)
 		LdapConfigurator().backup(backup_dir)
 		SssdConfigurator().backup(backup_dir)
 		PamConfigurator().backup(backup_dir)
@@ -48,8 +52,7 @@ class Joiner(object):
 		return backup_dir
 
 	def join_domain(self, force=False):
-		HostsConfigurator().configure_hosts(self.master_ip, self.ldap_master)
-		LdapConfigurator().configure_ldap(self.master_ip, self.master_pw, self.ldap_master, self.ldap_base)
+		LdapConfigurator().configure_ldap(self.ldap_master, self.master_pw, self.ldap_base)
 		SssdConfigurator().setup_sssd(self.master_ip, self.ldap_master, self.ldap_base, self.kerberos_realm)
 		PamConfigurator().setup_pam()
 		LoginManagerConfigurator().enable_login_with_foreign_usernames()

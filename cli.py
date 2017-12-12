@@ -13,7 +13,7 @@ def get_domainname():
 	try:
 		domainname = socket.getfqdn().split('.', 1)[1]
 	except IndexError:
-		raise Exception('The UCS domain is unknown. Configure the domain name for this computer, or use the --domainname parameter.')
+		raise Exception('The UCS domain is unknown. Please set your UCS domain as the domain name of this computer.')
 	return domainname
 
 
@@ -73,10 +73,9 @@ if __name__ == '__main__':
 		description='Tool for joining a client computer into an UCS domain.'
 	)
 	parser.add_argument('--force', action='store_true', help='Force the execution of the join steps. Manual fixing will probably be required after this.')
-	parser.add_argument('--domainname', help='The UCS domain to join (e.g. "mydomain.intranet"). Only necessary if the domain name is not configured correctly.')
 	args = parser.parse_args()
 
-	domainname = get_domainname() if args.domainname is None else args.domainname
+	domainname = get_domainname()
 	master = get_master_of_domain(domainname)
 
 	distribution_joiner = get_joiner_for_this_distribution(master)

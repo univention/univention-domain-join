@@ -41,7 +41,7 @@ class SssdConfigurator(ConflictChecker):
 			)
 
 	def setup_sssd(self, master_ip, ldap_master, ldap_base, kerberos_realm):
-		self.hostname = subprocess.check_output(['hostname']).strip()
+		self.hostname = subprocess.check_output(['hostname', '-s']).strip()
 		self.ldap_password = subprocess.check_output(['cat', '/etc/machine.secret']).strip()
 		RootCertificateProvider().provide_ucs_root_certififcate(ldap_master)
 

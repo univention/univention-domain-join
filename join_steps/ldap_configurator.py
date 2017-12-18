@@ -32,7 +32,7 @@ class ConflictChecker(object):
 
 class LdapConfigurator(ConflictChecker):
 	def __init__(self):
-		self.hostname = subprocess.check_output(['hostname']).strip()
+		self.hostname = subprocess.check_output(['hostname', '-s']).strip()
 
 	def backup(self, backup_dir):
 		if self.ldap_conf_exists():

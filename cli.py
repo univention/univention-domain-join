@@ -26,13 +26,13 @@ def get_master_of_domain(domain):
 	return response[0].target.to_text()
 
 
-def get_joiner_for_this_distribution(master):
+def get_joiner_for_this_distribution(master, skip_login_manager):
 	distribution = get_distribution()
 	try:
 		distribution_join_module = importlib.import_module('distributions.%s' % (distribution.lower(),))
 		master_pw = get_masters_root_password(master)
 		masters_ucr_variables = get_ucr_variables_from_master(master, master_pw)
-		return distribution_join_module.Joiner(masters_ucr_variables, master, master_pw)
+		return distribution_join_module.Joiner(masters_ucr_variables, master, master_pw, skip_login_manager)
 	except ImportError:
 		raise Exception('The used distribution "%s" is not supported.' % (distribution,))
 
@@ -72,15 +72,14 @@ if __name__ == '__main__':
 	parser = argparse.ArgumentParser(
 		description='Tool for joining a client computer into an UCS domain.'
 	)
-	parser.add_argument('--force', action='store_true', help='Force the execution of the join steps. Manual fixing will probably be required after this.')
+	parser.add_argument('--skip-login-manager', action='store_true', help='Do not configure the login manager.')
 	args = parser.parse_args()
 
 	domainname = get_domainname()
 	master = get_master_of_domain(domainname)
 
-	distribution_joiner = get_joiner_for_this_distribution(master)
+	distribution_joiner = get_joiner_for_this_distribution(master, args.skip_login_manager)
 
-	if not args.force:
-		distribution_joiner.check_if_join_is_possible_without_problems()
+	distribution_joiner.check_if_join_is_possible_without_problems()
 	distribution_joiner.create_backup_of_config_files()
 	distribution_joiner.join_domain()

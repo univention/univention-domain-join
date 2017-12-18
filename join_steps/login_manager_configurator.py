@@ -10,17 +10,16 @@ OUTPUT_SINK = open(os.devnull, 'w')
 class ConflictChecker(object):
 	def configuration_conflicts(self):
 		login_manager = self.determin_used_login_manager()
-		if (
-			login_manager == 'lightdm' or
-			(login_manager == 'lightdm_account_service' and self.theme_with_accountsservice_is_ok())
-		):
+		if login_manager == 'lightdm':
+			return False
+		elif login_manager == 'gdm3':
 			return False
 		elif login_manager == 'lightdm_account_service':
 			print('Error: The login won\'t work with your system, because you are using an incompatible login theme.')
 			print('       Please go to "System Settings" -> "Login Screen (LightDM)" and set your login theme to "Classic".')
 		else:
 			print('Error: Can\'t enable login with the login manager of your system.')
-			print('       Please use LightDM for full compatibility with UCS.')
+			print('       Please use LightDM or GDM for full compatibility with UCS.')
 		return True
 
 	def determin_used_login_manager(self):
@@ -69,9 +68,10 @@ class LoginManagerConfigurator(ConflictChecker):
 			)
 
 	def enable_login_with_foreign_usernames(self):
-		# TODO: Kubuntu 16.04 uses sddm, which doesn't quite work so well unconfigured.
-		# Need to check more distros for compatibility...
-		self.enable_login_with_foreign_usernames_for_lightdm()
+		login_manager = self.determin_used_login_manager()
+		if login_manager == 'lightdm':
+			self.enable_login_with_foreign_usernames_for_lightdm()
+		# GDM doesn't require any configuration.
 
 	def enable_login_with_foreign_usernames_for_lightdm(self):
 		print('Writing /etc/lightdm/lightdm.conf.d/99-show-manual-userlogin.conf ', end='... ')

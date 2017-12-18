@@ -59,4 +59,4 @@ class Joiner(object):
 		if not self.skip_login_manager:
 			LoginManagerConfigurator().enable_login_with_foreign_usernames()
 		KerberosConfigurator().configure_kerberos(self.kerberos_realm, self.master_ip, self.ldap_master)
-		# TODO: Stop avahi service like Jan-Christoph does?
+		# TODO: Stop avahi service to prevent problems with sssd?

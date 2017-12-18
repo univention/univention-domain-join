@@ -60,3 +60,5 @@ class Joiner(object):
 			LoginManagerConfigurator().enable_login_with_foreign_usernames()
 		KerberosConfigurator().configure_kerberos(self.kerberos_realm, self.master_ip, self.ldap_master)
 		# TODO: Stop avahi service to prevent problems with sssd?
+		print('The domain join was successful.')
+		print('Please reboot the system.')

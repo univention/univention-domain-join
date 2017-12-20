@@ -1,9 +1,10 @@
-from __future__ import print_function
+import logging
 import os
 import subprocess
-import sys
 
 OUTPUT_SINK = open(os.devnull, 'w')
+
+userinfo_logger = logging.getLogger('userinfo')
 
 
 class RootCertificateProvider(object):
@@ -12,8 +13,7 @@ class RootCertificateProvider(object):
 			self.download_ucs_root_certificate(ldap_master)
 
 	def download_ucs_root_certificate(self, ldap_master):
-		print('Downloading the UCS root certificate to /etc/univention/ssl/ucsCA/CAcert.pem ', end='... ')
-		sys.stdout.flush()
+		userinfo_logger.info('Downloading the UCS root certificate to /etc/univention/ssl/ucsCA/CAcert.pem ')
 
 		if not os.path.exists('/etc/univention/ssl/ucsCA'):
 			os.makedirs('/etc/univention/ssl/ucsCA')
@@ -21,8 +21,6 @@ class RootCertificateProvider(object):
 			['wget', '-O', '/etc/univention/ssl/ucsCA/CAcert.pem', 'http://%s/ucs-root-ca.crt' % (ldap_master,)],
 			stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
 		)
-
-		print('Done.')
 
 	def ucs_root_certificate_available_localy(self):
 		return os.path.isfile('/etc/univention/ssl/ucsCA/CAcert.pem')

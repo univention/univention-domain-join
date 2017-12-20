@@ -1,25 +1,26 @@
-from __future__ import print_function
 from shutil import copyfile
+import logging
 import os
 import stat
 import subprocess
-import sys
 
 from root_certificate_provider import RootCertificateProvider
 
 OUTPUT_SINK = open(os.devnull, 'w')
 
+userinfo_logger = logging.getLogger('userinfo')
+
 
 class ConflictChecker(object):
 	def sssd_conf_file_exists(self):
 		if os.path.isfile('/etc/sssd/sssd.conf'):
-			print('Warning: /etc/sssd/sssd.conf already exists.')
+			userinfo_logger.warn('Warning: /etc/sssd/sssd.conf already exists.')
 			return True
 		return False
 
 	def sssd_profile_file_exists(self):
 		if os.path.isfile('/etc/auth-client-config/profile.d/sss'):
-			print('Warning: /etc/auth-client-config/profile.d/sss already exists.')
+			userinfo_logger.warn('Warning: /etc/auth-client-config/profile.d/sss already exists.')
 			return True
 		return False
 
@@ -51,8 +52,7 @@ class SssdConfigurator(ConflictChecker):
 		self.restart_sssd()
 
 	def write_sssd_conf(self, master_ip, ldap_master, ldap_base, kerberos_realm):
-		print('Writing /etc/sssd/sssd.conf ', end='... ')
-		sys.stdout.flush()
+		userinfo_logger.info('Writing /etc/sssd/sssd.conf ')
 
 		sssd_conf = \
 			'[sssd]\n' \
@@ -96,11 +96,8 @@ class SssdConfigurator(ConflictChecker):
 			conf_file.write(sssd_conf)
 		os.chmod('/etc/sssd/sssd.conf', stat.S_IREAD | stat.S_IWRITE)
 
-		print('Done.')
-
 	def write_sssd_profile(self):
-		print('Writing /etc/auth-client-config/profile.d/sss ', end='... ')
-		sys.stdout.flush()
+		userinfo_logger.info('Writing /etc/auth-client-config/profile.d/sss ')
 
 		sssd_profile = \
 			'[sss]\n' \
@@ -138,26 +135,18 @@ class SssdConfigurator(ConflictChecker):
 		with open('/etc/auth-client-config/profile.d/sss', 'w') as profile_file:
 			profile_file.write(sssd_profile)
 
-		print('Done.')
-
 	def configure_sssd(self):
-		print('Configuring auth config profile for sssd', end='... ')
-		sys.stdout.flush()
+		userinfo_logger.info('Configuring auth config profile for sssd')
 
 		subprocess.check_call(
 			['auth-client-config', '-a', '-p', 'sss'],
 			stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
 		)
 
-		print('Done.')
-
 	def restart_sssd(self):
-		print('Restarting sssd', end='... ')
-		sys.stdout.flush()
+		userinfo_logger.info('Restarting sssd')
 
 		subprocess.check_call(
 			['service', 'sssd', 'restart'],
 			stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
 		)
-
-		print('Done.')

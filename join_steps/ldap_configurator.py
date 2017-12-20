@@ -1,11 +1,9 @@
-from __future__ import print_function
 from shutil import copyfile
 import logging
 import os
 import pipes
 import stat
 import subprocess
-import sys
 
 from root_certificate_provider import RootCertificateProvider
 
@@ -17,7 +15,7 @@ OUTPUT_SINK = open(os.devnull, 'w')
 class ConflictChecker(object):
 	def ldap_conf_exists(self):
 		if os.path.isfile('/etc/ldap/ldap.conf'):
-			print('Warning: /etc/ldap/ldap.conf already exists.')
+			userinfo_logger.warn('Warning: /etc/ldap/ldap.conf already exists.')
 			return True
 		return False
 
@@ -58,8 +56,7 @@ class LdapConfigurator(ConflictChecker):
 		self.add_machine_to_ldap(password, ldap_master, master_pw, ldap_base)
 
 	def delete_machine_from_ldap(self, ldap_master, master_pw, ldap_base):
-		print('Removing old LDAP entry for this machine on the DC master', end='... ')
-		sys.stdout.flush()
+		userinfo_logger.info('Removing old LDAP entry for this machine on the DC master')
 
 		udm_command = ['udm', 'computers/ubuntu', 'remove', '--dn', 'cn=%s,cn=computers,%s' % (self.hostname, ldap_base)]
 		escaped_udm_command = ' '.join([pipes.quote(x) for x in udm_command])
@@ -72,11 +69,8 @@ class LdapConfigurator(ConflictChecker):
 			userinfo_logger.critical('Removing the old LDAP entry for this computer failed.')
 			exit(1)
 
-		print('Done.')
-
 	def add_machine_to_ldap(self, password, ldap_master, master_pw, ldap_base):
-		print('Adding LDAP entry for this machine on the DC master', end='... ')
-		sys.stdout.flush()
+		userinfo_logger.info('Adding LDAP entry for this machine on the DC master')
 
 		release_id = subprocess.check_output(['lsb_release', '-is'])
 		release = subprocess.check_output(['lsb_release', '-rs'])
@@ -100,11 +94,8 @@ class LdapConfigurator(ConflictChecker):
 			userinfo_logger.critical('Adding a LDAP object for this computer didn\'t work.')
 			exit(1)
 
-		print('Done.')
-
 	def create_ldap_conf_file(self, ldap_master, ldap_base):
-		print('Writing /etc/ldap/ldap.conf ', end='... ')
-		sys.stdout.flush()
+		userinfo_logger.info('Writing /etc/ldap/ldap.conf ')
 
 		ldap_conf = \
 			"TLS_CACERT /etc/univention/ssl/ucsCA/CAcert.pem\n" \
@@ -115,17 +106,12 @@ class LdapConfigurator(ConflictChecker):
 		with open('/etc/ldap/ldap.conf', 'w') as conf_file:
 			conf_file.write(ldap_conf)
 
-		print('Done.')
-
 	def create_machine_secret_file(self, password):
-		print('Writing /etc/machine.secret ', end='... ')
-		sys.stdout.flush()
+		userinfo_logger.info('Writing /etc/machine.secret ')
 
 		with open('/etc/machine.secret', 'w') as secret_file:
 			secret_file.write(password)
 		os.chmod('/etc/machine.secret', stat.S_IREAD)
-
-		print('Done.')
 
 	def random_password(self, length=20):
 		chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!"#$%&\'()*+,-./:;<=>?@[]^_`{|}~'

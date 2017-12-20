@@ -1,22 +1,23 @@
-from __future__ import print_function
 from shutil import copyfile
+import logging
 import os
 import subprocess
-import sys
 
 OUTPUT_SINK = open(os.devnull, 'w')
+
+userinfo_logger = logging.getLogger('userinfo')
 
 
 class ConflictChecker(object):
 	def home_dir_conf_file_exists(self):
 		if os.path.isfile('/usr/share/pam-configs/ucs_mkhomedir'):
-			print('Warning: /usr/share/pam-configs/ucs_mkhomedir already exists.')
+			userinfo_logger.warn('Warning: /usr/share/pam-configs/ucs_mkhomedir already exists.')
 			return True
 		return False
 
 	def group_conf_file_exists(self):
 		if os.path.isfile('/usr/share/pam-configs/local_groups'):
-			print('Warning: /usr/share/pam-configs/local_groups already exists.')
+			userinfo_logger.warn('Warning: /usr/share/pam-configs/local_groups already exists.')
 			return True
 		return False
 
@@ -50,8 +51,7 @@ class PamConfigurator(ConflictChecker):
 		self.update_pam()
 
 	def configure_home_dir_creation(self):
-		print('Writing /usr/share/pam-configs/ucs_mkhomedir ', end='... ')
-		sys.stdout.flush()
+		userinfo_logger.info('Writing /usr/share/pam-configs/ucs_mkhomedir ')
 
 		home_dir_conf = \
 			'Name: activate mkhomedir\n' \
@@ -63,8 +63,6 @@ class PamConfigurator(ConflictChecker):
 		with open('/usr/share/pam-configs/ucs_mkhomedir', 'w') as conf_file:
 			conf_file.write(home_dir_conf)
 
-		print('Done.')
-
 	def add_users_to_requiered_system_groups(self):
 		self.add_groups_to_group_conf()
 		self.write_pam_group_conf()
@@ -73,16 +71,13 @@ class PamConfigurator(ConflictChecker):
 		if self.group_conf_already_ok():
 			return
 
-		print('Adding  groups to /etc/security/group.conf ', end='... ')
-		sys.stdout.flush()
+		userinfo_logger.info('Adding  groups to /etc/security/group.conf ')
 
 		# TODO: Would additional groups be appropriate here?
 		with open('/etc/security/group.conf', 'a') as groups_file:
 			groups_file.write(
 				'*;*;*;Al0000-2400;audio,cdrom,dialout,floppy,plugdev,adm\n'
 			)
-
-		print('Done.')
 
 	def group_conf_already_ok(self):
 		with open('/etc/security/group.conf', 'r') as groups_file:
@@ -92,8 +87,7 @@ class PamConfigurator(ConflictChecker):
 		return False
 
 	def write_pam_group_conf(self):
-		print('Adding  groups to /usr/share/pam-configs/local_groups ', end='... ')
-		sys.stdout.flush()
+		userinfo_logger.info('Adding  groups to /usr/share/pam-configs/local_groups ')
 
 		group_conf = \
 			'Name: activate /etc/security/group.conf\n' \
@@ -106,11 +100,8 @@ class PamConfigurator(ConflictChecker):
 		with open('/usr/share/pam-configs/local_groups', 'w') as conf_file:
 			conf_file.write(group_conf)
 
-		print('Done.')
-
 	def update_pam(self):
-		print('Updating PAM', end='... ')
-		sys.stdout.flush()
+		userinfo_logger.info('Updating PAM')
 
 		env = os.environ.copy()
 		env['DEBIAN_FRONTEND'] = 'noninteractive'
@@ -118,5 +109,3 @@ class PamConfigurator(ConflictChecker):
 			['pam-auth-update', '--force'],
 			env=env, stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
 		)
-
-		print('Done.')

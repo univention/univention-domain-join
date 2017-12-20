@@ -51,7 +51,7 @@ class Joiner(object):
 			LoginManagerConfigurator().backup(backup_dir)
 		KerberosConfigurator().backup(backup_dir)
 
-		print('Created a backup of all configuration files, that will be modified at \'%s\'.' % backup_dir)
+		userinfo_logger.info('Created a backup of all configuration files, that will be modified at \'%s\'.' % backup_dir)
 
 	def create_backup_dir(self):
 		backup_dir = os.path.join('/var/univention-backup', time.strftime("%Y%m%d%H%M%S_domain-join", time.gmtime()))
@@ -66,5 +66,5 @@ class Joiner(object):
 			LoginManagerConfigurator().enable_login_with_foreign_usernames()
 		KerberosConfigurator().configure_kerberos(self.kerberos_realm, self.master_ip, self.ldap_master)
 		# TODO: Stop avahi service to prevent problems with sssd?
-		print('The domain join was successful.')
-		print('Please reboot the system.')
+		userinfo_logger.info('The domain join was successful.')
+		userinfo_logger.info('Please reboot the system.')

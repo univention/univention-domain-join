@@ -1,10 +1,11 @@
-from __future__ import print_function
 from shutil import copyfile
+import logging
 import os
 import subprocess
-import sys
 
 OUTPUT_SINK = open(os.devnull, 'w')
+
+userinfo_logger = logging.getLogger('userinfo')
 
 
 class ConflictChecker(object):
@@ -15,11 +16,11 @@ class ConflictChecker(object):
 		elif login_manager == 'gdm3':
 			return False
 		elif login_manager == 'lightdm_account_service':
-			print('Error: The login won\'t work with your system, because you are using an incompatible login theme.')
-			print('       Please go to "System Settings" -> "Login Screen (LightDM)" and set your login theme to "Classic".')
+			userinfo_logger.error('Error: The login won\'t work with your system, because you are using an incompatible login theme.')
+			userinfo_logger.error('       Please go to "System Settings" -> "Login Screen (LightDM)" and set your login theme to "Classic".')
 		else:
-			print('Error: Can\'t enable login with the login manager of your system.')
-			print('       Please use LightDM or GDM for full compatibility with UCS.')
+			userinfo_logger.error('Error: Can\'t enable login with the login manager of your system.')
+			userinfo_logger.error('       Please use LightDM or GDM for full compatibility with UCS.')
 		return True
 
 	def determin_used_login_manager(self):
@@ -36,7 +37,7 @@ class ConflictChecker(object):
 
 	def lightdm_config_file_exists(self):
 		if os.path.isfile('/etc/lightdm/lightdm.conf.d/99-show-manual-userlogin.conf'):
-			print('Warning: /etc/lightdm/lightdm.conf.d/99-show-manual-userlogin.conf already exists.')
+			userinfo_logger.warn('Warning: /etc/lightdm/lightdm.conf.d/99-show-manual-userlogin.conf already exists.')
 			return True
 		return False
 
@@ -74,8 +75,7 @@ class LoginManagerConfigurator(ConflictChecker):
 		# GDM doesn't require any configuration.
 
 	def enable_login_with_foreign_usernames_for_lightdm(self):
-		print('Writing /etc/lightdm/lightdm.conf.d/99-show-manual-userlogin.conf ', end='... ')
-		sys.stdout.flush()
+		userinfo_logger.info('Writing /etc/lightdm/lightdm.conf.d/99-show-manual-userlogin.conf ')
 
 		lightdm_config = \
 			'[SeatDefaults]\n' \
@@ -87,5 +87,3 @@ class LoginManagerConfigurator(ConflictChecker):
 
 		with open('/etc/lightdm/lightdm.conf.d/99-show-manual-userlogin.conf', 'w') as conf_file:
 			conf_file.write(lightdm_config)
-
-		print('Done.')

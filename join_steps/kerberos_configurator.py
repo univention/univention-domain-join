@@ -1,16 +1,17 @@
-from __future__ import print_function
 from shutil import copyfile
+import logging
 import os
 import subprocess
-import sys
 
 OUTPUT_SINK = open(os.devnull, 'w')
+
+userinfo_logger = logging.getLogger('userinfo')
 
 
 class ConflictChecker(object):
 	def config_file_exists(self):
 		if os.path.isfile('/etc/krb5.conf'):
-			print('Warning: /etc/krb5.conf already exists.')
+			userinfo_logger.warn('Warning: /etc/krb5.conf already exists.')
 			return True
 		return False
 
@@ -30,8 +31,7 @@ class KerberosConfigurator(ConflictChecker):
 		self.synchronize_time_with_master(ldap_master)
 
 	def write_config_file(self, kerberos_realm, master_ip, ldap_master):
-		print('Writing /etc/krb5.conf ', end='... ')
-		sys.stdout.flush()
+		userinfo_logger.info('Writing /etc/krb5.conf ')
 
 		config = \
 			'[libdefaults]\n' \
@@ -59,15 +59,10 @@ class KerberosConfigurator(ConflictChecker):
 		with open('/etc/krb5.conf', 'w') as conf_file:
 			conf_file.write(config)
 
-		print('Done.')
-
 	def synchronize_time_with_master(self, ldap_master):
-		print('Synchronizing time with the DC master', end='... ')
-		sys.stdout.flush()
+		userinfo_logger.info('Synchronizing time with the DC master')
 
 		subprocess.check_call(
 			['ntpdate', '-bu', ldap_master],
 			stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
 		)
-
-		print('Done.')

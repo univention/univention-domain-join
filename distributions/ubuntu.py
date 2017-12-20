@@ -1,12 +1,15 @@
 import dns.resolver
-import time
+import logging
 import os
+import time
 
 from join_steps.kerberos_configurator import KerberosConfigurator
 from join_steps.ldap_configurator import LdapConfigurator
 from join_steps.login_manager_configurator import LoginManagerConfigurator
 from join_steps.pam_configurator import PamConfigurator
 from join_steps.sssd_configurator import SssdConfigurator
+
+userinfo_logger = logging.getLogger('userinfo')
 
 
 class Joiner(object):
@@ -21,7 +24,9 @@ class Joiner(object):
 		self.kerberos_realm = masters_ucr_variables['kerberos_realm']
 
 	def check_if_this_is_run_as_root(self):
-		assert os.geteuid() == 0, 'This tool must be run as the root user.'
+		if os.geteuid() != 0:
+			userinfo_logger.critical('This tool must be run as the root user.')
+			exit(1)
 
 	def get_master_ip(self, master):
 		resolver = dns.resolver.Resolver()
@@ -30,10 +35,11 @@ class Joiner(object):
 
 	def check_if_join_is_possible_without_problems(self):
 		if not self.skip_login_manager and LoginManagerConfigurator().configuration_conflicts():
-			raise Exception(
+			userinfo_logger.critical(
 				'Joining the UCS is not safely possible.\n'
 				'Please resolve all problems and run this tool again.'
 			)
+			exit(1)
 
 	def create_backup_of_config_files(self):
 		backup_dir = self.create_backup_dir()

@@ -1,5 +1,6 @@
 from __future__ import print_function
 from shutil import copyfile
+import logging
 import os
 import pipes
 import stat
@@ -7,6 +8,8 @@ import subprocess
 import sys
 
 from root_certificate_provider import RootCertificateProvider
+
+userinfo_logger = logging.getLogger('userinfo')
 
 OUTPUT_SINK = open(os.devnull, 'w')
 
@@ -66,7 +69,8 @@ class LdapConfigurator(ConflictChecker):
 		)
 		ssh_process.communicate(master_pw)
 		if ssh_process.returncode != 0:
-			raise Exception('Removing the old LDAP entry for this computer failed.')
+			userinfo_logger.critical('Removing the old LDAP entry for this computer failed.')
+			exit(1)
 
 		print('Done.')
 
@@ -93,7 +97,8 @@ class LdapConfigurator(ConflictChecker):
 		)
 		ssh_process.communicate(master_pw)
 		if ssh_process.returncode != 0:
-			raise Exception('Adding a LDAP object for this computer didn\'t work.')
+			userinfo_logger.critical('Adding a LDAP object for this computer didn\'t work.')
+			exit(1)
 
 		print('Done.')
 

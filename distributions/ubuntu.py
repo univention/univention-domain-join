@@ -1,8 +1,8 @@
-import dns.resolver
 import logging
 import os
 import time
 
+from join_steps.dns_configurator import DnsConfigurator
 from join_steps.kerberos_configurator import KerberosConfigurator
 from join_steps.ldap_configurator import LdapConfigurator
 from join_steps.login_manager_configurator import LoginManagerConfigurator
@@ -13,25 +13,19 @@ userinfo_logger = logging.getLogger('userinfo')
 
 
 class Joiner(object):
-	def __init__(self, masters_ucr_variables, master, master_pw, skip_login_manager):
-		self.check_if_this_is_run_as_root()
-
+	def __init__(self, masters_ucr_variables, master_ip, master_pw, skip_login_manager):
 		self.master_pw = master_pw
-		self.master_ip = self.get_master_ip(master)
+		self.master_ip = master_ip
 		self.skip_login_manager = skip_login_manager
+		self.domain = masters_ucr_variables['domainname']
+		self.nameservers = [
+			masters_ucr_variables['nameserver1'] if masters_ucr_variables['nameserver1'] != "''" else '',
+			masters_ucr_variables['nameserver2'] if masters_ucr_variables['nameserver2'] != "''" else '',
+			masters_ucr_variables['nameserver3'] if masters_ucr_variables['nameserver3'] != "''" else ''
+		]
 		self.ldap_master = masters_ucr_variables['ldap_master']
 		self.ldap_base = masters_ucr_variables['ldap_base']
 		self.kerberos_realm = masters_ucr_variables['kerberos_realm']
-
-	def check_if_this_is_run_as_root(self):
-		if os.geteuid() != 0:
-			userinfo_logger.critical('This tool must be run as the root user.')
-			exit(1)
-
-	def get_master_ip(self, master):
-		resolver = dns.resolver.Resolver()
-		response = resolver.query(master, 'A')
-		return response[0].address
 
 	def check_if_join_is_possible_without_problems(self):
 		if not self.skip_login_manager and LoginManagerConfigurator().configuration_conflicts():
@@ -44,6 +38,7 @@ class Joiner(object):
 	def create_backup_of_config_files(self):
 		backup_dir = self.create_backup_dir()
 
+		DnsConfigurator(self.nameservers, self.domain).backup(backup_dir)
 		LdapConfigurator().backup(backup_dir)
 		SssdConfigurator().backup(backup_dir)
 		PamConfigurator().backup(backup_dir)
@@ -59,6 +54,7 @@ class Joiner(object):
 		return backup_dir
 
 	def join_domain(self):
+		DnsConfigurator(self.nameservers, self.domain).configure_dns()
 		LdapConfigurator().configure_ldap(self.ldap_master, self.master_pw, self.ldap_base)
 		SssdConfigurator().setup_sssd(self.master_ip, self.ldap_master, self.ldap_base, self.kerberos_realm)
 		PamConfigurator().setup_pam()

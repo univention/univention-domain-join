@@ -1,14 +1,18 @@
 from getpass import getpass
 import argparse
-import dns.resolver
 import importlib
 import logging
 import os
-import socket
 import subprocess
 import sys
 
 OUTPUT_SINK = open(os.devnull, 'w')
+
+
+def check_if_run_as_root():
+	if os.getuid() != 0:
+		print('This tool must be executed as root.')
+		exit(1)
 
 
 def set_up_logging():
@@ -38,32 +42,13 @@ def set_up_logging():
 	debugging_logger.addHandler(logfile_handler)
 
 
-def get_domainname():
-	try:
-		domainname = socket.getfqdn().split('.', 1)[1]
-	except IndexError:
-		userinfo_logger.critical('The UCS domain is unknown. Please set your UCS domain as the domain name of this computer.')
-		exit(1)
-	return domainname
-
-
-def get_master_of_domain(domain):
-	resolver = dns.resolver.Resolver()
-	try:
-		response = resolver.query('_domaincontroller_master._tcp.%s.' % (domain,), 'SRV')
-	except dns.resolver.NXDOMAIN:
-		userinfo_logger.critical('DNS is not working correctly. Please make sure the DNS server of this computer is your domain controller Master.')
-		exit(1)
-	return response[0].target.to_text()
-
-
-def get_joiner_for_this_distribution(master, skip_login_manager):
+def get_joiner_for_this_distribution(master_ip, skip_login_manager):
 	distribution = get_distribution()
 	try:
 		distribution_join_module = importlib.import_module('distributions.%s' % (distribution.lower(),))
-		master_pw = get_masters_root_password(master)
-		masters_ucr_variables = get_ucr_variables_from_master(master, master_pw)
-		return distribution_join_module.Joiner(masters_ucr_variables, master, master_pw, skip_login_manager)
+		master_pw = get_masters_root_password(master_ip)
+		masters_ucr_variables = get_ucr_variables_from_master(master_ip, master_pw)
+		return distribution_join_module.Joiner(masters_ucr_variables, master_ip, master_pw, skip_login_manager)
 	except ImportError:
 		userinfo_logger.critical('The used distribution "%s" is not supported.' % (distribution,))
 		exit(1)
@@ -73,11 +58,11 @@ def get_distribution():
 	return subprocess.check_output(['lsb_release', '-is']).strip()
 
 
-def get_masters_root_password(master):
+def get_masters_root_password(master_ip):
 	# TODO: Don't ask for the password if ssh works passwordless already.
-	password = getpass(prompt='Please enter the password for root@%s: ' % (master,))
+	password = getpass(prompt='Please enter the password for root@%s: ' % (master_ip,))
 	ssh_process = subprocess.Popen(
-		['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', 'root@%s' % (master,), 'echo foo'],
+		['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', 'root@%s' % (master_ip,), 'echo foo'],
 		stdin=subprocess.PIPE, stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
 	)
 	ssh_process.communicate(password)
@@ -87,9 +72,9 @@ def get_masters_root_password(master):
 	return password
 
 
-def get_ucr_variables_from_master(master, master_pw):
+def get_ucr_variables_from_master(master_ip, master_pw):
 	ssh_process = subprocess.Popen(
-		['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', 'root@%s' % (master,), 'ucr shell | grep -v ^hostname='],
+		['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', 'root@%s' % (master_ip,), 'ucr shell | grep -v ^hostname='],
 		stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
 	)
 	stdout, stderr = ssh_process.communicate(master_pw)
@@ -103,6 +88,7 @@ def get_ucr_variables_from_master(master, master_pw):
 	return ucr_variables
 
 if __name__ == '__main__':
+	check_if_run_as_root()
 	set_up_logging()
 
 	try:
@@ -110,12 +96,10 @@ if __name__ == '__main__':
 			description='Tool for joining a client computer into an UCS domain.'
 		)
 		parser.add_argument('--skip-login-manager', action='store_true', help='Do not configure the login manager.')
+		parser.add_argument('master_ip', help='IP address of the domain controller master.')
 		args = parser.parse_args()
 
-		domainname = get_domainname()
-		master = get_master_of_domain(domainname)
-
-		distribution_joiner = get_joiner_for_this_distribution(master, args.skip_login_manager)
+		distribution_joiner = get_joiner_for_this_distribution(args.master_ip, args.skip_login_manager)
 
 		distribution_joiner.check_if_join_is_possible_without_problems()
 		distribution_joiner.create_backup_of_config_files()

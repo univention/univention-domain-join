@@ -91,7 +91,7 @@ class LdapConfigurator(ConflictChecker):
 		)
 		ssh_process.communicate(master_pw)
 		if ssh_process.returncode != 0:
-			userinfo_logger.critical('Adding a LDAP object for this computer didn\'t work.')
+			userinfo_logger.critical('Adding an LDAP object for this computer didn\'t work.')
 			exit(1)
 
 	def create_ldap_conf_file(self, ldap_master, ldap_base):

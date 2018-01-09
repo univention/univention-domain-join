@@ -13,7 +13,8 @@ userinfo_logger = logging.getLogger('userinfo')
 
 
 class Joiner(object):
-	def __init__(self, masters_ucr_variables, master_ip, master_pw, skip_login_manager):
+	def __init__(self, masters_ucr_variables, master_ip, master_username, master_pw, skip_login_manager):
+		self.master_username = master_username
 		self.master_pw = master_pw
 		self.master_ip = master_ip
 		self.skip_login_manager = skip_login_manager
@@ -55,7 +56,7 @@ class Joiner(object):
 
 	def join_domain(self):
 		DnsConfigurator(self.nameservers, self.domain).configure_dns()
-		LdapConfigurator().configure_ldap(self.ldap_master, self.master_pw, self.ldap_base)
+		LdapConfigurator().configure_ldap(self.ldap_master, self.master_username, self.master_pw, self.ldap_base)
 		SssdConfigurator().setup_sssd(self.master_ip, self.ldap_master, self.ldap_base, self.kerberos_realm)
 		PamConfigurator().setup_pam()
 		if not self.skip_login_manager:

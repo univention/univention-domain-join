@@ -19,11 +19,11 @@ class ConflictChecker(object):
 			return True
 		return False
 
-	def machine_exists_in_ldap(self, ldap_master, master_pw, ldap_base):
-		udm_command = ['udm', 'computers/ubuntu', 'list', '--position', 'cn=%s,cn=computers,%s' % (self.hostname, ldap_base)]
+	def machine_exists_in_ldap(self, ldap_master, master_username, master_pw, ldap_base):
+		udm_command = ['/usr/sbin/udm', 'computers/ubuntu', 'list', '--position', 'cn=%s,cn=computers,%s' % (self.hostname, ldap_base)]
 		escaped_udm_command = ' '.join([pipes.quote(x) for x in udm_command])
 		ssh_process = subprocess.Popen(
-			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', 'root@%s' % (ldap_master,), escaped_udm_command],
+			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (master_username, ldap_master), escaped_udm_command],
 			stdin=subprocess.PIPE, stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
 		)
 		ssh_process.communicate(master_pw)
@@ -43,25 +43,25 @@ class LdapConfigurator(ConflictChecker):
 				os.path.join(backup_dir, 'etc/ldap/ldap.conf')
 			)
 
-	def configure_ldap(self, ldap_master, master_pw, ldap_base):
+	def configure_ldap(self, ldap_master, master_username, master_pw, ldap_base):
 		RootCertificateProvider().provide_ucs_root_certififcate(ldap_master)
 		password = self.random_password()
-		self.delete_old_entry_and_add_machine_to_ldap(password, ldap_master, master_pw, ldap_base)
+		self.delete_old_entry_and_add_machine_to_ldap(password, ldap_master, master_username, master_pw, ldap_base)
 		self.create_ldap_conf_file(ldap_master, ldap_base)
 		self.create_machine_secret_file(password)
 
-	def delete_old_entry_and_add_machine_to_ldap(self, password, ldap_master, master_pw, ldap_base):
-		if self.machine_exists_in_ldap(ldap_master, master_pw, ldap_base):
-			self.delete_machine_from_ldap(ldap_master, master_pw, ldap_base)
-		self.add_machine_to_ldap(password, ldap_master, master_pw, ldap_base)
+	def delete_old_entry_and_add_machine_to_ldap(self, password, ldap_master, master_username, master_pw, ldap_base):
+		if self.machine_exists_in_ldap(ldap_master, master_username, master_pw, ldap_base):
+			self.delete_machine_from_ldap(ldap_master, master_username, master_pw, ldap_base)
+		self.add_machine_to_ldap(password, ldap_master, master_username, master_pw, ldap_base)
 
-	def delete_machine_from_ldap(self, ldap_master, master_pw, ldap_base):
+	def delete_machine_from_ldap(self, ldap_master, master_username, master_pw, ldap_base):
 		userinfo_logger.info('Removing old LDAP entry for this machine on the DC master')
 
-		udm_command = ['udm', 'computers/ubuntu', 'remove', '--dn', 'cn=%s,cn=computers,%s' % (self.hostname, ldap_base)]
+		udm_command = ['/usr/sbin/udm', 'computers/ubuntu', 'remove', '--dn', 'cn=%s,cn=computers,%s' % (self.hostname, ldap_base)]
 		escaped_udm_command = ' '.join([pipes.quote(x) for x in udm_command])
 		ssh_process = subprocess.Popen(
-			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', 'root@%s' % (ldap_master,), escaped_udm_command],
+			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (master_username, ldap_master), escaped_udm_command],
 			stdin=subprocess.PIPE, stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
 		)
 		ssh_process.communicate(master_pw)
@@ -69,7 +69,7 @@ class LdapConfigurator(ConflictChecker):
 			userinfo_logger.critical('Removing the old LDAP entry for this computer failed.')
 			exit(1)
 
-	def add_machine_to_ldap(self, password, ldap_master, master_pw, ldap_base):
+	def add_machine_to_ldap(self, password, ldap_master, master_username, master_pw, ldap_base):
 		userinfo_logger.info('Adding LDAP entry for this machine on the DC master')
 
 		release_id = subprocess.check_output(['lsb_release', '-is'])
@@ -77,7 +77,7 @@ class LdapConfigurator(ConflictChecker):
 
 		# TODO: Also add MAC address. Which NIC's address should I use?
 		udm_command = [
-			'udm', 'computers/ubuntu', 'create',
+			'/usr/sbin/udm', 'computers/ubuntu', 'create',
 			'--position', 'cn=computers,%s' % (ldap_base,),
 			'--set', 'name=%s' % (self.hostname,),
 			'--set', 'password=%s' % (password,),
@@ -86,7 +86,7 @@ class LdapConfigurator(ConflictChecker):
 		]
 		escaped_udm_command = ' '.join([pipes.quote(x) for x in udm_command])
 		ssh_process = subprocess.Popen(
-			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', 'root@%s' % (ldap_master,), escaped_udm_command],
+			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (master_username, ldap_master), escaped_udm_command],
 			stdin=subprocess.PIPE, stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
 		)
 		ssh_process.communicate(master_pw)

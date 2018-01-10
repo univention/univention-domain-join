@@ -39,8 +39,14 @@ class DnsConfigurator(object):
 
 	def check_if_dns_works(self):
 		resolver = dns.resolver.Resolver()
-		# This will give a traceback, if the DNS setup wasn't successful.
-		resolver.query('_domaincontroller_master._tcp.%s.' % (self.domain,), 'SRV')
+		try:
+			resolver.query('_domaincontroller_master._tcp.%s.' % (self.domain,), 'SRV')
+		except dns.resolver.NXDOMAIN:
+			userinfo_logger.critical(
+				'Setting up DNS did not work. Try removing any DNS settings in '
+				'the network-manager and give this tool the IP address of the DC master.'
+			)
+			exit(1)
 
 
 class DnsConfiguratorSystemd(object):

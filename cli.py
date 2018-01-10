@@ -55,8 +55,15 @@ def get_domainname():
 
 def get_master_ip_through_dns(domain):
 	resolver = dns.resolver.Resolver()
-	response = resolver.query('_domaincontroller_master._tcp.%s.' % (domain,), 'SRV')
-	master_fqdn = response[0].target.canonicalize().split(1)[0].to_text()
+	try:
+		response = resolver.query('_domaincontroller_master._tcp.%s.' % (domain,), 'SRV')
+		master_fqdn = response[0].target.canonicalize().split(1)[0].to_text()
+	except dns.resolver.NXDOMAIN:
+		userinfo_logger.critical(
+			'No DNS record for the DC master could be found. Please make sure that '
+			'the DC master is the DNS server for this computer or use this tool with --master-ip.'
+		)
+		exit(1)
 	return socket.gethostbyname(master_fqdn)
 
 

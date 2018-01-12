@@ -12,6 +12,10 @@ userinfo_logger = logging.getLogger('userinfo')
 OUTPUT_SINK = open(os.devnull, 'w')
 
 
+class LdapConfigutationException(Exception):
+	pass
+
+
 class ConflictChecker(object):
 	def ldap_conf_exists(self):
 		if os.path.isfile('/etc/ldap/ldap.conf'):
@@ -67,7 +71,7 @@ class LdapConfigurator(ConflictChecker):
 		ssh_process.communicate(master_pw)
 		if ssh_process.returncode != 0:
 			userinfo_logger.critical('Removing the old LDAP entry for this computer failed.')
-			exit(1)
+			raise LdapConfigutationException()
 
 	def add_machine_to_ldap(self, password, ldap_master, master_username, master_pw, ldap_base):
 		userinfo_logger.info('Adding LDAP entry for this machine on the DC master')
@@ -92,7 +96,7 @@ class LdapConfigurator(ConflictChecker):
 		ssh_process.communicate(master_pw)
 		if ssh_process.returncode != 0:
 			userinfo_logger.critical('Adding an LDAP object for this computer didn\'t work.')
-			exit(1)
+			raise LdapConfigutationException()
 
 	def create_ldap_conf_file(self, ldap_master, ldap_base):
 		userinfo_logger.info('Writing /etc/ldap/ldap.conf ')

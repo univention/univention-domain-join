@@ -7,6 +7,10 @@ import subprocess
 userinfo_logger = logging.getLogger('userinfo')
 
 
+class DnsConfigurationException(Exception):
+	pass
+
+
 class DnsConfigurator(object):
 	def __init__(self, nameservers, domain):
 		self.nameservers = nameservers
@@ -17,13 +21,13 @@ class DnsConfigurator(object):
 				'No name servers are configured in the UCR of the DC master.\n'
 				'Please repair it, before running this tool again.'
 			)
-			exit(1)
+			raise DnsConfigurationException()
 		if domain == '':
 			userinfo_logger.critical(
 				'No domain name is configured in the UCR of the DC master.\n'
 				'Please repair it, before running this tool again.'
 			)
-			exit(1)
+			raise DnsConfigurationException()
 
 		if DnsConfiguratorSystemd().works_on_this_system():
 			self.working_configurator = DnsConfiguratorSystemd()
@@ -46,7 +50,7 @@ class DnsConfigurator(object):
 				'Setting up DNS did not work. Try removing any DNS settings in '
 				'the network-manager and give this tool the IP address of the DC master.'
 			)
-			exit(1)
+			raise DnsConfigurationException()
 
 
 class DnsConfiguratorSystemd(object):

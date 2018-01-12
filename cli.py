@@ -162,5 +162,5 @@ if __name__ == '__main__':
 		distribution_joiner.create_backup_of_config_files()
 		distribution_joiner.join_domain()
 	except Exception as e:
-		userinfo_logger.critical('An unexpected error occurred. Please check %s for more information.' % (debugging_logger.handlers[0].baseFilename,))
+		userinfo_logger.critical('An error occurred. Please check %s for more information.' % (debugging_logger.handlers[0].baseFilename,))
 		debugging_logger.critical(e, exc_info=True)

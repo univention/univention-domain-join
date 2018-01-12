@@ -12,6 +12,10 @@ from join_steps.sssd_configurator import SssdConfigurator
 userinfo_logger = logging.getLogger('userinfo')
 
 
+class DomainJoinException(Exception):
+	pass
+
+
 class Joiner(object):
 	def __init__(self, masters_ucr_variables, master_ip, master_username, master_pw, skip_login_manager):
 		self.master_username = master_username
@@ -31,10 +35,10 @@ class Joiner(object):
 	def check_if_join_is_possible_without_problems(self):
 		if not self.skip_login_manager and LoginManagerConfigurator().configuration_conflicts():
 			userinfo_logger.critical(
-				'Joining the UCS is not safely possible.\n'
+				'Joining the UCS domain is not safely possible.\n'
 				'Please resolve all problems and run this tool again.'
 			)
-			exit(1)
+			raise DomainJoinException()
 
 	def create_backup_of_config_files(self):
 		backup_dir = self.create_backup_dir()

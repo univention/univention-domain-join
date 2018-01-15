@@ -27,5 +27,6 @@ Package: univention-domain-join-gui
 Architecture: all
 Depends: univention-domain-join,
  python-qt4,
+ gksu,
  ${misc:Depends}
 Description: Graphical front end for univention-domain-join

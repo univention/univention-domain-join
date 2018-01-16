@@ -9,6 +9,8 @@ from PyQt4.QtGui import QHBoxLayout
 from PyQt4.QtGui import QIcon
 from PyQt4.QtGui import QLabel
 from PyQt4.QtGui import QLineEdit
+from PyQt4.QtGui import QAction
+from PyQt4.QtGui import QMenuBar
 from PyQt4.QtGui import QMessageBox
 from PyQt4.QtGui import QPushButton
 from PyQt4.QtGui import QRegExpValidator
@@ -93,10 +95,9 @@ class DomainJoinGui(QWidget):
 		self.setTabOrder(self.admin_username_input, self.admin_password_input)
 
 	def build_main_window(self):
-		# TODO: First check if join is possible.
-
 		main_layout = QVBoxLayout()
 
+		self.add_menu_bar(main_layout)
 		self.add_general_description(main_layout)
 		self.add_domainname_or_ip_input(main_layout)
 		self.add_username_input(main_layout)
@@ -105,6 +106,28 @@ class DomainJoinGui(QWidget):
 		self.add_buttons(main_layout)
 
 		self.setLayout(main_layout)
+
+	def add_menu_bar(self, main_layout):
+		menu_bar = QMenuBar(self)
+
+		help_menu = menu_bar.addMenu('Help')
+		about_action = QAction('About', self)
+		about_action.triggered.connect(self.about)
+		help_menu.addAction(about_action)
+
+		main_layout.addWidget(menu_bar)
+
+	@pyqtSlot()
+	def about(self):
+		self.about_dialog = QMessageBox.about(
+			self, 'About',
+			'<h1>Univention Domain Join</h1>'
+			'<p>Univention Domain Join is a tool, which helps you integrate an '
+			'Ubuntu computer into an Univention Corporate Server domain.</p>'
+			'If you need help visit the <a href="https://help.univention.com/">Univention '
+			'forum</a> or <a href="https://www.univention.com/contact/">contact us</a>.'
+			'<p>Copyright: <a href="https://www.univention.com">Univention GmbH</a></p>'
+		)
 
 	def add_general_description(self, main_layout):
 		short_description = QLabel(

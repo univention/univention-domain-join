@@ -1,26 +1,28 @@
 #! /usr/bin/env python
 
-import os
-import importlib
-import subprocess
-import dns.resolver
-import socket
-from PyQt4.QtCore import QThread
-from PyQt4.QtCore import pyqtSlot
-from PyQt4.QtCore import SIGNAL
 from PyQt4.QtCore import QRegExp
+from PyQt4.QtCore import QThread
+from PyQt4.QtCore import SIGNAL
+from PyQt4.QtCore import pyqtSlot
 from PyQt4.QtGui import QApplication
 from PyQt4.QtGui import QHBoxLayout
 from PyQt4.QtGui import QIcon
 from PyQt4.QtGui import QLabel
 from PyQt4.QtGui import QLineEdit
-from PyQt4.QtGui import QRegExpValidator
+from PyQt4.QtGui import QMessageBox
 from PyQt4.QtGui import QPushButton
+from PyQt4.QtGui import QRegExpValidator
 from PyQt4.QtGui import QVBoxLayout
 from PyQt4.QtGui import QWidget
-from PyQt4.QtGui import QMessageBox
-import sys
+import dns.resolver
+import importlib
 import logging
+import os
+import socket
+import subprocess
+import sys
+
+from join_steps.utils import execute_as_root
 
 OUTPUT_SINK = open(os.devnull, 'w')
 
@@ -33,6 +35,7 @@ def check_if_run_as_root():
 		sys.exit(app.exec_())
 
 
+@execute_as_root
 def set_up_logging():
 	global userinfo_logger
 
@@ -64,9 +67,7 @@ class NotRootDialog(QMessageBox):
 		super(self.__class__, self).__init__()
 		self.setWindowTitle('Univention Domain Join')
 		self.setWindowIcon(QIcon('univention_icon.svg'))
-		self.setText(
-			'This tool must be executed as root.'
-		)
+		self.setText('This tool must be executed as root.')
 
 
 class DomainJoinGui(QWidget):
@@ -337,6 +338,7 @@ class JoinThread(QThread):
 	def get_distribution(self):
 		return subprocess.check_output(['lsb_release', '-is']).strip()
 
+	@execute_as_root
 	def check_if_ssh_works_with_given_account(self, master_ip, master_username, master_pw):
 		ssh_process = subprocess.Popen(
 			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (master_username, master_ip), 'echo foo'],
@@ -348,6 +350,7 @@ class JoinThread(QThread):
 			return False
 		return True
 
+	@execute_as_root
 	def get_ucr_variables_from_master(self, master_ip, master_username, master_pw):
 		ssh_process = subprocess.Popen(
 			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (master_username, master_ip), '/usr/sbin/ucr shell | grep -v ^hostname='],
@@ -366,6 +369,10 @@ class JoinThread(QThread):
 
 if __name__ == '__main__':
 	check_if_run_as_root()
+	sudo_uid = os.environ.get('SUDO_UID')
+	if sudo_uid:
+		os.seteuid(int(sudo_uid))
+
 	set_up_logging()
 
 	app = QApplication(sys.argv)

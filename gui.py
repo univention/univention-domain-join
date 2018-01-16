@@ -66,7 +66,8 @@ class NotRootDialog(QMessageBox):
 	def __init__(self):
 		super(self.__class__, self).__init__()
 		self.setWindowTitle('Univention Domain Join')
-		self.setWindowIcon(QIcon('univention_icon.svg'))
+		scriptDir = os.path.dirname(os.path.realpath(__file__))
+		self.setWindowIcon(QIcon(scriptDir + os.path.sep + 'univention_icon.svg'))
 		self.setText('This tool must be executed as root.')
 
 
@@ -80,7 +81,8 @@ class DomainJoinGui(QWidget):
 
 		self.resize(320, 300)
 		self.setWindowTitle("Univention Domain Join")
-		self.setWindowIcon(QIcon('univention_icon.svg'))
+		scriptDir = os.path.dirname(os.path.realpath(__file__))
+		self.setWindowIcon(QIcon(scriptDir + os.path.sep + 'univention_icon.svg'))
 
 		self.build_main_window()
 
@@ -256,7 +258,8 @@ class SuccessfulJoinDialog(QMessageBox):
 	def __init__(self):
 		super(self.__class__, self).__init__()
 		self.setWindowTitle('Successful Join')
-		self.setWindowIcon(QIcon('univention_icon.svg'))
+		scriptDir = os.path.dirname(os.path.realpath(__file__))
+		self.setWindowIcon(QIcon(scriptDir + os.path.sep + 'univention_icon.svg'))
 		self.setText('The domain join was successful. Please reboot the system.')
 
 
@@ -264,7 +267,8 @@ class FailedJoinDialog(QMessageBox):
 	def __init__(self):
 		super(self.__class__, self).__init__()
 		self.setWindowTitle('Failed Join')
-		self.setWindowIcon(QIcon('univention_icon.svg'))
+		scriptDir = os.path.dirname(os.path.realpath(__file__))
+		self.setWindowIcon(QIcon(scriptDir + os.path.sep + 'univention_icon.svg'))
 		self.setText(
 			'The domain join failed. For further information look at /var/log/univention/domain-join-gui.log .'
 		)
@@ -274,7 +278,8 @@ class MissingInputsDialog(QMessageBox):
 	def __init__(self):
 		super(self.__class__, self).__init__()
 		self.setWindowTitle('Missing Inputs')
-		self.setWindowIcon(QIcon('univention_icon.svg'))
+		scriptDir = os.path.dirname(os.path.realpath(__file__))
+		self.setWindowIcon(QIcon(scriptDir + os.path.sep + 'univention_icon.svg'))
 		self.setText(
 			'At least on input field is not filled in, or filled with an invalid input.'
 			'Please fill all three input fields according to their description.'
@@ -285,7 +290,8 @@ class DnsNotWorkingDialog(QMessageBox):
 	def __init__(self):
 		super(self.__class__, self).__init__()
 		self.setWindowTitle('DNS Not Working')
-		self.setWindowIcon(QIcon('univention_icon.svg'))
+		scriptDir = os.path.dirname(os.path.realpath(__file__))
+		self.setWindowIcon(QIcon(scriptDir + os.path.sep + 'univention_icon.svg'))
 		self.setText(
 			'No DNS record for the DC master could be found. Please make sure '
 			'that the DC master is the DNS server for this computer or use this'

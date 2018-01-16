@@ -2,6 +2,8 @@ import logging
 import os
 import subprocess
 
+from join_steps.utils import execute_as_root
+
 OUTPUT_SINK = open(os.devnull, 'w')
 
 userinfo_logger = logging.getLogger('userinfo')
@@ -12,6 +14,7 @@ class RootCertificateProvider(object):
 		if not self.ucs_root_certificate_available_localy():
 			self.download_ucs_root_certificate(ldap_master)
 
+	@execute_as_root
 	def download_ucs_root_certificate(self, ldap_master):
 		userinfo_logger.info('Downloading the UCS root certificate to /etc/univention/ssl/ucsCA/CAcert.pem ')
 

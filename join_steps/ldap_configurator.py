@@ -5,6 +5,8 @@ import pipes
 import stat
 import subprocess
 
+from join_steps.utils import execute_as_root
+
 from root_certificate_provider import RootCertificateProvider
 
 userinfo_logger = logging.getLogger('userinfo')
@@ -23,6 +25,7 @@ class ConflictChecker(object):
 			return True
 		return False
 
+	@execute_as_root
 	def machine_exists_in_ldap(self, ldap_master, master_username, master_pw, ldap_base):
 		udm_command = ['/usr/sbin/udm', 'computers/ubuntu', 'list', '--position', 'cn=%s,cn=computers,%s' % (self.hostname, ldap_base)]
 		escaped_udm_command = ' '.join([pipes.quote(x) for x in udm_command])
@@ -39,6 +42,7 @@ class LdapConfigurator(ConflictChecker):
 	def __init__(self):
 		self.hostname = subprocess.check_output(['hostname', '-s']).strip()
 
+	@execute_as_root
 	def backup(self, backup_dir):
 		if self.ldap_conf_exists():
 			os.makedirs(os.path.join(backup_dir, 'etc/ldap'))
@@ -59,6 +63,7 @@ class LdapConfigurator(ConflictChecker):
 			self.delete_machine_from_ldap(ldap_master, master_username, master_pw, ldap_base)
 		self.add_machine_to_ldap(password, ldap_master, master_username, master_pw, ldap_base)
 
+	@execute_as_root
 	def delete_machine_from_ldap(self, ldap_master, master_username, master_pw, ldap_base):
 		userinfo_logger.info('Removing old LDAP entry for this machine on the DC master')
 
@@ -73,6 +78,7 @@ class LdapConfigurator(ConflictChecker):
 			userinfo_logger.critical('Removing the old LDAP entry for this computer failed.')
 			raise LdapConfigutationException()
 
+	@execute_as_root
 	def add_machine_to_ldap(self, password, ldap_master, master_username, master_pw, ldap_base):
 		userinfo_logger.info('Adding LDAP entry for this machine on the DC master')
 
@@ -98,6 +104,7 @@ class LdapConfigurator(ConflictChecker):
 			userinfo_logger.critical('Adding an LDAP object for this computer didn\'t work.')
 			raise LdapConfigutationException()
 
+	@execute_as_root
 	def create_ldap_conf_file(self, ldap_master, ldap_base):
 		userinfo_logger.info('Writing /etc/ldap/ldap.conf ')
 
@@ -110,6 +117,7 @@ class LdapConfigurator(ConflictChecker):
 		with open('/etc/ldap/ldap.conf', 'w') as conf_file:
 			conf_file.write(ldap_conf)
 
+	@execute_as_root
 	def create_machine_secret_file(self, password):
 		userinfo_logger.info('Writing /etc/machine.secret ')
 

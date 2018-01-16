@@ -3,6 +3,8 @@ import logging
 import os
 import subprocess
 
+from join_steps.utils import execute_as_root
+
 OUTPUT_SINK = open(os.devnull, 'w')
 
 userinfo_logger = logging.getLogger('userinfo')
@@ -17,6 +19,7 @@ class ConflictChecker(object):
 
 
 class KerberosConfigurator(ConflictChecker):
+	@execute_as_root
 	def backup(self, backup_dir):
 		if self.config_file_exists():
 			if not os.path.exists(os.path.join(backup_dir, 'etc')):
@@ -30,6 +33,7 @@ class KerberosConfigurator(ConflictChecker):
 		self.write_config_file(kerberos_realm, master_ip, ldap_master)
 		self.synchronize_time_with_master(ldap_master)
 
+	@execute_as_root
 	def write_config_file(self, kerberos_realm, master_ip, ldap_master):
 		userinfo_logger.info('Writing /etc/krb5.conf ')
 
@@ -59,6 +63,7 @@ class KerberosConfigurator(ConflictChecker):
 		with open('/etc/krb5.conf', 'w') as conf_file:
 			conf_file.write(config)
 
+	@execute_as_root
 	def synchronize_time_with_master(self, ldap_master):
 		userinfo_logger.info('Synchronizing time with the DC master')
 

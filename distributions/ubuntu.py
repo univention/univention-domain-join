@@ -8,6 +8,7 @@ from join_steps.ldap_configurator import LdapConfigurator
 from join_steps.login_manager_configurator import LoginManagerConfigurator
 from join_steps.pam_configurator import PamConfigurator
 from join_steps.sssd_configurator import SssdConfigurator
+from join_steps.utils import execute_as_root
 
 userinfo_logger = logging.getLogger('userinfo')
 
@@ -53,6 +54,7 @@ class Joiner(object):
 
 		userinfo_logger.info('Created a backup of all configuration files, that will be modified at \'%s\'.' % backup_dir)
 
+	@execute_as_root
 	def create_backup_dir(self):
 		backup_dir = os.path.join('/var/univention-backup', time.strftime("%Y%m%d%H%M%S_domain-join", time.gmtime()))
 		os.makedirs(backup_dir)

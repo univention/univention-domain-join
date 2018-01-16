@@ -3,6 +3,8 @@ import logging
 import os
 import subprocess
 
+from join_steps.utils import execute_as_root
+
 OUTPUT_SINK = open(os.devnull, 'w')
 
 userinfo_logger = logging.getLogger('userinfo')
@@ -60,6 +62,7 @@ class ConflictChecker(object):
 
 class LoginManagerConfigurator(ConflictChecker):
 
+	@execute_as_root
 	def backup(self, backup_dir):
 		if self.lightdm_config_file_exists():
 			os.makedirs(os.path.join(backup_dir, 'etc/lightdm/lightdm.conf.d'))
@@ -74,6 +77,7 @@ class LoginManagerConfigurator(ConflictChecker):
 			self.enable_login_with_foreign_usernames_for_lightdm()
 		# GDM doesn't require any configuration.
 
+	@execute_as_root
 	def enable_login_with_foreign_usernames_for_lightdm(self):
 		userinfo_logger.info('Writing /etc/lightdm/lightdm.conf.d/99-show-manual-userlogin.conf ')
 

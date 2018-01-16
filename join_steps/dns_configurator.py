@@ -4,6 +4,8 @@ import logging
 import os
 import subprocess
 
+from join_steps.utils import execute_as_root
+
 userinfo_logger = logging.getLogger('userinfo')
 
 
@@ -62,6 +64,7 @@ class DnsConfiguratorSystemd(object):
 		ssh_process.communicate('')
 		return ssh_process.returncode == 0
 
+	@execute_as_root
 	def backup(self, backup_dir):
 		if os.path.isfile('/etc/systemd/resolved.conf'):
 			userinfo_logger.warn('Warning: /etc/systemd/resolved.conf already exists.')
@@ -71,6 +74,7 @@ class DnsConfiguratorSystemd(object):
 				os.path.join(backup_dir, 'etc/systemd/resolved.conf')
 			)
 
+	@execute_as_root
 	def configure_dns(self, nameservers, domain):
 		userinfo_logger.info('Writing /etc/systemd/resolved.conf')
 		with open('/etc/systemd/resolved.conf', 'w') as conf_file:
@@ -83,6 +87,7 @@ class DnsConfiguratorSystemd(object):
 
 
 class DnsConfiguratorResolvconf(object):
+	@execute_as_root
 	def backup(self, backup_dir):
 		if os.path.isfile('/etc/resolvconf/resolv.conf.d/base'):
 			userinfo_logger.warn('Warning: /etc/resolvconf/resolv.conf.d/base already exists.')
@@ -92,6 +97,7 @@ class DnsConfiguratorResolvconf(object):
 				os.path.join(backup_dir, 'etc/resolvconf/resolv.conf.d/base')
 			)
 
+	@execute_as_root
 	def configure_dns(self, nameservers, domain):
 		userinfo_logger.info('Writing /etc/resolvconf/resolv.conf.d/base')
 		with open('/etc/resolvconf/resolv.conf.d/base', 'w') as conf_file:

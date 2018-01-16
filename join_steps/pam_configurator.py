@@ -3,6 +3,8 @@ import logging
 import os
 import subprocess
 
+from join_steps.utils import execute_as_root
+
 OUTPUT_SINK = open(os.devnull, 'w')
 
 userinfo_logger = logging.getLogger('userinfo')
@@ -24,6 +26,7 @@ class ConflictChecker(object):
 
 class PamConfigurator(ConflictChecker):
 
+	@execute_as_root
 	def backup(self, backup_dir):
 		copy_home_dir_conf = self.home_dir_conf_file_exists()
 		copy_group_conf = self.group_conf_file_exists()
@@ -50,6 +53,7 @@ class PamConfigurator(ConflictChecker):
 		self.add_users_to_requiered_system_groups()
 		self.update_pam()
 
+	@execute_as_root
 	def configure_home_dir_creation(self):
 		userinfo_logger.info('Writing /usr/share/pam-configs/ucs_mkhomedir ')
 
@@ -67,6 +71,7 @@ class PamConfigurator(ConflictChecker):
 		self.add_groups_to_group_conf()
 		self.write_pam_group_conf()
 
+	@execute_as_root
 	def add_groups_to_group_conf(self):
 		if self.group_conf_already_ok():
 			return
@@ -86,6 +91,7 @@ class PamConfigurator(ConflictChecker):
 					return True
 		return False
 
+	@execute_as_root
 	def write_pam_group_conf(self):
 		userinfo_logger.info('Adding  groups to /usr/share/pam-configs/local_groups ')
 
@@ -100,6 +106,7 @@ class PamConfigurator(ConflictChecker):
 		with open('/usr/share/pam-configs/local_groups', 'w') as conf_file:
 			conf_file.write(group_conf)
 
+	@execute_as_root
 	def update_pam(self):
 		userinfo_logger.info('Updating PAM')
 

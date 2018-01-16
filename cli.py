@@ -8,6 +8,8 @@ import socket
 import subprocess
 import sys
 
+from join_steps.utils import execute_as_root
+
 OUTPUT_SINK = open(os.devnull, 'w')
 
 
@@ -17,6 +19,7 @@ def check_if_run_as_root():
 		exit(1)
 
 
+@execute_as_root
 def set_up_logging():
 	global userinfo_logger
 	global debugging_logger
@@ -96,6 +99,7 @@ def get_masters_admin_password(master_username):
 	return getpass(prompt='Please enter the password for %s: ' % (master_username,))
 
 
+@execute_as_root
 def check_if_ssh_works_with_given_account(master_ip, master_username, master_pw):
 	ssh_process = subprocess.Popen(
 		['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (master_username, master_ip), 'echo foo'],
@@ -107,6 +111,7 @@ def check_if_ssh_works_with_given_account(master_ip, master_username, master_pw)
 		exit(1)
 
 
+@execute_as_root
 def get_ucr_variables_from_master(master_ip, master_username, master_pw):
 	ssh_process = subprocess.Popen(
 		['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (master_username, master_ip), '/usr/sbin/ucr shell | grep -v ^hostname='],
@@ -124,6 +129,10 @@ def get_ucr_variables_from_master(master_ip, master_username, master_pw):
 
 if __name__ == '__main__':
 	check_if_run_as_root()
+	sudo_uid = os.environ.get('SUDO_UID')
+	if sudo_uid:
+		os.seteuid(int(sudo_uid))
+
 	set_up_logging()
 
 	try:

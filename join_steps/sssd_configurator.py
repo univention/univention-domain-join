@@ -4,6 +4,8 @@ import os
 import stat
 import subprocess
 
+from join_steps.utils import execute_as_root
+
 from root_certificate_provider import RootCertificateProvider
 
 OUTPUT_SINK = open(os.devnull, 'w')
@@ -27,6 +29,7 @@ class ConflictChecker(object):
 
 class SssdConfigurator(ConflictChecker):
 
+	@execute_as_root
 	def backup(self, backup_dir):
 		if self.sssd_conf_file_exists():
 			os.makedirs(os.path.join(backup_dir, 'etc/sssd'))
@@ -41,6 +44,7 @@ class SssdConfigurator(ConflictChecker):
 				os.path.join(backup_dir, 'etc/auth-client-config/profile.d/sss')
 			)
 
+	@execute_as_root
 	def setup_sssd(self, master_ip, ldap_master, ldap_base, kerberos_realm):
 		self.hostname = subprocess.check_output(['hostname', '-s']).strip()
 		self.ldap_password = subprocess.check_output(['cat', '/etc/machine.secret']).strip()
@@ -51,6 +55,7 @@ class SssdConfigurator(ConflictChecker):
 		self.configure_sssd()
 		self.restart_sssd()
 
+	@execute_as_root
 	def write_sssd_conf(self, master_ip, ldap_master, ldap_base, kerberos_realm):
 		userinfo_logger.info('Writing /etc/sssd/sssd.conf ')
 
@@ -96,6 +101,7 @@ class SssdConfigurator(ConflictChecker):
 			conf_file.write(sssd_conf)
 		os.chmod('/etc/sssd/sssd.conf', stat.S_IREAD | stat.S_IWRITE)
 
+	@execute_as_root
 	def write_sssd_profile(self):
 		userinfo_logger.info('Writing /etc/auth-client-config/profile.d/sss ')
 
@@ -135,6 +141,7 @@ class SssdConfigurator(ConflictChecker):
 		with open('/etc/auth-client-config/profile.d/sss', 'w') as profile_file:
 			profile_file.write(sssd_profile)
 
+	@execute_as_root
 	def configure_sssd(self):
 		userinfo_logger.info('Configuring auth config profile for sssd')
 
@@ -143,6 +150,7 @@ class SssdConfigurator(ConflictChecker):
 			stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
 		)
 
+	@execute_as_root
 	def restart_sssd(self):
 		userinfo_logger.info('Restarting sssd')
 

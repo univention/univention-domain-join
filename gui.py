@@ -2,16 +2,24 @@
 
 from PyQt4.QtCore import QRegExp
 from PyQt4.QtCore import QThread
+from PyQt4.QtCore import Qt
 from PyQt4.QtCore import SIGNAL
 from PyQt4.QtCore import pyqtSlot
+from PyQt4.QtGui import QAction
 from PyQt4.QtGui import QApplication
+from PyQt4.QtGui import QFontMetrics
+from PyQt4.QtGui import QFrame
+from PyQt4.QtGui import QGraphicsPixmapItem
+from PyQt4.QtGui import QGraphicsScene
+from PyQt4.QtGui import QGraphicsView
+from PyQt4.QtGui import QGroupBox
 from PyQt4.QtGui import QHBoxLayout
 from PyQt4.QtGui import QIcon
 from PyQt4.QtGui import QLabel
 from PyQt4.QtGui import QLineEdit
-from PyQt4.QtGui import QAction
 from PyQt4.QtGui import QMenuBar
 from PyQt4.QtGui import QMessageBox
+from PyQt4.QtGui import QPixmap
 from PyQt4.QtGui import QPushButton
 from PyQt4.QtGui import QRegExpValidator
 from PyQt4.QtGui import QVBoxLayout
@@ -81,7 +89,6 @@ class DomainJoinGui(QWidget):
 		self.regex_ipv6 = r'(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))'
 		self.regex_domainname = r'(([a-zA-Z]{1})|([a-zA-Z]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[0-9]{1})|([0-9]{1}[a-zA-Z]{1})|([a-zA-Z0-9][a-zA-Z0-9-_]{1,61}[a-zA-Z0-9]))\.([a-zA-Z]{2,8}|[a-zA-Z0-9-]{2,30}\.[a-zA-Z]{2,3})'
 
-		self.resize(320, 300)
 		self.setWindowTitle("Univention Domain Join")
 		scriptDir = os.path.dirname(os.path.realpath(__file__))
 		self.setWindowIcon(QIcon(scriptDir + os.path.sep + 'univention_icon.svg'))
@@ -99,10 +106,10 @@ class DomainJoinGui(QWidget):
 
 		self.add_menu_bar(main_layout)
 		self.add_general_description(main_layout)
+		self.add_hline(main_layout)
 		self.add_domainname_or_ip_input(main_layout)
-		self.add_username_input(main_layout)
-		self.add_password_input(main_layout)
-		main_layout.addStretch()
+		self.add_credentials_inputs(main_layout)
+		main_layout.addStretch(1)
 		self.add_buttons(main_layout)
 
 		self.setLayout(main_layout)
@@ -131,19 +138,26 @@ class DomainJoinGui(QWidget):
 
 	def add_general_description(self, main_layout):
 		short_description = QLabel(
-			'Fill in all input fields and press "Join" to integrate this system'
-			' into your UCS domain.'
+			'<h3>Univention Domain Join Assistant</h3>'
+			'<p>This tool will configure this computer to be part of your UCS domain.</p>'
 		)
 		short_description.setWordWrap(True)
 		main_layout.addWidget(short_description)
 
+	def add_hline(self, main_layout):
+		frame = QFrame()
+		frame.setFrameShape(QFrame.HLine)
+		main_layout.addWidget(frame)
+
 	def add_domainname_or_ip_input(self, main_layout):
-		short_description = QLabel('UCS domain name or IP address of DC master:')
+		short_description = QLabel('Domain name or IP address of the DC master:')
 		short_description.setWordWrap(True)
 		main_layout.addWidget(short_description)
 
 		self.domainname_or_ip_input = QLineEdit()
-		self.domainname_or_ip_input.setPlaceholderText('e.g. mydomain.intranet or 192.168.0.14')
+		font_metrics = QFontMetrics(self.domainname_or_ip_input.font())
+		self.domainname_or_ip_input.setFixedWidth(30 * font_metrics.width('a'))
+		self.domainname_or_ip_input.setPlaceholderText('e.g. mydomain.com or 10.0.0.4')
 		domainname_or_ip_validator = QRegExpValidator(QRegExp(
 			r'%s|%s|%s' % (self.regex_ipv4, self.regex_ipv6, self.regex_domainname)
 		), self)
@@ -155,6 +169,33 @@ class DomainJoinGui(QWidget):
 		if detected_domainname and domainname_qregex.exactMatch(detected_domainname):
 			self.domainname_or_ip_input.setText(detected_domainname)
 
+	def add_credentials_inputs(self, main_layout):
+		credentials_box = QGroupBox('Domain Administrator')
+		credentials_box_layout = QVBoxLayout()
+
+		self.add_credentials_description(credentials_box_layout)
+		self.add_inner_credentials_input(credentials_box_layout)
+
+		credentials_box.setLayout(credentials_box_layout)
+		main_layout.addWidget(credentials_box)
+
+	def add_inner_credentials_input(self, layout):
+		credentials_input = QWidget()
+		credentials_input_layout = QHBoxLayout()
+
+		self.add_credentials_icon(credentials_input_layout)
+
+		input_fields = QWidget()
+		input_fields_layout = QVBoxLayout()
+		self.add_username_input(input_fields_layout)
+		self.add_password_input(input_fields_layout)
+		input_fields.setLayout(input_fields_layout)
+		input_fields_layout.addStretch()
+		credentials_input_layout.addWidget(input_fields, stretch=1)
+
+		credentials_input.setLayout(credentials_input_layout)
+		layout.addWidget(credentials_input)
+
 	def get_domainname(self):
 		try:
 			domainname = socket.getfqdn().split('.', 1)[1]
@@ -162,23 +203,38 @@ class DomainJoinGui(QWidget):
 			return None
 		return domainname
 
-	def add_username_input(self, main_layout):
-		short_description = QLabel('Username of a domain administrator:')
-		short_description.setWordWrap(True)
-		main_layout.addWidget(short_description)
+	def add_credentials_icon(self, main_layout):
+		scene = QGraphicsScene()
+		icon = QGraphicsView(scene)
+		icon.setFocusPolicy(Qt.NoFocus)
+		scriptDir = os.path.dirname(os.path.realpath(__file__))
+		scene.addItem(QGraphicsPixmapItem(QPixmap(scriptDir + os.path.sep + 'credentials.png')))
 
+		main_layout.addWidget(icon, stretch=0)
+
+	def add_credentials_description(self, main_layout):
+		credentials_description = QLabel(
+			'Please provide the credentials of a domain administrator with '
+			'permissions to join the domain.'
+		)
+		credentials_description.setWordWrap(True)
+		main_layout.addWidget(credentials_description)
+
+	def add_username_input(self, main_layout):
 		self.admin_username_input = QLineEdit()
-		self.admin_username_input.setPlaceholderText('e.g. Administrator')
+		font_metrics = QFontMetrics(self.domainname_or_ip_input.font())
+		self.admin_username_input.setFixedWidth(30 * font_metrics.width('a'))
+		self.admin_username_input.setPlaceholderText('Username')
+		self.admin_username_input.setText('Administrator')
 		username_validator = QRegExpValidator(QRegExp(r'\w+'), self)
 		self.admin_username_input.setValidator(username_validator)
 		main_layout.addWidget(self.admin_username_input)
 
 	def add_password_input(self, main_layout):
-		short_description = QLabel('Password of the domain administrator:')
-		short_description.setWordWrap(True)
-		main_layout.addWidget(short_description)
-
 		self.admin_password_input = QLineEdit()
+		font_metrics = QFontMetrics(self.domainname_or_ip_input.font())
+		self.admin_password_input.setFixedWidth(30 * font_metrics.width('a'))
+		self.admin_password_input.setPlaceholderText('Password')
 		self.admin_password_input.setEchoMode(QLineEdit.Password)
 		password_validator = QRegExpValidator(QRegExp(r'.+'), self)
 		self.admin_password_input.setValidator(password_validator)

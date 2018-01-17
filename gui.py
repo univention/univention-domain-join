@@ -17,6 +17,7 @@ from PyQt4.QtGui import QHBoxLayout
 from PyQt4.QtGui import QIcon
 from PyQt4.QtGui import QLabel
 from PyQt4.QtGui import QLineEdit
+from PyQt4.QtGui import QMainWindow
 from PyQt4.QtGui import QMenuBar
 from PyQt4.QtGui import QMessageBox
 from PyQt4.QtGui import QPixmap
@@ -81,7 +82,7 @@ class NotRootDialog(QMessageBox):
 		self.setText('This tool must be executed as root.')
 
 
-class DomainJoinGui(QWidget):
+class DomainJoinGui(QMainWindow):
 	def __init__(self):
 		super(self.__class__, self).__init__()
 
@@ -112,7 +113,9 @@ class DomainJoinGui(QWidget):
 		main_layout.addStretch(1)
 		self.add_buttons(main_layout)
 
-		self.setLayout(main_layout)
+		central_widget = QWidget()
+		central_widget.setLayout(main_layout)
+		self.setCentralWidget(central_widget)
 
 	def add_menu_bar(self, main_layout):
 		menu_bar = QMenuBar(self)
@@ -122,7 +125,7 @@ class DomainJoinGui(QWidget):
 		about_action.triggered.connect(self.about)
 		help_menu.addAction(about_action)
 
-		main_layout.addWidget(menu_bar)
+		self.setMenuBar(menu_bar)
 
 	@pyqtSlot()
 	def about(self):
@@ -361,7 +364,7 @@ class MissingInputsDialog(QMessageBox):
 		self.setWindowIcon(QIcon(scriptDir + os.path.sep + 'univention_icon.svg'))
 		self.setText(
 			'At least on input field is not filled in, or filled with an invalid input.'
-			'Please fill all three input fields according to their description.'
+			' Please fill all three input fields according to their description.'
 		)
 
 

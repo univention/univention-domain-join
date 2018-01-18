@@ -363,7 +363,7 @@ class MissingInputsDialog(QMessageBox):
 		scriptDir = os.path.dirname(os.path.realpath(__file__))
 		self.setWindowIcon(QIcon(scriptDir + os.path.sep + 'univention_icon.svg'))
 		self.setText(
-			'At least on input field is not filled in, or filled with an invalid input.'
+			'At least one input field is not filled in, or filled with an invalid input.'
 			' Please fill all three input fields according to their description.'
 		)
 

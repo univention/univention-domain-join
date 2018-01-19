@@ -1,3 +1,9 @@
+univention-domain-join (1.0-1ubuntu3) trusty; urgency=medium
+
+  * Bug #45801: Fix control file
+
+ -- Richard Ulmer <ulmer@univention.de>  Fri, 19 Jan 2018 14:16:11 +0100
+
 univention-domain-join (1.0-1ubuntu2) trusty; urgency=medium
 
   * Bug #45801: Bump

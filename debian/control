@@ -1,5 +1,5 @@
 Source: univention-domain-join
-Section: univention
+Section: admin
 Priority: optional
 Maintainer: Univention GmbH <packages@univention.de>
 Build-Depends: debhelper (>= 8.0.0)

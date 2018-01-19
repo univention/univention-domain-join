@@ -1,3 +1,21 @@
+univention-domain-join (1.0-1ubuntu6) artful; urgency=medium
+
+  * Bug #45801: Bump for Ubuntu 17.10
+
+ -- Richard Ulmer <ulmer@univention.de>  Fri, 19 Jan 2018 15:41:26 +0100
+
+univention-domain-join (1.0-1ubuntu5) xenial; urgency=medium
+
+  * Bug #45801: Bump for Ubuntu 16.04
+
+ -- Richard Ulmer <ulmer@univention.de>  Fri, 19 Jan 2018 15:41:02 +0100
+
+univention-domain-join (1.0-1ubuntu4) trusty; urgency=medium
+
+  * Bug #45801: Bump
+
+ -- Richard Ulmer <ulmer@univention.de>  Fri, 19 Jan 2018 14:51:36 +0100
+
 univention-domain-join (1.0-1ubuntu3) trusty; urgency=medium
 
   * Bug #45801: Fix control file

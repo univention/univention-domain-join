@@ -17,6 +17,7 @@ Depends: sssd,
  sshpass,
  python-dnspython,
  ${misc:Depends}
+Recommends: univention-domain-join-gui
 Description: Join a Linux client into an UCS domain
  This tool performs all steps necessary for joining a Linux computer into an UCS
  domain. The necessary join-steps depend on your Linux distribution, but may

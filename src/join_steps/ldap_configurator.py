@@ -25,18 +25,6 @@ class ConflictChecker(object):
 			return True
 		return False
 
-	@execute_as_root
-	def machine_exists_in_ldap(self, ldap_master, master_username, master_pw, ldap_base):
-		udm_command = ['/usr/sbin/udm', 'computers/ubuntu', 'list', '--position', 'cn=%s,cn=computers,%s' % (self.hostname, ldap_base)]
-		escaped_udm_command = ' '.join([pipes.quote(x) for x in udm_command])
-		ssh_process = subprocess.Popen(
-			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (master_username, ldap_master), escaped_udm_command],
-			stdin=subprocess.PIPE, stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
-		)
-		ssh_process.communicate(master_pw)
-		machine_exists = ssh_process.returncode == 0
-		return machine_exists
-
 
 class LdapConfigurator(ConflictChecker):
 	def __init__(self):
@@ -59,15 +47,27 @@ class LdapConfigurator(ConflictChecker):
 		self.create_machine_secret_file(password)
 
 	def delete_old_entry_and_add_machine_to_ldap(self, password, ldap_master, master_username, master_pw, ldap_base):
-		if self.machine_exists_in_ldap(ldap_master, master_username, master_pw, ldap_base):
-			self.delete_machine_from_ldap(ldap_master, master_username, master_pw, ldap_base)
-		self.add_machine_to_ldap(password, ldap_master, master_username, master_pw, ldap_base)
+		if self.get_machines_ldap_dn(ldap_master, master_username, master_pw):
+			self.modify_machine_in_ldap(password, ldap_master, master_username, master_pw)
+		else:
+			self.add_machine_to_ldap(password, ldap_master, master_username, master_pw, ldap_base)
 
 	@execute_as_root
-	def delete_machine_from_ldap(self, ldap_master, master_username, master_pw, ldap_base):
-		userinfo_logger.info('Removing old LDAP entry for this machine on the DC master')
+	def modify_machine_in_ldap(self, password, ldap_master, master_username, master_pw):
+		userinfo_logger.info('Updating old LDAP entry for this machine on the DC master')
 
-		udm_command = ['/usr/sbin/udm', 'computers/ubuntu', 'remove', '--dn', 'cn=%s,cn=computers,%s' % (self.hostname, ldap_base)]
+		release_id = subprocess.check_output(['lsb_release', '-is']).strip()
+		release = subprocess.check_output(['lsb_release', '-rs']).strip()
+
+		udm_command = [
+			'/usr/sbin/udm',
+			'computers/ubuntu',
+			'modify',
+			'--dn', self.get_machines_ldap_dn(ldap_master, master_username, master_pw),
+			'--set', 'password=%s' % (password,),
+			'--set', 'operatingSystem=%s' % (release_id,),
+			'--set', 'operatingSystemVersion=%s' % (release,)
+		]
 		escaped_udm_command = ' '.join([pipes.quote(x) for x in udm_command])
 		ssh_process = subprocess.Popen(
 			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (master_username, ldap_master), escaped_udm_command],
@@ -75,8 +75,26 @@ class LdapConfigurator(ConflictChecker):
 		)
 		ssh_process.communicate(master_pw)
 		if ssh_process.returncode != 0:
-			userinfo_logger.critical('Removing the old LDAP entry for this computer failed.')
+			userinfo_logger.critical('Updating the old LDAP entry for this computer failed.')
 			raise LdapConfigutationException()
+
+	@execute_as_root
+	def get_machines_ldap_dn(self, ldap_master, master_username, master_pw):
+		udm_command = ['/usr/sbin/udm', 'computers/ubuntu', 'list', '--filter', 'name=%s' % (self.hostname,)]
+		escaped_udm_command = ' '.join([pipes.quote(x) for x in udm_command])
+		ssh_process = subprocess.Popen(
+			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (master_username, ldap_master), escaped_udm_command],
+			stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+		)
+		stdout, stderr = ssh_process.communicate(master_pw)
+		# If the filter matches no entry the only output will be
+		# `name=THISMACHINESNAME`. If the machine exists the output will be longer.
+		if len(stdout.splitlines()) <= 1:
+			return None
+		for line in stdout.splitlines():
+			if "dn:" == line[0:3].lower():
+				machines_ldap_dn = line[3:].strip()
+		return machines_ldap_dn
 
 	@execute_as_root
 	def add_machine_to_ldap(self, password, ldap_master, master_username, master_pw, ldap_base):

@@ -5,7 +5,7 @@ Maintainer: Univention GmbH <packages@univention.de>
 Build-Depends: debhelper (>= 8.0.0)
 Standards-Version: 3.6.1
 
-Package: univention-domain-join
+Package: univention-domain-join-cli
 Architecture: all
 Depends: sssd,
  libnss-sss,
@@ -17,16 +17,16 @@ Depends: sssd,
  sshpass,
  python-dnspython,
  ${misc:Depends}
-Recommends: univention-domain-join-gui
+Recommends: univention-domain-join
 Description: Join a Linux client into an UCS domain
  This tool performs all steps necessary for joining a Linux computer into an UCS
  domain. The necessary join-steps depend on your Linux distribution, but may
  include steps like setting up kerberos, pam, sssd, the login manager and
  creating an LDAP object on the DC master for your computer.
 
-Package: univention-domain-join-gui
+Package: univention-domain-join
 Architecture: all
-Depends: univention-domain-join,
+Depends: univention-domain-join-cli,
  python-qt4,
  gksu,
  ${misc:Depends}

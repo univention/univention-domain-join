@@ -6,5 +6,5 @@ GenericName=Domain Join Assistant
 Comment=Integrate your system into an UCS domain
 Categories=System;
 Keywords=UCS;
-Exec=univention-domain-join-gui-sudo-wrapper
-Icon=univention-domain-join-gui
+Exec=univention-domain-join-sudo-wrapper
+Icon=univention-domain-join

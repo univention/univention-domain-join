@@ -1,1 +1,2 @@
-src usr/share/univention-domain-join/
+univention-domain-join.svg /usr/share/pixmaps/
+univention-domain-join.desktop /usr/share/applications/

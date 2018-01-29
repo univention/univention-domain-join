@@ -30,7 +30,7 @@ def set_up_logging():
 
 	if not os.path.exists('/var/log/univention/'):
 		os.makedirs('/var/log/univention/')
-	logfile_handler = logging.FileHandler('/var/log/univention/domain-join.log')
+	logfile_handler = logging.FileHandler('/var/log/univention/domain-join-cli.log')
 	logfile_handler.setLevel(logging.DEBUG)
 	logfile_handler.setFormatter(verbose_formatter)
 

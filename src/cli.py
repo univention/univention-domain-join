@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from getpass import getpass
 import argparse
 import dns.resolver

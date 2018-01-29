@@ -1,0 +1,48 @@
+univention-domain-join (1.0-1ubuntu6) artful; urgency=medium
+
+  * Bug #45801: Bump for Ubuntu 17.10
+
+ -- Richard Ulmer <ulmer@univention.de>  Fri, 19 Jan 2018 15:41:26 +0100
+
+univention-domain-join (1.0-1ubuntu5) xenial; urgency=medium
+
+  * Bug #45801: Bump for Ubuntu 16.04
+
+ -- Richard Ulmer <ulmer@univention.de>  Fri, 19 Jan 2018 15:41:02 +0100
+
+univention-domain-join (1.0-1ubuntu4) trusty; urgency=medium
+
+  * Bug #45801: Bump
+
+ -- Richard Ulmer <ulmer@univention.de>  Fri, 19 Jan 2018 14:51:36 +0100
+
+univention-domain-join (1.0-1ubuntu3) trusty; urgency=medium
+
+  * Bug #45801: Fix control file
+
+ -- Richard Ulmer <ulmer@univention.de>  Fri, 19 Jan 2018 14:16:11 +0100
+
+univention-domain-join (1.0-1ubuntu2) trusty; urgency=medium
+
+  * Bug #45801: Bump
+
+ -- Richard Ulmer <ulmer@univention.de>  Fri, 19 Jan 2018 13:24:06 +0100
+
+univention-domain-join (1.0-1ubuntu1) trusty xenial artful; urgency=medium
+
+  * Bug #35981: Refined GUI
+
+ -- Richard Ulmer <ulmer@univention.de>  Fri, 19 Jan 2018 12:52:49 +0100
+
+univention-domain-join (0.1-2) unstable; urgency=medium
+
+  * Bug #35981: Add GUI
+
+ -- Richard Ulmer <ulmer@univention.de>  Fri, 12 Jan 2018 12:37:25 +0100
+
+univention-domain-join (0.1-1) unstable; urgency=low
+
+  * initial release
+
+ -- Richard Ulmer <ulmer@univention.de>  Mon, 4 Dec 2017 12:28:23 +0100
+

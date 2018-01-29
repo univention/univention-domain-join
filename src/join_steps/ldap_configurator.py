@@ -82,10 +82,10 @@ class LdapConfigurator(ConflictChecker):
 	def add_machine_to_ldap(self, password, ldap_master, master_username, master_pw, ldap_base):
 		userinfo_logger.info('Adding LDAP entry for this machine on the DC master')
 
-		release_id = subprocess.check_output(['lsb_release', '-is'])
-		release = subprocess.check_output(['lsb_release', '-rs'])
+		release_id = subprocess.check_output(['lsb_release', '-is']).strip()
+		release = subprocess.check_output(['lsb_release', '-rs']).strip()
 
-		# TODO: Also add MAC address. Which NIC's address should I use?
+		# TODO: Also add MAC address. Which NIC's address should be used?
 		udm_command = [
 			'/usr/sbin/udm', 'computers/ubuntu', 'create',
 			'--position', 'cn=computers,%s' % (ldap_base,),

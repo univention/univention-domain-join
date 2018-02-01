@@ -1,2 +1,2 @@
-usr/share/univention-domain-join/src/gui.py usr/sbin/univention-domain-join
-usr/share/univention-domain-join/src/gui_sudo_wrapper.sh usr/sbin/univention-domain-join-sudo-wrapper
+usr/share/univention_domain_join/gui.py usr/sbin/univention-domain-join
+usr/share/univention_domain_join/gui_sudo_wrapper.sh usr/sbin/univention-domain-join-sudo-wrapper

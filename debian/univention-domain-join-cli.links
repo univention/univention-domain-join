@@ -1,1 +1,1 @@
-usr/share/univention-domain-join/src/cli.py usr/sbin/univention-domain-join-cli
+usr/share/univention_domain_join/cli.py usr/sbin/univention-domain-join-cli

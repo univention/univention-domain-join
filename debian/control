@@ -2,7 +2,7 @@ Source: univention-domain-join
 Section: admin
 Priority: optional
 Maintainer: Univention GmbH <packages@univention.de>
-Build-Depends: debhelper (>= 8.0.0)
+Build-Depends: debhelper (>= 8.0.0), python (>=2.7)
 Standards-Version: 3.6.1
 
 Package: univention-domain-join-cli
@@ -15,6 +15,7 @@ Depends: sssd,
  heimdal-clients,
  ntpdate,
  sshpass,
+ python (>= 2.7),
  python-dnspython,
  ${misc:Depends}
 Recommends: univention-domain-join

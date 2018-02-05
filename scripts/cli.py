@@ -9,7 +9,7 @@ import socket
 import subprocess
 import sys
 
-from join_steps.utils import execute_as_root
+from univention_domain_join.join_steps.utils import execute_as_root
 
 OUTPUT_SINK = open(os.devnull, 'w')
 
@@ -74,7 +74,7 @@ def get_master_ip_through_dns(domain):
 def get_joiner_for_this_distribution(master_ip, master_username, master_pw, skip_login_manager):
 	distribution = get_distribution()
 	try:
-		distribution_join_module = importlib.import_module('distributions.%s' % (distribution.lower(),))
+		distribution_join_module = importlib.import_module('univention_domain_join.distributions.%s' % (distribution.lower(),))
 		if not master_username:
 			master_username = get_masters_admin_username()
 		if not master_pw:

@@ -4,7 +4,7 @@ import logging
 import os
 import subprocess
 
-from join_steps.utils import execute_as_root
+from univention_domain_join.join_steps.utils import execute_as_root
 
 userinfo_logger = logging.getLogger('userinfo')
 

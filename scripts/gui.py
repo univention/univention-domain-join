@@ -28,7 +28,7 @@ import socket
 import subprocess
 import sys
 
-from join_steps.utils import execute_as_root
+from univention_domain_join.join_steps.utils import execute_as_root
 
 OUTPUT_SINK = open(os.devnull, 'w')
 
@@ -406,7 +406,7 @@ class JoinThread(QThread):
 	def get_joiner_for_this_distribution(self, master_ip, master_username, master_pw):
 		distribution = self.get_distribution()
 		try:
-			distribution_join_module = importlib.import_module('distributions.%s' % (distribution.lower(),))
+			distribution_join_module = importlib.import_module('univention_domain_join.distributions.%s' % (distribution.lower(),))
 
 			if not self.check_if_ssh_works_with_given_account(master_ip, master_username, master_pw):
 				raise DomainJoinException()

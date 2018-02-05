@@ -1,2 +1,6 @@
+scripts/gui.py usr/share/univention_domain_join/
+scripts/gui_sudo_wrapper.sh usr/share/univention_domain_join/
+scripts/domain.png usr/share/univention_domain_join/
+scripts/univention_icon.svg usr/share/univention_domain_join/
 univention-domain-join.svg /usr/share/pixmaps/
 univention-domain-join.desktop /usr/share/applications/

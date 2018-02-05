@@ -2,13 +2,13 @@ import logging
 import os
 import time
 
-from join_steps.dns_configurator import DnsConfigurator
-from join_steps.kerberos_configurator import KerberosConfigurator
-from join_steps.ldap_configurator import LdapConfigurator
-from join_steps.login_manager_configurator import LoginManagerConfigurator
-from join_steps.pam_configurator import PamConfigurator
-from join_steps.sssd_configurator import SssdConfigurator
-from join_steps.utils import execute_as_root
+from univention_domain_join.join_steps.dns_configurator import DnsConfigurator
+from univention_domain_join.join_steps.kerberos_configurator import KerberosConfigurator
+from univention_domain_join.join_steps.ldap_configurator import LdapConfigurator
+from univention_domain_join.join_steps.login_manager_configurator import LoginManagerConfigurator
+from univention_domain_join.join_steps.pam_configurator import PamConfigurator
+from univention_domain_join.join_steps.sssd_configurator import SssdConfigurator
+from univention_domain_join.join_steps.utils import execute_as_root
 
 userinfo_logger = logging.getLogger('userinfo')
 

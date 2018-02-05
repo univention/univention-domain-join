@@ -28,6 +28,7 @@ import socket
 import subprocess
 import sys
 
+from univention_domain_join.utils.domain import get_ucs_domainname
 from univention_domain_join.utils.general import execute_as_root
 
 OUTPUT_SINK = open(os.devnull, 'w')
@@ -200,17 +201,30 @@ class DomainJoinGui(QMainWindow):
 		self.domainname_or_ip_input.setValidator(domainname_or_ip_validator)
 		layout.addWidget(self.domainname_or_ip_input)
 
-		detected_domainname = self.get_domainname()
-		domainname_qregex = QRegExp(self.regex_domainname)
-		if detected_domainname and domainname_qregex.exactMatch(detected_domainname):
-			self.domainname_or_ip_input.setText(detected_domainname)
+		self.try_filling_in_domainname()
 
-	def get_domainname(self):
-		try:
-			domainname = socket.getfqdn().split('.', 1)[1]
-		except:
-			return None
-		return domainname
+	def try_filling_in_domainname(self):
+		self.domainname_thread = DomainnameDetectionThread()
+		self.connect(self.domainname_thread, SIGNAL('started()'), self.domainname_detection_started)
+		self.connect(self.domainname_thread, SIGNAL('domainname_detection_successful(QString)'), self.domainname_detection_successful)
+		self.connect(self.domainname_thread, SIGNAL('finished()'), self.domainname_detection_finished)
+		self.domainname_thread.start()
+
+	@pyqtSlot()
+	def domainname_detection_started(self):
+		self.domainname_or_ip_input.setPlaceholderText('Detecting domain name...')
+
+	@pyqtSlot()
+	def domainname_detection_successful(self, domainname):
+		domainname_qregex = QRegExp(self.regex_domainname)
+		# self.domainname_or_ip_input.text() is used to make sure the user
+		# didn't fill in the field already.
+		if not self.domainname_or_ip_input.text() and domainname_qregex.exactMatch(domainname):
+			self.domainname_or_ip_input.setText(domainname)
+
+	@pyqtSlot()
+	def domainname_detection_finished(self):
+		self.domainname_or_ip_input.setPlaceholderText('e.g. mydomain.com or 10.0.0.4')
 
 	def add_username_input(self, layout):
 		short_description = QLabel('Domain administrator\'s username:')
@@ -300,12 +314,11 @@ class DomainJoinGui(QMainWindow):
 
 	@pyqtSlot()
 	def join_domain(self, master_ip, admin_username, admin_pw):
-		self.thread = JoinThread(master_ip, admin_username, admin_pw)
-		self.thread.start()
-
-		self.connect(self.thread, SIGNAL('started()'), self.join_started)
-		self.connect(self.thread, SIGNAL('join_successful()'), self.join_successful)
-		self.connect(self.thread, SIGNAL('join_failed()'), self.join_failed)
+		self.join_thread = JoinThread(master_ip, admin_username, admin_pw)
+		self.connect(self.join_thread, SIGNAL('started()'), self.join_started)
+		self.connect(self.join_thread, SIGNAL('join_successful()'), self.join_successful)
+		self.connect(self.join_thread, SIGNAL('join_failed()'), self.join_failed)
+		self.join_thread.start()
 
 	@pyqtSlot()
 	def join_started(self):
@@ -376,6 +389,13 @@ class DnsNotWorkingDialog(QMessageBox):
 			'that the DC master is the DNS server for this computer or use this'
 			' tool with the IP address of the DC master.'
 		)
+
+
+class DomainnameDetectionThread(QThread):
+	def run(self):
+		domainname = get_ucs_domainname()
+		if domainname:
+			self.emit(SIGNAL('domainname_detection_successful(QString)'), domainname)
 
 
 class JoinThread(QThread):

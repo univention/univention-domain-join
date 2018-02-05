@@ -9,6 +9,7 @@ import socket
 import subprocess
 import sys
 
+from univention_domain_join.utils.domain import get_ucs_domainname
 from univention_domain_join.utils.general import execute_as_root
 
 OUTPUT_SINK = open(os.devnull, 'w')
@@ -46,15 +47,6 @@ def set_up_logging():
 	debugging_logger = logging.getLogger('debugging')
 	debugging_logger.setLevel(logging.DEBUG)
 	debugging_logger.addHandler(logfile_handler)
-
-
-def get_domainname():
-	try:
-		domainname = socket.getfqdn().split('.', 1)[1]
-	except IndexError:
-		userinfo_logger.critical('Unable to determine the UCS domain automatically. Please provide it using the --domain parameter or use the tool with --master-ip.')
-		exit(1)
-	return domainname
 
 
 def get_master_ip_through_dns(domain):
@@ -151,7 +143,18 @@ if __name__ == '__main__':
 		if args.master_ip:
 			master_ip = args.master_ip
 		else:
-			domain = args.domain if args.domain else get_domainname()
+			if args.domain:
+				domain = args.domain
+			else:
+				domain = get_ucs_domainname()
+			if domain:
+				userinfo_logger.info('Automatically detected the domain %r.' % (domain,))
+			else:
+				userinfo_logger.critical(
+					'Unable to determine the UCS domain automatically. Please provide '
+					'it using the --domain parameter or use the tool with --master-ip.'
+				)
+				exit(1)
 			master_ip = get_master_ip_through_dns(domain)
 
 		if args.password:

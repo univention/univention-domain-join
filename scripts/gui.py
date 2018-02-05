@@ -28,7 +28,7 @@ import socket
 import subprocess
 import sys
 
-from univention_domain_join.join_steps.utils import execute_as_root
+from univention_domain_join.utils.general import execute_as_root
 
 OUTPUT_SINK = open(os.devnull, 'w')
 

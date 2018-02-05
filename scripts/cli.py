@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 from getpass import getpass
 import argparse
-import dns.resolver
 import importlib
 import logging
 import os
-import socket
 import subprocess
 import sys
 
+from univention_domain_join.utils.distributions import get_distribution
+from univention_domain_join.utils.domain import get_master_ip_through_dns
 from univention_domain_join.utils.domain import get_ucs_domainname
 from univention_domain_join.utils.general import execute_as_root
 
@@ -49,20 +49,6 @@ def set_up_logging():
 	debugging_logger.addHandler(logfile_handler)
 
 
-def get_master_ip_through_dns(domain):
-	resolver = dns.resolver.Resolver()
-	try:
-		response = resolver.query('_domaincontroller_master._tcp.%s.' % (domain,), 'SRV')
-		master_fqdn = response[0].target.canonicalize().split(1)[0].to_text()
-	except dns.resolver.NXDOMAIN:
-		userinfo_logger.critical(
-			'No DNS record for the DC master could be found. Please make sure that '
-			'the DC master is the DNS server for this computer or use this tool with --master-ip.'
-		)
-		exit(1)
-	return socket.gethostbyname(master_fqdn)
-
-
 def get_joiner_for_this_distribution(master_ip, master_username, master_pw, skip_login_manager):
 	distribution = get_distribution()
 	try:
@@ -77,10 +63,6 @@ def get_joiner_for_this_distribution(master_ip, master_username, master_pw, skip
 	except ImportError:
 		userinfo_logger.critical('The used distribution "%s" is not supported.' % (distribution,))
 		exit(1)
-
-
-def get_distribution():
-	return subprocess.check_output(['lsb_release', '-is']).strip()
 
 
 def get_masters_admin_username():
@@ -155,7 +137,14 @@ if __name__ == '__main__':
 					'it using the --domain parameter or use the tool with --master-ip.'
 				)
 				exit(1)
+
 			master_ip = get_master_ip_through_dns(domain)
+			if not master_ip:
+				userinfo_logger.critical(
+					'No DNS record for the DC master could be found. Please make sure that '
+					'the DC master is the DNS server for this computer or use this tool with --master-ip.'
+				)
+				exit(1)
 
 		if args.password:
 			password = args.password

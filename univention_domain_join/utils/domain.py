@@ -7,6 +7,16 @@ import socket
 from univention_domain_join.utils.general import execute_as_root
 
 
+def get_master_ip_through_dns(domain):
+	resolver = dns.resolver.Resolver()
+	try:
+		response = resolver.query('_domaincontroller_master._tcp.%s.' % (domain,), 'SRV')
+		master_fqdn = response[0].target.canonicalize().split(1)[0].to_text()
+	except dns.resolver.NXDOMAIN:
+		return None
+	return socket.gethostbyname(master_fqdn)
+
+
 def get_ucs_domainname():
 	domainname = get_ucs_domainname_via_local_configuration()
 	if not domainname:

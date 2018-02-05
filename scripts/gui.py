@@ -20,14 +20,14 @@ from PyQt4.QtGui import QPushButton
 from PyQt4.QtGui import QRegExpValidator
 from PyQt4.QtGui import QVBoxLayout
 from PyQt4.QtGui import QWidget
-import dns.resolver
 import importlib
 import logging
 import os
-import socket
 import subprocess
 import sys
 
+from univention_domain_join.utils.distributions import get_distribution
+from univention_domain_join.utils.domain import get_master_ip_through_dns
 from univention_domain_join.utils.domain import get_ucs_domainname
 from univention_domain_join.utils.general import execute_as_root
 
@@ -280,7 +280,7 @@ class DomainJoinGui(QMainWindow):
 		):
 			master_ip, domain = self.get_domainname_or_master_ip()
 			if not master_ip:
-				master_ip = self.get_master_ip_through_dns(domain)
+				master_ip = get_master_ip_through_dns(domain)
 				if master_ip is None:
 					self.missing_inputs_dialog = DnsNotWorkingDialog()
 					self.missing_inputs_dialog.exec_()
@@ -302,15 +302,6 @@ class DomainJoinGui(QMainWindow):
 			return input_text, None
 		else:
 			return None, None
-
-	def get_master_ip_through_dns(self, domain):
-		resolver = dns.resolver.Resolver()
-		try:
-			response = resolver.query('_domaincontroller_master._tcp.%s.' % (domain,), 'SRV')
-			master_fqdn = response[0].target.canonicalize().split(1)[0].to_text()
-			return socket.gethostbyname(master_fqdn)
-		except dns.resolver.NXDOMAIN:
-			return None
 
 	@pyqtSlot()
 	def join_domain(self, master_ip, admin_username, admin_pw):
@@ -424,7 +415,7 @@ class JoinThread(QThread):
 		self.emit(SIGNAL('join_successful()'))
 
 	def get_joiner_for_this_distribution(self, master_ip, master_username, master_pw):
-		distribution = self.get_distribution()
+		distribution = get_distribution()
 		try:
 			distribution_join_module = importlib.import_module('univention_domain_join.distributions.%s' % (distribution.lower(),))
 
@@ -439,9 +430,6 @@ class JoinThread(QThread):
 		except ImportError:
 			userinfo_logger.critical('The used distribution "%s" is not supported.' % (distribution,))
 			return None
-
-	def get_distribution(self):
-		return subprocess.check_output(['lsb_release', '-is']).strip()
 
 	@execute_as_root
 	def check_if_ssh_works_with_given_account(self, master_ip, master_username, master_pw):

@@ -12,7 +12,7 @@ def get_master_ip_through_dns(domain):
 	try:
 		response = resolver.query('_domaincontroller_master._tcp.%s.' % (domain,), 'SRV')
 		master_fqdn = response[0].target.canonicalize().split(1)[0].to_text()
-	except dns.resolver.NXDOMAIN:
+	except:
 		return None
 	return socket.gethostbyname(master_fqdn)
 

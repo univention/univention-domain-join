@@ -15,7 +15,7 @@ You can install the tool via the PPA of Univention using these commands:
 ```shell
 sudo add-apt-repository ppa:univention-dev/ppa
 sudo apt-get update
-sudo apt-get install univention-domain-join
+sudo DEBIAN_FRONTEND=noninteractive apt-get install univention-domain-join
 ```
 
 After that run the assistant using the start menu. There is also a command line

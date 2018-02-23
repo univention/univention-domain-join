@@ -81,9 +81,9 @@ class KerberosConfigurator(ConflictChecker):
 			'\n' \
 			'[realms]\n' \
 			'%(kerberos_realm)s = {\n' \
-			'   kdc = %(master_ip)s $(ldap_master)s\n' \
+			'   kdc = %(master_ip)s %(ldap_master)s\n' \
 			'   admin_server = %(master_ip)s %(ldap_master)s\n' \
-			'   kpasswd_server = %(master_ip) %(ldap_master)s\n' \
+			'   kpasswd_server = %(master_ip)s %(ldap_master)s\n' \
 			'}\n' \
 			% {
 				'kerberos_realm': kerberos_realm,

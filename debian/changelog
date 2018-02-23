@@ -1,3 +1,28 @@
+univention-domain-join (1.0-3ubuntu3) artful; urgency=medium
+
+  * Bug #35981: Bump for Ubuntu 17
+
+ -- Richard Ulmer <ulmer@univention.de>  Fri, 23 Feb 2018 09:21:30 +0100
+
+univention-domain-join (1.0-3ubuntu2) xenial; urgency=medium
+
+  * Bug #35981: Bump for Ubuntu 16
+
+ -- Richard Ulmer <ulmer@univention.de>  Fri, 23 Feb 2018 09:21:20 +0100
+
+univention-domain-join (1.0-3ubuntu1) trusty; urgency=medium
+
+  * Bug #35981: Bump for Ubuntu 14
+
+ -- Richard Ulmer <ulmer@univention.de>  Fri, 23 Feb 2018 09:21:06 +0100
+
+univention-domain-join (1.0-3) unstable; urgency=medium
+
+  * Bug #46202: Try to determine the domain of the client in more ways
+  * Bug #35981: Fix license notes
+
+ -- Richard Ulmer <ulmer@univention.de>  Fri, 23 Feb 2018 09:18:24 +0100
+
 univention-domain-join (1.0-2ubuntu3) artful; urgency=medium
 
   * Bug #45801: Bump for Ubuntu 17

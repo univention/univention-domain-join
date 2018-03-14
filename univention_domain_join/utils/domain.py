@@ -90,17 +90,13 @@ def get_ucs_domainname_of_dns_server():
 
 
 def get_nameservers():
-	network_devices = subprocess.check_output(
-		['nmcli', '-terse', '-field', 'DEVICE', 'device']
-	).split()
-
 	nameservers = set()
-	for network_device in network_devices:
-		output = subprocess.check_output(
-			['nmcli', '-terse', '-field', 'IP4.DNS,IP6.DNS', 'device', 'show', network_device]
-		)
-		for dns_server_output in output.split():
-			nameservers.add(dns_server_output.split(':', 1)[1])
+	output = subprocess.check_output(
+		['nmcli', '-terse', '-field', 'IP4,IP6', 'device', 'list']
+	)
+	for output_line in output.split():
+		if "DNS" in output_line:
+			nameservers.add(output_line.split(':', 1)[1])
 	return nameservers
 
 

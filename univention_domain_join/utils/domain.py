@@ -29,7 +29,6 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-import IPy
 import dns.resolver
 import netifaces
 import os
@@ -91,28 +90,18 @@ def get_ucs_domainname_of_dns_server():
 
 
 def get_nameservers():
-	output = subprocess.check_output(['systemd-resolve', '--status'])
+	network_devices = subprocess.check_output(
+		['nmcli', '-terse', '-field', 'DEVICE', 'device']
+	).split()
 
 	nameservers = set()
-	last_line_was_dns_servers_line = False
-	for line in output.splitlines():
-		if last_line_was_dns_servers_line and is_only_ip(line):
-			nameservers.add(line.strip())
-
-		if 'DNS Servers:' in line:
-			last_line_was_dns_servers_line = True
-			nameservers.add(line.split('DNS Servers:')[1].strip())
-		else:
-			last_line_was_dns_servers_line = False
+	for network_device in network_devices:
+		output = subprocess.check_output(
+			['nmcli', '-terse', '-field', 'IP4.DNS,IP6.DNS', 'device', 'show', network_device]
+		)
+		for dns_server_output in output.split():
+			nameservers.add(dns_server_output.split(':', 1)[1])
 	return nameservers
-
-
-def is_only_ip(line):
-	try:
-		IPy.IP(line.strip())
-		return True
-	except ValueError:
-		return False
 
 
 def get_all_ip_addresses():

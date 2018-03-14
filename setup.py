@@ -36,5 +36,5 @@ setup(
 	name='univention-domain-join',
 	version='1.0',
 	packages=find_packages(),
-	install_requires=['dnspython', 'netifaces', 'IPy']
+	install_requires=['dnspython', 'netifaces']
 )

@@ -91,23 +91,6 @@ def get_ucs_domainname_of_dns_server():
 
 
 def get_nameservers():
-	if systemd_resolve_is_used():
-		return get_nameservers_via_systemd()
-	return get_nameservers_via_nmcli()
-
-
-def systemd_resolve_is_used():
-	try:
-		subprocess.check_call(
-			['service', 'systemd-resolved', 'status'],
-			stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
-		)
-		return True
-	except subprocess.CalledProcessError:
-		return False
-
-
-def get_nameservers_via_systemd():
 	output = subprocess.check_output(['systemd-resolve', '--status'])
 
 	nameservers = set()
@@ -130,21 +113,6 @@ def is_only_ip(line):
 		return True
 	except ValueError:
 		return False
-
-
-def get_nameservers_via_nmcli():
-	network_devices = subprocess.check_output(
-		['nmcli', '-terse', '-field', 'DEVICE', 'device']
-	).split()
-
-	nameservers = set()
-	for network_device in network_devices:
-		output = subprocess.check_output(
-			['nmcli', '-terse', '-field', 'IP4.DNS,IP6.DNS', 'device', 'show', network_device]
-		)
-		for dns_server_output in output.split():
-			nameservers.add(dns_server_output.split(':', 1)[1])
-	return nameservers
 
 
 def get_all_ip_addresses():

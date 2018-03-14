@@ -29,13 +29,14 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
+import IPy
 import dns.resolver
 import netifaces
 import os
-import re
 import socket
+import subprocess
 
-from univention_domain_join.utils.general import execute_as_root
+OUTPUT_SINK = open(os.devnull, 'w')
 
 
 def get_master_ip_through_dns(domain):
@@ -78,7 +79,7 @@ def get_ucs_domainname_via_reverse_dns():
 
 
 def get_ucs_domainname_of_dns_server():
-	nameservers = get_nameservers_set_via_networkmanager()
+	nameservers = get_nameservers()
 	possible_ucs_domainnames = set()
 	for nameserver in nameservers:
 		domainname = get_ucs_domainname_from_fqdn(socket.getfqdn(nameserver))
@@ -89,18 +90,60 @@ def get_ucs_domainname_of_dns_server():
 	return None
 
 
-@execute_as_root
-def get_nameservers_set_via_networkmanager():
-	# TODO: Probably doesn't work for too many distributions. Check distribution first.
-	nm_config_dir = '/etc/NetworkManager/system-connections/'
-	nm_config_files = os.listdir(nm_config_dir)
+def get_nameservers():
+	if systemd_resolve_is_used():
+		return get_nameservers_via_systemd()
+	return get_nameservers_via_nmcli()
+
+
+def systemd_resolve_is_used():
+	try:
+		subprocess.check_call(
+			['service', 'systemd-resolved', 'status'],
+			stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
+		)
+		return True
+	except subprocess.CalledProcessError:
+		return False
+
+
+def get_nameservers_via_systemd():
+	output = subprocess.check_output(['systemd-resolve', '--status'])
+
 	nameservers = set()
-	proper_dns_line = re.compile('^\s*dns=.+;\s*$')
-	for config_file in nm_config_files:
-		with open(nm_config_dir + config_file) as config:
-			for line in config:
-				if proper_dns_line.findall(line.strip()):
-					nameservers.add(line.strip()[4:].strip(' \t\n;'))
+	last_line_was_dns_servers_line = False
+	for line in output.splitlines():
+		if last_line_was_dns_servers_line and is_only_ip(line):
+			nameservers.add(line.strip())
+
+		if 'DNS Servers:' in line:
+			last_line_was_dns_servers_line = True
+			nameservers.add(line.split('DNS Servers:')[1].strip())
+		else:
+			last_line_was_dns_servers_line = False
+	return nameservers
+
+
+def is_only_ip(line):
+	try:
+		IPy.IP(line.strip())
+		return True
+	except ValueError:
+		return False
+
+
+def get_nameservers_via_nmcli():
+	network_devices = subprocess.check_output(
+		['nmcli', '-terse', '-field', 'DEVICE', 'device']
+	).split()
+
+	nameservers = set()
+	for network_device in network_devices:
+		output = subprocess.check_output(
+			['nmcli', '-terse', '-field', 'IP4.DNS,IP6.DNS', 'device', 'show', network_device]
+		)
+		for dns_server_output in output.split():
+			nameservers.add(dns_server_output.split(':', 1)[1])
 	return nameservers
 
 

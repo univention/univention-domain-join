@@ -39,7 +39,8 @@ Description: Join a Linux client into an UCS domain
 
 Package: python-univention-domain-join
 Architecture: all
-Depends: ${python:Depends},
+Depends: network-manager,
+ ${python:Depends},
  ${misc:Depends}
 Recommends: univention-domain-join
 Provides: ${python:Provides}

@@ -1,3 +1,15 @@
+univention-domain-join (1.0-5ubuntu1) artful; urgency=medium
+
+  * Bug #35981: Bump for Ubuntu 17
+
+ -- Richard Ulmer <ulmer@univention.de>  Thu, 15 Mar 2018 08:58:34 +0100
+
+univention-domain-join (1.0-5) unstable; urgency=medium
+
+  * Bug #46202: Make DNS server detection more robust
+
+ -- Richard Ulmer <ulmer@univention.de>  Thu, 15 Mar 2018 08:58:24 +0100
+
 univention-domain-join (1.0-4ubuntu3) artful; urgency=medium
 
   * Bug #35981: Bump for Ubuntu 17

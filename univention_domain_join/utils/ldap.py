@@ -32,6 +32,8 @@
 import pipes
 import subprocess
 
+from univention_domain_join.utils.general import execute_as_root
+
 
 def get_machines_ldap_dn(ldap_master, master_username, master_pw):
 	for udm_type in ['computers/ubuntu', 'computers/linux', 'computers/ucc']:
@@ -41,6 +43,15 @@ def get_machines_ldap_dn(ldap_master, master_username, master_pw):
 	return None
 
 
+def get_machines_udm_type(ldap_master, master_username, master_pw):
+	for udm_type in ['computers/ubuntu', 'computers/linux', 'computers/ucc']:
+		machines_ldap_dn = get_machines_ldap_dn_given_the_udm_type(udm_type, ldap_master, master_username, master_pw)
+		if machines_ldap_dn:
+			return udm_type
+	return None
+
+
+@execute_as_root
 def get_machines_ldap_dn_given_the_udm_type(udm_type, ldap_master, master_username, master_pw):
 	hostname = subprocess.check_output(['hostname', '-s']).strip()
 	udm_command = ['/usr/sbin/udm', udm_type, 'list', '--filter', 'name=%s' % (hostname,)]
@@ -55,20 +66,4 @@ def get_machines_ldap_dn_given_the_udm_type(udm_type, ldap_master, master_userna
 		if "dn:" == line[0:3].lower():
 			machines_ldap_dn = line[3:].strip()
 			return machines_ldap_dn
-	return None
-
-
-def get_udm_type_from_ldap_dn(dn, ldap_master, master_username, master_pw):
-	command = ['/usr/sbin/univention-ldapsearch', '-LLL', '-b', dn, 'univentionObjectType']
-	escaped_command = ' '.join([pipes.quote(x) for x in command])
-	ssh_process = subprocess.Popen(
-		['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (master_username, ldap_master), escaped_command],
-		stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-	)
-	stdout, stderr = ssh_process.communicate(master_pw)
-
-	for line in stdout.splitlines():
-		if "univentionObjectType:" == line[0:21]:
-			udm_type = line[21:].strip()
-			return udm_type
 	return None

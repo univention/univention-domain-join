@@ -39,6 +39,7 @@ import subprocess
 from univention_domain_join.join_steps.root_certificate_provider import RootCertificateProvider
 from univention_domain_join.utils.general import execute_as_root
 from univention_domain_join.utils.ldap import get_machines_ldap_dn
+from univention_domain_join.utils.ldap import get_machines_udm_type
 
 userinfo_logger = logging.getLogger('userinfo')
 
@@ -89,7 +90,7 @@ class LdapConfigurator(ConflictChecker):
 
 		udm_command = [
 			'/usr/sbin/udm',
-			'computers/ubuntu',
+			get_machines_udm_type(ldap_master, master_username, master_pw),
 			'modify',
 			'--dn', get_machines_ldap_dn(ldap_master, master_username, master_pw),
 			'--set', 'password=%s' % (password,),

@@ -1,3 +1,9 @@
+univention-domain-join (1.0-6ubuntu2) xenial; urgency=medium
+
+  * Bug #46658: Bump for Ubuntu 16.04
+
+ -- Richard Ulmer <ulmer@univention.de>  Fri, 16 Mar 2018 10:54:56 +0100
+
 univention-domain-join (1.0-6ubuntu1) artful; urgency=medium
 
   * Bug #46658: Bump for Ubuntu 17

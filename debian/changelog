@@ -1,3 +1,15 @@
+univention-domain-join (1.0-6ubuntu1) artful; urgency=medium
+
+  * Bug #46658: Bump for Ubuntu 17
+
+ -- Richard Ulmer <ulmer@univention.de>  Fri, 16 Mar 2018 10:08:11 +0100
+
+univention-domain-join (1.0-6) unstable; urgency=medium
+
+  * Bug #46658: Reuse LDAP object, even if type is not computers/ubuntu
+
+ -- Richard Ulmer <ulmer@univention.de>  Fri, 16 Mar 2018 10:08:11 +0100
+
 univention-domain-join (1.0-5ubuntu1) artful; urgency=medium
 
   * Bug #35981: Bump for Ubuntu 17

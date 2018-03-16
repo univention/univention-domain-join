@@ -35,8 +35,9 @@ import os
 import stat
 import subprocess
 
-from univention_domain_join.utils.general import execute_as_root
 from univention_domain_join.join_steps.root_certificate_provider import RootCertificateProvider
+from univention_domain_join.utils.general import execute_as_root
+from univention_domain_join.utils.ldap import get_machines_ldap_dn
 
 OUTPUT_SINK = open(os.devnull, 'w')
 
@@ -75,18 +76,17 @@ class SssdConfigurator(ConflictChecker):
 			)
 
 	@execute_as_root
-	def setup_sssd(self, master_ip, ldap_master, ldap_base, kerberos_realm):
-		self.hostname = subprocess.check_output(['hostname', '-s']).strip()
+	def setup_sssd(self, master_ip, ldap_master, master_username, master_pw, ldap_base, kerberos_realm):
 		self.ldap_password = subprocess.check_output(['cat', '/etc/machine.secret']).strip()
 		RootCertificateProvider().provide_ucs_root_certififcate(ldap_master)
 
-		self.write_sssd_conf(master_ip, ldap_master, ldap_base, kerberos_realm)
+		self.write_sssd_conf(master_ip, ldap_master, master_username, master_pw, ldap_base, kerberos_realm)
 		self.write_sssd_profile()
 		self.configure_sssd()
 		self.restart_sssd()
 
 	@execute_as_root
-	def write_sssd_conf(self, master_ip, ldap_master, ldap_base, kerberos_realm):
+	def write_sssd_conf(self, master_ip, ldap_master, master_username, master_pw, ldap_base, kerberos_realm):
 		userinfo_logger.info('Writing /etc/sssd/sssd.conf ')
 
 		sssd_conf = \
@@ -116,16 +116,16 @@ class SssdConfigurator(ConflictChecker):
 			'ldap_tls_cacert = /etc/univention/ssl/ucsCA/CAcert.pem\n' \
 			'cache_credentials = true\n' \
 			'enumerate = true\n' \
-			'ldap_default_bind_dn = cn=%(hostname)s,cn=computers,%(ldap_base)s\n' \
+			'ldap_default_bind_dn = %(machines_ldap_dn)s\n' \
 			'ldap_default_authtok_type = password\n' \
 			'ldap_default_authtok = %(ldap_password)s\n' \
 			% {
-				'master_ip': master_ip,
 				'kerberos_realm': kerberos_realm,
-				'ldap_master': ldap_master,
 				'ldap_base': ldap_base,
-				'hostname': self.hostname,
-				'ldap_password': self.ldap_password
+				'ldap_master': ldap_master,
+				'ldap_password': self.ldap_password,
+				'machines_ldap_dn': get_machines_ldap_dn(ldap_master, master_username, master_pw),
+				'master_ip': master_ip
 			}
 		with open('/etc/sssd/sssd.conf', 'w') as conf_file:
 			conf_file.write(sssd_conf)

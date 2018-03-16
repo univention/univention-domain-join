@@ -36,8 +36,9 @@ import pipes
 import stat
 import subprocess
 
-from univention_domain_join.utils.general import execute_as_root
 from univention_domain_join.join_steps.root_certificate_provider import RootCertificateProvider
+from univention_domain_join.utils.general import execute_as_root
+from univention_domain_join.utils.ldap import get_machines_ldap_dn
 
 userinfo_logger = logging.getLogger('userinfo')
 
@@ -57,9 +58,6 @@ class ConflictChecker(object):
 
 
 class LdapConfigurator(ConflictChecker):
-	def __init__(self):
-		self.hostname = subprocess.check_output(['hostname', '-s']).strip()
-
 	@execute_as_root
 	def backup(self, backup_dir):
 		if self.ldap_conf_exists():
@@ -72,12 +70,12 @@ class LdapConfigurator(ConflictChecker):
 	def configure_ldap(self, ldap_master, master_username, master_pw, ldap_base):
 		RootCertificateProvider().provide_ucs_root_certififcate(ldap_master)
 		password = self.random_password()
-		self.delete_old_entry_and_add_machine_to_ldap(password, ldap_master, master_username, master_pw, ldap_base)
+		self.modify_old_entry_or_add_machine_to_ldap(password, ldap_master, master_username, master_pw, ldap_base)
 		self.create_ldap_conf_file(ldap_master, ldap_base)
 		self.create_machine_secret_file(password)
 
-	def delete_old_entry_and_add_machine_to_ldap(self, password, ldap_master, master_username, master_pw, ldap_base):
-		if self.get_machines_ldap_dn(ldap_master, master_username, master_pw):
+	def modify_old_entry_or_add_machine_to_ldap(self, password, ldap_master, master_username, master_pw, ldap_base):
+		if get_machines_ldap_dn(ldap_master, master_username, master_pw):
 			self.modify_machine_in_ldap(password, ldap_master, master_username, master_pw)
 		else:
 			self.add_machine_to_ldap(password, ldap_master, master_username, master_pw, ldap_base)
@@ -93,7 +91,7 @@ class LdapConfigurator(ConflictChecker):
 			'/usr/sbin/udm',
 			'computers/ubuntu',
 			'modify',
-			'--dn', self.get_machines_ldap_dn(ldap_master, master_username, master_pw),
+			'--dn', get_machines_ldap_dn(ldap_master, master_username, master_pw),
 			'--set', 'password=%s' % (password,),
 			'--set', 'operatingSystem=%s' % (release_id,),
 			'--set', 'operatingSystemVersion=%s' % (release,)
@@ -109,27 +107,10 @@ class LdapConfigurator(ConflictChecker):
 			raise LdapConfigutationException()
 
 	@execute_as_root
-	def get_machines_ldap_dn(self, ldap_master, master_username, master_pw):
-		udm_command = ['/usr/sbin/udm', 'computers/ubuntu', 'list', '--filter', 'name=%s' % (self.hostname,)]
-		escaped_udm_command = ' '.join([pipes.quote(x) for x in udm_command])
-		ssh_process = subprocess.Popen(
-			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (master_username, ldap_master), escaped_udm_command],
-			stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-		)
-		stdout, stderr = ssh_process.communicate(master_pw)
-		# If the filter matches no entry the only output will be
-		# `name=THISMACHINESNAME`. If the machine exists the output will be longer.
-		if len(stdout.splitlines()) <= 1:
-			return None
-		for line in stdout.splitlines():
-			if "dn:" == line[0:3].lower():
-				machines_ldap_dn = line[3:].strip()
-		return machines_ldap_dn
-
-	@execute_as_root
 	def add_machine_to_ldap(self, password, ldap_master, master_username, master_pw, ldap_base):
 		userinfo_logger.info('Adding LDAP entry for this machine on the DC master')
 
+		hostname = subprocess.check_output(['hostname', '-s']).strip()
 		release_id = subprocess.check_output(['lsb_release', '-is']).strip()
 		release = subprocess.check_output(['lsb_release', '-rs']).strip()
 
@@ -137,7 +118,7 @@ class LdapConfigurator(ConflictChecker):
 		udm_command = [
 			'/usr/sbin/udm', 'computers/ubuntu', 'create',
 			'--position', 'cn=computers,%s' % (ldap_base,),
-			'--set', 'name=%s' % (self.hostname,),
+			'--set', 'name=%s' % (hostname,),
 			'--set', 'password=%s' % (password,),
 			'--set', 'operatingSystem=%s' % (release_id,),
 			'--set', 'operatingSystemVersion=%s' % (release,)

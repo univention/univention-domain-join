@@ -1,3 +1,21 @@
+univention-domain-join (1.0-8ubuntu2) xenial; urgency=medium
+
+  *  Bug #46379: Bump for Ubuntu 16.04 
+
+ -- Richard Ulmer <ulmer@univention.de>  Mon, 19 Mar 2018 12:18:51 +0100
+
+univention-domain-join (1.0-8ubuntu1) artful; urgency=medium
+
+  * Bug #46379: Bump for Ubuntu 17.10
+
+ -- Richard Ulmer <ulmer@univention.de>  Mon, 19 Mar 2018 12:10:26 +0100
+
+univention-domain-join (1.0-8) unstable; urgency=medium
+
+  * Bug #46379: Add CA certificate to certificate store
+
+ -- Richard Ulmer <ulmer@univention.de>  Mon, 19 Mar 2018 12:10:26 +0100
+
 univention-domain-join (1.0-7ubuntu3) trusty; urgency=medium
 
   * Bug #46658: Bump for Ubuntu 14.04

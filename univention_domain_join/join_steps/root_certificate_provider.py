@@ -42,12 +42,17 @@ userinfo_logger = logging.getLogger('userinfo')
 
 class RootCertificateProvider(object):
 	def provide_ucs_root_certififcate(self, ldap_master):
-		if not self.ucs_root_certificate_available_localy():
+		if not self.ucs_root_certificate_available_locally():
 			self.download_ucs_root_certificate(ldap_master)
+			self.add_certificate_to_certificate_store()
+
+	def ucs_root_certificate_available_locally(self):
+		return os.path.isfile('/etc/univention/ssl/ucsCA/CAcert.pem') and \
+			os.path.isfile('/usr/local/share/ca-certificates/UCSdomain.crt')
 
 	@execute_as_root
 	def download_ucs_root_certificate(self, ldap_master):
-		userinfo_logger.info('Downloading the UCS root certificate to /etc/univention/ssl/ucsCA/CAcert.pem ')
+		userinfo_logger.info('Downloading the UCS root certificate to /etc/univention/ssl/ucsCA/CAcert.pem')
 
 		if not os.path.exists('/etc/univention/ssl/ucsCA'):
 			os.makedirs('/etc/univention/ssl/ucsCA')
@@ -56,5 +61,12 @@ class RootCertificateProvider(object):
 			stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
 		)
 
-	def ucs_root_certificate_available_localy(self):
-		return os.path.isfile('/etc/univention/ssl/ucsCA/CAcert.pem')
+	@execute_as_root
+	def add_certificate_to_certificate_store(self):
+		userinfo_logger.info('Adding the UCS root certificate to the certificate store')
+
+		os.symlink('/etc/univention/ssl/ucsCA/CAcert.pem', '/usr/local/share/ca-certificates/UCSdomain.crt')
+		subprocess.call(
+			['update-ca-certificates'],
+			stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
+		)

@@ -57,7 +57,12 @@ class RootCertificateProvider(object):
 		if not os.path.exists('/etc/univention/ssl/ucsCA'):
 			os.makedirs('/etc/univention/ssl/ucsCA')
 		subprocess.check_call(
-			['wget', '-O', '/etc/univention/ssl/ucsCA/CAcert.pem', 'http://%s/ucs-root-ca.crt' % (ldap_master,)],
+			[
+				'wget',
+				'--no-check-certificate',
+				'-O', '/etc/univention/ssl/ucsCA/CAcert.pem',
+				'http://%s/ucs-root-ca.crt' % (ldap_master,)
+			],
 			stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
 		)
 

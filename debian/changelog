@@ -1,3 +1,27 @@
+univention-domain-join (1.0-10ubuntu3) xenial; urgency=medium
+
+  * Bug #46737: Bump for Ubuntu 16.04
+
+ -- Richard Ulmer <ulmer@univention.de>  Mon, 09 Apr 2018 14:22:01 +0200
+
+univention-domain-join (1.0-10ubuntu2) artful; urgency=medium
+
+  * Bug #46737: Bump for Ubuntu 17.10
+
+ -- Richard Ulmer <ulmer@univention.de>  Mon, 09 Apr 2018 14:16:31 +0200
+
+univention-domain-join (1.0-10ubuntu1) bionic; urgency=medium
+
+  * Bug #46737: Bump for Ubuntu 18.04
+
+ -- Richard Ulmer <ulmer@univention.de>  Mon, 09 Apr 2018 14:10:18 +0200
+
+univention-domain-join (1.0-10) unstable; urgency=medium
+
+  * Bug #46737: Introduce Ubuntu 18.04
+
+ -- Richard Ulmer <ulmer@univention.de>  Mon, 09 Apr 2018 14:10:18 +0200
+
 univention-domain-join (1.0-9ubuntu3) trusty; urgency=medium
 
   * Bug #46655: Bump for Ubuntu 14.04

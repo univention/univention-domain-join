@@ -1,4 +1,4 @@
-univention-domain-join (1.0-10ubuntu2) xenial; urgency=medium
+univention-domain-join (1.0-10ubuntu2) artful; urgency=medium
 
   * Bug #46737: Bump for Ubuntu 17.10
 

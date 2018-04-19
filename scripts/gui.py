@@ -136,6 +136,7 @@ class DomainJoinGui(QMainWindow):
 		self.add_inputs_group(main_layout)
 		main_layout.addStretch(1)
 		self.add_buttons(main_layout)
+		self.admin_password_input.returnPressed.connect(self.join_button.click)
 
 		central_widget = QWidget()
 		central_widget.setLayout(main_layout)
@@ -291,6 +292,7 @@ class DomainJoinGui(QMainWindow):
 
 		self.join_button = QPushButton('Join')
 		self.join_button.clicked.connect(self.join_domain_if_inputs_are_ok)
+		self.join_button.setAutoDefault(True)
 		button_layout.addWidget(self.join_button)
 
 		self.cancel_button = QPushButton('Cancel')

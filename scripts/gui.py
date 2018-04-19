@@ -251,6 +251,7 @@ class DomainJoinGui(QMainWindow):
 		# didn't fill in the field already.
 		if not self.domainname_or_ip_input.text() and domainname_qregex.exactMatch(domainname):
 			self.domainname_or_ip_input.setText(domainname)
+			self.admin_password_input.setFocus()
 
 	@pyqtSlot()
 	def domainname_detection_finished(self):

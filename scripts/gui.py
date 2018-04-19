@@ -340,6 +340,7 @@ class DomainJoinGui(QMainWindow):
 		self.connect(self.join_thread, SIGNAL('started()'), self.join_started)
 		self.connect(self.join_thread, SIGNAL('join_successful()'), self.join_successful)
 		self.connect(self.join_thread, SIGNAL('join_failed()'), self.join_failed)
+		self.connect(self.join_thread, SIGNAL('ssh_failed()'), self.ssh_failed)
 		self.join_thread.start()
 
 	@pyqtSlot()
@@ -367,6 +368,15 @@ class DomainJoinGui(QMainWindow):
 		self.successful_join_dialog = FailedJoinDialog()
 		self.successful_join_dialog.exec_()
 
+	@pyqtSlot()
+	def ssh_failed(self):
+		self.join_button.setText('Join')
+		self.join_button.setEnabled(True)
+		self.cancel_button.setEnabled(True)
+
+		self.successful_join_dialog = FailedSSHDialog()
+		self.successful_join_dialog.exec_()
+
 
 class SuccessfulJoinDialog(QMessageBox):
 	def __init__(self):
@@ -386,6 +396,17 @@ class FailedJoinDialog(QMessageBox):
 		self.setStyleSheet("QMessageBox { messagebox-text-interaction-flags: 5; }")
 		self.setText(
 			'The domain join failed. For further information look at /var/log/univention/domain-join-gui.log .'
+		)
+
+
+class FailedSSHDialog(QMessageBox):
+	def __init__(self):
+		super(self.__class__, self).__init__()
+		self.setWindowTitle('SSH Connection Failed')
+		scriptDir = os.path.dirname(os.path.realpath(__file__))
+		self.setWindowIcon(QIcon(scriptDir + os.path.sep + 'univention_icon.svg'))
+		self.setText(
+			'The SSH connection failed. Please check the address.'
 		)
 
 
@@ -431,7 +452,15 @@ class JoinThread(QThread):
 
 	def run(self):
 		try:
-			distribution_joiner = self.get_joiner_for_this_distribution(self.master_ip, self.admin_username, self.admin_pw)
+			try:
+				distribution_joiner = self.get_joiner_for_this_distribution(self.master_ip, self.admin_username, self.admin_pw)
+			except DomainJoinException as exc:
+				userinfo_logger.critical(exc.args[0])
+				if exc.args[0] == 'IP not reachable via SSH.':
+					self.emit(SIGNAL('ssh_failed()'))
+					return
+				else:
+					raise
 
 			if not distribution_joiner:
 				raise DomainJoinException()
@@ -451,8 +480,7 @@ class JoinThread(QThread):
 		try:
 			distribution_join_module = importlib.import_module('univention_domain_join.distributions.%s' % (distribution.lower(),))
 
-			if not self.check_if_ssh_works_with_given_account(master_ip, master_username, master_pw):
-				raise DomainJoinException()
+			self.check_if_ssh_works_with_given_account(master_ip, master_username, master_pw)
 
 			masters_ucr_variables = self.get_ucr_variables_from_master(master_ip, master_username, master_pw)
 			if not masters_ucr_variables:
@@ -467,11 +495,14 @@ class JoinThread(QThread):
 	def check_if_ssh_works_with_given_account(self, master_ip, master_username, master_pw):
 		ssh_process = subprocess.Popen(
 			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (master_username, master_ip), 'echo foo'],
-			stdin=subprocess.PIPE, stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
+			stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
 		)
-		ssh_process.communicate(master_pw)
+		stdout, stderr = ssh_process.communicate(master_pw)
 		if ssh_process.returncode != 0:
-			userinfo_logger.critical('It\'s not possible to connect to the DC master via ssh, with the given credentials.')
+			if stderr.strip().endswith(': No route to host'):
+				raise DomainJoinException('IP not reachable via SSH.')
+			else:
+				raise DomainJoinException('It\'s not possible to connect to the DC master via ssh, with the given credentials.')
 			return False
 		return True
 

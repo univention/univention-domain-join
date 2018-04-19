@@ -383,6 +383,7 @@ class FailedJoinDialog(QMessageBox):
 		self.setWindowTitle('Failed Join')
 		scriptDir = os.path.dirname(os.path.realpath(__file__))
 		self.setWindowIcon(QIcon(scriptDir + os.path.sep + 'univention_icon.svg'))
+		self.setStyleSheet("QMessageBox { messagebox-text-interaction-flags: 5; }")
 		self.setText(
 			'The domain join failed. For further information look at /var/log/univention/domain-join-gui.log .'
 		)

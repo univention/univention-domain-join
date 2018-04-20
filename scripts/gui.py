@@ -54,33 +54,22 @@ import logging
 import os
 import subprocess
 import sys
+import tempfile
 
 from univention_domain_join.utils.distributions import get_distribution
 from univention_domain_join.utils.domain import get_master_ip_through_dns
 from univention_domain_join.utils.domain import get_ucs_domainname
-from univention_domain_join.utils.general import execute_as_root
 
 OUTPUT_SINK = open(os.devnull, 'w')
 
 
-def check_if_run_as_root():
-	if os.getuid() != 0:
-		app = QApplication(sys.argv)
-		form = NotRootDialog()
-		form.show()
-		sys.exit(app.exec_())
-
-
-@execute_as_root
 def set_up_logging():
 	global userinfo_logger
 
 	verbose_formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s %(message)s')
 	plain_formatter = logging.Formatter('%(message)s')
 
-	if not os.path.exists('/var/log/univention/'):
-		os.makedirs('/var/log/univention/')
-	logfile_handler = logging.FileHandler('/var/log/univention/domain-join-gui.log')
+	logfile_handler = logging.FileHandler('univention-domain-join-gui.log')
 	logfile_handler.setLevel(logging.DEBUG)
 	logfile_handler.setFormatter(verbose_formatter)
 
@@ -96,15 +85,6 @@ def set_up_logging():
 
 class DomainJoinException(Exception):
 	pass
-
-
-class NotRootDialog(QMessageBox):
-	def __init__(self):
-		super(self.__class__, self).__init__()
-		self.setWindowTitle('Univention Domain Join')
-		scriptDir = os.path.dirname(os.path.realpath(__file__))
-		self.setWindowIcon(QIcon(scriptDir + os.path.sep + 'univention_icon.svg'))
-		self.setText('This tool must be executed as root.')
 
 
 class DomainJoinGui(QMainWindow):
@@ -319,6 +299,7 @@ class DomainJoinGui(QMainWindow):
 					return
 
 			self.join_domain(master_ip, str(self.admin_username_input.text()), str(self.admin_password_input.text()))
+
 		else:
 			self.missing_inputs_dialog = MissingInputsDialog()
 			self.missing_inputs_dialog.exec_()
@@ -396,7 +377,7 @@ class FailedJoinDialog(QMessageBox):
 		self.setWindowIcon(QIcon(scriptDir + os.path.sep + 'univention_icon.svg'))
 		self.setStyleSheet("QMessageBox { messagebox-text-interaction-flags: 5; }")
 		self.setText(
-			'The domain join failed. For further information look at /var/log/univention/domain-join-gui.log .'
+			'The domain join failed. For further information look at univention-domain-join-gui.log your home directory'
 		)
 
 
@@ -466,9 +447,21 @@ class JoinThread(QThread):
 			if not distribution_joiner:
 				raise DomainJoinException()
 
-			distribution_joiner.check_if_join_is_possible_without_problems()
-			distribution_joiner.create_backup_of_config_files()
-			distribution_joiner.join_domain()
+			# TODO:
+			with tempfile.NamedTemporaryFile() as tmp:
+				tmp.write(self.admin_pw)
+				tmp.flush()
+				# tmp.seek(0)
+				# call u-d-join-cli
+				returncode = subprocess.call(['pkexec', 'univention-domain-join-cli',
+					'--logfile', os.path.expanduser('~/univention-domain-join-gui.log'),
+					'--username', '%s' % self.admin_username,
+					'--password-file', tmp.name,
+					'--master-ip', self.master_ip], stdout=sys.stdout, stderr=sys.stdout)
+				if returncode != 0:
+					self.emit(SIGNAL('join_failed()'))
+					return
+
 		except Exception as e:
 			userinfo_logger.critical(e, exc_info=True)
 			self.emit(SIGNAL('join_failed()'))
@@ -492,7 +485,6 @@ class JoinThread(QThread):
 			userinfo_logger.critical('The used distribution "%s" is not supported.' % (distribution,))
 			return None
 
-	@execute_as_root
 	def check_if_ssh_works_with_given_account(self, master_ip, master_username, master_pw):
 		ssh_process = subprocess.Popen(
 			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (master_username, master_ip), 'echo foo'],
@@ -507,7 +499,6 @@ class JoinThread(QThread):
 			return False
 		return True
 
-	@execute_as_root
 	def get_ucr_variables_from_master(self, master_ip, master_username, master_pw):
 		ssh_process = subprocess.Popen(
 			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (master_username, master_ip), '/usr/sbin/ucr shell | grep -v ^hostname='],
@@ -525,11 +516,6 @@ class JoinThread(QThread):
 
 
 if __name__ == '__main__':
-	check_if_run_as_root()
-	sudo_uid = os.environ.get('SUDO_UID')
-	if sudo_uid:
-		os.seteuid(int(sudo_uid))
-
 	set_up_logging()
 
 	app = QApplication(sys.argv)

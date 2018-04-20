@@ -127,11 +127,12 @@ class LdapConfigurator(ConflictChecker):
 		escaped_udm_command = ' '.join([pipes.quote(x) for x in udm_command])
 		ssh_process = subprocess.Popen(
 			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (master_username, ldap_master), escaped_udm_command],
-			stdin=subprocess.PIPE, stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
+			stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
 		)
-		ssh_process.communicate(master_pw)
+		stdout, _ = ssh_process.communicate(master_pw)
 		if ssh_process.returncode != 0:
 			userinfo_logger.critical('Adding an LDAP object for this computer didn\'t work.')
+			userinfo_logger.critical('%s' % stdout)
 			raise LdapConfigutationException()
 
 	@execute_as_root

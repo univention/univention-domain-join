@@ -13,7 +13,6 @@ Package: univention-domain-join
 Architecture: all
 Depends: univention-domain-join-cli,
  python-qt4,
- gksu,
  ${misc:Depends}
 Description: Graphical front end for univention-domain-join
 

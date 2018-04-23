@@ -70,8 +70,11 @@ class DnsConfigurator(object):
 	def backup(self, backup_dir):
 		self.working_configurator.backup(backup_dir)
 
+	@execute_as_root
 	def configure_dns(self):
 		self.working_configurator.configure_dns(self.nameservers, self.domain)
+		if self.domain.endswith('.local'):
+			subprocess.check_call(['sed', '-i', '-E', 's/^(hosts: +.*) \\[NOTFOUND=return\\](.*) dns(.*)/\\1 dns \[NOTFOUND=return\]\\2\\3/', '/etc/nsswitch.conf'], close_fds=True)
 		self.check_if_dns_works()
 
 	def check_if_dns_works(self):

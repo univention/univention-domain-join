@@ -64,8 +64,10 @@ class DnsConfigurator(object):
 
 		if DnsConfiguratorSystemd().works_on_this_system():
 			self.working_configurator = DnsConfiguratorSystemd()
+		elif DnsConfiguratorNetworkManager().works_on_this_system():
+			self.working_configurator = DnsConfiguratorNetworkManager()
 		else:
-			self.working_configurator = DnsConfiguratorResolvconf()
+			self.working_configurator = DnsConfiguratorDHClient()
 
 	def backup(self, backup_dir):
 		self.working_configurator.backup(backup_dir)
@@ -118,6 +120,83 @@ class DnsConfiguratorSystemd(object):
 
 		userinfo_logger.info('Restarting systemd-resolved.')
 		subprocess.check_call(['systemctl', 'restart', 'systemd-resolved'])
+
+
+class DnsConfiguratorNetworkManager(object):
+	def works_on_this_system(self):
+		## could also check lsb_release -sr here instead
+		p = subprocess.Popen(
+			['nmcli', '-v'],
+			stdout=subprocess.PIPE, stderr=subprocess.PIPE
+		)
+		stdout, stderr = p.communicate()
+		if p.returncode != 0:
+			return False
+		nmcli_version = stdout.split()[-1]
+		p = subprocess.Popen(
+			['dpkg', '--compare-versions', nmcli_version, 'gt', '1']
+		)
+		p.wait()
+		return p.returncode == 0
+
+	@execute_as_root
+	def backup(self, backup_dir):
+		## TODO: where does nmcli store the DNS settings?
+		return
+
+	@execute_as_root
+	def configure_dns(self, nameservers, domain):
+		p = subprocess.Popen(
+			['nmcli', '-t', '-f', 'NAME,UUID,DEVICE', 'connection', 'show', '--active'],
+			stdout=subprocess.PIPE, stderr=subprocess.PIPE
+		)
+		stdout, stderr = p.communicate()
+		if p.returncode != 0:
+			raise DnsConfigurationException()
+		for line in stdout.splitlines():
+			conn_name, conn_uuid, conn_dev = line.split(':')
+			userinfo_logger.info('Configuring ipv4 DNS servers for %s.' % conn_dev)
+			p = subprocess.Popen(
+				['nmcli', 'connection', 'modify', conn_uuid,
+				'ipv4.dns', " ".join(filter(lambda x: x, nameservers)),
+				'ipv4.ignore-auto-dns', 'yes']
+			)
+			p.wait()
+			userinfo_logger.info('Applying new settings to %s.' % conn_dev)
+			p = subprocess.Popen(
+				['nmcli', 'connection', 'down', conn_uuid]
+			)
+			p.wait()
+			p = subprocess.Popen(
+				['nmcli', 'connection', 'up', conn_uuid]
+			)
+			p.wait()
+
+
+class DnsConfiguratorDHClient(object):
+	@execute_as_root
+	def backup(self, backup_dir):
+		if os.path.isfile('/etc/dhcp/dhclient.conf'):
+			os.makedirs(os.path.join(backup_dir, 'etc/dhcp'))
+			copyfile(
+				'/etc/dhcp/dhclient.conf',
+				os.path.join(backup_dir, 'etc/dhcp/dhclient.conf')
+			)
+
+	@execute_as_root
+	def configure_dns(self, nameservers, domain):
+		ns_string = " ".join(filter(lambda x: x, nameservers))
+		p = subprocess.Popen(
+			['grep', '-q', '^prepend domain-name-servers %s' % ns_string,
+			'/etc/dhcp/dhclient.conf']
+		)
+		p.wait()
+		if p.returncode == 0:
+			userinfo_logger.info('"prepend domain-name-servers" already in /etc/dhcp/dhclient.conf')
+			return
+		userinfo_logger.info('Adjusting /etc/dhcp/dhclient.conf')
+		with open('/etc/dhcp/dhclient.conf', 'a') as conf_file:
+			conf_file.write('\nprepend domain-name-servers %s\n' % (ns_string,))
 
 
 class DnsConfiguratorResolvconf(object):

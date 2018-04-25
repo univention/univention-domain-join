@@ -62,12 +62,10 @@ class DnsConfigurator(object):
 			)
 			raise DnsConfigurationException()
 
-		if DnsConfiguratorSystemd().works_on_this_system():
-			self.working_configurator = DnsConfiguratorSystemd()
-		elif DnsConfiguratorNetworkManager().works_on_this_system():
+		if DnsConfiguratorNetworkManager().works_on_this_system():
 			self.working_configurator = DnsConfiguratorNetworkManager()
 		else:
-			self.working_configurator = DnsConfiguratorDHClient()
+			self.working_configurator = DnsConfiguratorTrusty()
 
 	def backup(self, backup_dir):
 		self.working_configurator.backup(backup_dir)
@@ -90,6 +88,18 @@ class DnsConfigurator(object):
 			)
 			raise DnsConfigurationException()
 
+
+class DnsConfiguratorTrusty(object):
+	def __init__(self):
+		self.sub_configurators = (DnsConfiguratorDHClient(), DnsConfiguratorOldNetworkManager(), DnsConfiguratorResolvconf())
+
+	def backup(self, backup_dir):
+		for configurator in self.sub_configurators:
+			configurator.backup(backup_dir)
+
+	def configure_dns(self, nameservers, domain):
+		for configurator in self.sub_configurators:
+			configurator.configure_dns(nameservers, domain)
 
 class DnsConfiguratorSystemd(object):
 	def works_on_this_system(self):
@@ -172,6 +182,52 @@ class DnsConfiguratorNetworkManager(object):
 			)
 			p.wait()
 
+class DnsConfiguratorOldNetworkManager(object):
+	@execute_as_root
+	def backup(self, backup_dir):
+		p = subprocess.Popen(
+			['nmcli', '-t', '-f', 'NAME,UUID', 'connection', 'list'],
+			stdout=subprocess.PIPE, stderr=subprocess.PIPE
+		)
+		stdout, stderr = p.communicate()
+		if p.returncode != 0:
+			raise DnsConfigurationException()
+		for line in stdout.splitlines():
+			conn_name, conn_uuid= line.split(':')
+			fn = '/etc/NetworkManager/system-connections/%s' % conn_name
+			fn_backup = os.path.join(backup_dir, fn[1:])
+			if os.path.isfile(fn):
+				userinfo_logger.info('Backing up %s' % fn)
+				os.makedirs(os.path.join(backup_dir, 'etc/NetworkManager/system-connections'))
+				copyfile(
+					fn,
+					fn_backup
+				)
+				os.chmod(fn_backup, 0600)
+
+	@execute_as_root
+	def configure_dns(self, nameservers, domain):
+		ns_string = ';'.join(filter(lambda x: x, nameservers))+';'
+		import ConfigParser
+		p = subprocess.Popen(
+			['nmcli', '-t', '-f', 'NAME,UUID', 'connection', 'list'],
+			stdout=subprocess.PIPE, stderr=subprocess.PIPE
+		)
+		stdout, stderr = p.communicate()
+		if p.returncode != 0:
+			raise DnsConfigurationException()
+		for line in stdout.splitlines():
+			conn_name, conn_uuid= line.split(':')
+			fn = '/etc/NetworkManager/system-connections/%s' % conn_name
+			if os.path.isfile(fn):
+				Config = ConfigParser.ConfigParser()
+				Config.read(fn)
+				Config.set('ipv4', 'dns', ns_string)
+				Config.set('ipv4', 'dns-search', '')
+				Config.set('ipv4', 'ignore-auto-dns', 'true')
+				with open(fn, 'w') as f:
+					Config.write(f)
+		subprocess.check_call(['service', 'network-manager', 'restart'])
 
 class DnsConfiguratorDHClient(object):
 	@execute_as_root
@@ -220,4 +276,5 @@ class DnsConfiguratorResolvconf(object):
 			conf_file.write('domain %s' % (domain,))
 
 		userinfo_logger.info('Applying new resolvconf settings.')
-		subprocess.check_call(['resolvconf', '-u'])
+		subprocess.check_call(['service', 'resolvconf', 'stop'])
+		subprocess.check_call(['service', 'resolvconf', 'start'])

@@ -62,9 +62,6 @@ class DnsConfigurator(object):
 			)
 			raise DnsConfigurationException()
 
-		# if DnsConfiguratorBeaver().works_on_this_system():
-		# 	self.working_configurator = DnsConfiguratorBeaver()
-		# elif DnsConfiguratorNetworkManager().works_on_this_system():
 		if DnsConfiguratorNetworkManager().works_on_this_system():
 			self.working_configurator = DnsConfiguratorNetworkManager()
 		else:
@@ -91,18 +88,6 @@ class DnsConfigurator(object):
 			)
 			raise DnsConfigurationException()
 
-
-class DnsConfiguratorBeaver(object):
-	def __init__(self):
-		self.sub_configurators = (DnsConfiguratorSystemd(), DnsConfiguratorNetworkManager())
-
-	def backup(self, backup_dir):
-		for configurator in self.sub_configurators:
-			configurator.backup(backup_dir)
-
-	def configure_dns(self, nameservers, domain):
-		for configurator in self.sub_configurators:
-			configurator.configure_dns(nameservers, domain)
 
 class DnsConfiguratorTrusty(object):
 	def __init__(self):

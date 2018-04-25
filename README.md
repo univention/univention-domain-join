@@ -13,8 +13,8 @@ Server (UCS) domains. It will perform the following steps for you:
 Univention Domain Join supports the following Linux distributions:
 
 - Ubuntu 18.04 LTS („Bionic Beaver“)
-- Ubuntu 17.10 („Artful“)
-- Ubunut 16.04 LTS („Xenial“)
+- Ubuntu 17.10 („Artful Aardvark“)
+- Ubunut 16.04 LTS („Xenial Xerus“)
 
 # Download and Installation
 

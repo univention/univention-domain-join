@@ -1,3 +1,11 @@
+univention-domain-join (1.0-11ubuntu3) xenial; urgency=medium
+
+  * Bug #46866: Adjust DNS configuration
+      Use NetworkManager where possible
+      Adjust nsswitch.conf when joining a .local domain
+
+ -- Arvid Requate <requate@univention.de>  Wed, 25 Apr 2018 16:16:40 +0200
+
 univention-domain-join (1.0-10ubuntu3) xenial; urgency=medium
 
   * Bug #46737: Bump for Ubuntu 16.04

@@ -1,3 +1,9 @@
+univention-domain-join (1.0-12ubuntu2) artful; urgency=medium
+
+  * Bug #46889: Add changelog entry
+
+ -- Richard Ulmer <ulmer@univention.de>  Thu, 26 Apr 2018 10:17:56 +0200
+
 univention-domain-join (1.0-11ubuntu2) artful; urgency=medium
 
   * Bug #46866: Adjust DNS configuration

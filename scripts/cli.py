@@ -202,3 +202,4 @@ if __name__ == '__main__':
 	except Exception as e:
 		userinfo_logger.critical('An error occurred. Please check %s for more information.' % (debugging_logger.handlers[0].baseFilename,))
 		debugging_logger.critical(e, exc_info=True)
+		exit(1)

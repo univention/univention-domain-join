@@ -14,7 +14,13 @@ Univention Domain Join supports the following Linux distributions:
 
 - Ubuntu 18.04 LTS („Bionic Beaver“)
 - Ubuntu 17.10 („Artful Aardvark“)
-- Ubunut 16.04 LTS („Xenial Xerus“)
+- Ubuntu 16.04 LTS („Xenial Xerus“)
+- Ubuntu 14.04 LTS („Trusty Tahr“)
+
+Univention Domain Join supports the Gnome and Unity desktop environments. The
+configuration of the login manager of other desktop environments may not work,
+but can be skipped using the `--skip-login-manager` parameter of the
+`univention-domain-join-cli` tool.
 
 # Download and Installation
 

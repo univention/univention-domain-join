@@ -527,7 +527,10 @@ class JoinThread(QThread):
 if __name__ == '__main__':
 	check_if_run_as_root()
 	sudo_uid = os.environ.get('SUDO_UID')
-	if sudo_uid:
+	pkexec_uid = os.environ.get('PKEXEC_UID')
+	if pkexec_uid:
+		os.seteuid(int(pkexec_uid))
+	elif sudo_uid:
 		os.seteuid(int(sudo_uid))
 
 	set_up_logging()

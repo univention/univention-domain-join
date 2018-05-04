@@ -4,4 +4,4 @@ scripts/domain.png usr/share/univention_domain_join/
 scripts/univention_icon.svg usr/share/univention_domain_join/
 univention-domain-join.svg /usr/share/pixmaps/
 univention-domain-join.desktop /usr/share/applications/
-com.univention.univention-domain-join-cli.policy usr/share/polkit-1/actions
+com.univention.univention-domain-join.policy usr/share/polkit-1/actions

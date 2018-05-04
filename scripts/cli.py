@@ -52,20 +52,16 @@ def check_if_run_as_root():
 
 
 @execute_as_root
-def set_up_logging(logfile=None):
+def set_up_logging():
 	global userinfo_logger
 	global debugging_logger
 
 	verbose_formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s %(message)s')
 	plain_formatter = logging.Formatter('%(message)s')
 
-	logfile_path = '/var/log/univention/domain-join-cli.log'
-	if logfile:
-		logfile_path = logfile
-
-	if not os.path.exists(os.path.dirname(logfile_path)):
-		os.makedirs(os.path.dirname(logfile_path))
-	logfile_handler = logging.FileHandler(logfile_path)
+	if not os.path.exists('/var/log/univention/'):
+		os.makedirs('/var/log/univention/')
+	logfile_handler = logging.FileHandler('/var/log/univention/domain-join-cli.log')
 	logfile_handler.setLevel(logging.DEBUG)
 	logfile_handler.setFormatter(verbose_formatter)
 
@@ -136,12 +132,13 @@ def get_ucr_variables_from_master(master_ip, master_username, master_pw):
 		ucr_variables[key] = value
 	return ucr_variables
 
-
 if __name__ == '__main__':
 	check_if_run_as_root()
 	sudo_uid = os.environ.get('SUDO_UID')
 	if sudo_uid:
 		os.seteuid(int(sudo_uid))
+
+	set_up_logging()
 
 	try:
 		parser = argparse.ArgumentParser(
@@ -153,10 +150,7 @@ if __name__ == '__main__':
 		parser.add_argument('--skip-login-manager', action='store_true', help='Do not configure the login manager.')
 		parser.add_argument('--domain', help='Domain name. Can be left out if the domain is configured for this system.')
 		parser.add_argument('--master-ip', help='IP address of the domain controller master. Can be used if --domain does not work.')
-		parser.add_argument('--logfile', help='Log all actions into the supplied logfile')
 		args = parser.parse_args()
-
-		set_up_logging(args.logfile)
 
 		if args.master_ip:
 			master_ip = args.master_ip

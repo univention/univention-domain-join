@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<policyconfig>
+
+  <vendor>Univention GmbH</vendor>
+  <vendor_url>https://www.univention.com</vendor_url>
+
+  <action id="com.univention.univention-domain-join.pkexec.run">
+    <description>Run the Univention Domain Join program</description>
+    <description xml:lang="de">Ausführen von Univention Domain Join</description>
+    <message>Authentication is required to run Univention Domain Join (user=$(user), program=$(program), command_line=$(command_line))</message>
+    <message xml:lang="de">Um Univention Domain Join auszuführen, müssen Sie sich authentifizieren (user=$(user), program=$(program), command_line=$(command_line))</message>
+    <icon_name>univention-domain-join</icon_name>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_self_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/sbin/univention-domain-join</annotate>
+    <annotate key="org.freedesktop.policykit.exec.allow_gui">yes</annotate>
+  </action>
+
+</policyconfig>

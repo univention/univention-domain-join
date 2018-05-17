@@ -1,3 +1,9 @@
+univention-domain-join (1.0-13ubuntu4) trusty; urgency=medium
+
+  * Bug #46920: Use pkexec to run the GUI as root
+
+ -- Richard Ulmer <ulmer@univention.de>  Thu, 17 May 2018 12:28:40 +0200
+
 univention-domain-join (1.0-12ubuntu4) trusty; urgency=medium
 
   * Bug #46889: Exit with exit code 1 on errors

@@ -1,3 +1,9 @@
+univention-domain-join (1.0-15ubuntu1) bionic; urgency=medium
+
+  * Bug #46920: Changelog bump to correct ditros name
+
+ -- Richard Ulmer <ulmer@univention.de>  Fri, 08 Jun 2018 12:56:42 +0200
+
 univention-domain-join (1.0-14ubuntu1) unstable; urgency=medium
 
   * Bug #46920: Remove references to deleted file

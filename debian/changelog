@@ -1,3 +1,9 @@
+univention-domain-join (1.0-15ubuntu3) xenial; urgency=medium
+
+  * Bug #46965: Add Support for Linux Mint
+
+ -- Richard Ulmer <ulmer@univention.de>  Mon, 02 Jul 2018 14:47:16 +0200
+
 univention-domain-join (1.0-14ubuntu3) xenial; urgency=medium
 
   * Bug #46920: Remove references to deleted file

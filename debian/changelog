@@ -1,3 +1,9 @@
+univention-domain-join (1.0-16ubuntu1) bionic; urgency=medium
+
+  * Bug #46965: Add Support for Linux Mint
+
+ -- Richard Ulmer <ulmer@univention.de>  Mon, 02 Jul 2018 13:39:23 +0200
+
 univention-domain-join (1.0-15ubuntu1) bionic; urgency=medium
 
   * Bug #46920: Changelog bump to correct ditros name

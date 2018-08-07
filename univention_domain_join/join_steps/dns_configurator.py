@@ -169,7 +169,8 @@ class DnsConfiguratorNetworkManager(object):
 			p = subprocess.Popen(
 				['nmcli', 'connection', 'modify', conn_uuid,
 				'ipv4.dns', " ".join(filter(lambda x: x, nameservers)),
-				'ipv4.ignore-auto-dns', 'yes']
+				'ipv4.ignore-auto-dns', 'yes',
+				'ipv4.dns-search' , domain]
 			)
 			p.wait()
 			userinfo_logger.info('Applying new settings to %s.' % conn_dev)

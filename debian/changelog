@@ -1,3 +1,9 @@
+univention-domain-join (1.0-16ubuntu4) unstable; urgency=medium
+
+  * Bug #47320: Fix debian package version
+
+ -- Richard Ulmer <ulmer@univention.de>  Wed, 08 Aug 2018 13:35:44 +0200
+
 univention-domain-join (1.0-15ubuntu5) unstable; urgency=medium
 
   * Bug #47320: Speed up join with .local domains

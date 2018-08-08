@@ -74,7 +74,11 @@ class DnsConfigurator(object):
 	def configure_dns(self):
 		self.working_configurator.configure_dns(self.nameservers, self.domain)
 		if self.domain.endswith('.local'):
-			subprocess.check_call(['sed', '-i', '-E', 's/^(hosts: +.*) \\[NOTFOUND=return\\](.*) dns(.*)/\\1 dns \[NOTFOUND=return\]\\2\\3/', '/etc/nsswitch.conf'], close_fds=True)
+			subprocess.check_call([
+				'sed', '-i', '-E',
+				's/^(hosts: +.*)( mdns4_minimal)(.*)\\[NOTFOUND=return\\](.*)( dns)(.*)/\\1\\5\\2\\3\[NOTFOUND=return\]\\4\\6/',
+				'/etc/nsswitch.conf'
+			], close_fds=True)
 		self.check_if_dns_works()
 
 	def check_if_dns_works(self):

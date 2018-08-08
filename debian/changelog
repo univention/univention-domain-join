@@ -1,3 +1,9 @@
+univention-domain-join (1.0-16ubuntu3) unstable; urgency=medium
+
+  * Bug #47320: Speed up join with .local domains
+
+ -- Richard Ulmer <ulmer@univention.de>  Wed, 08 Aug 2018 13:32:25 +0200
+
 univention-domain-join (1.0-15ubuntu3) xenial; urgency=medium
 
   * Bug #46965: Add Support for Linux Mint

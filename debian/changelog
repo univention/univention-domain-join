@@ -1,3 +1,9 @@
+univention-domain-join (1.0-17ubuntu3) xenial; urgency=medium
+
+  * Bug #47320: Bump changelog
+
+ -- Richard Ulmer <ulmer@univention.de>  Mon, 17 Sep 2018 15:49:12 +0200
+
 univention-domain-join (1.0-16ubuntu3) unstable; urgency=medium
 
   * Bug #47320: Speed up join with .local domains

@@ -1,3 +1,9 @@
+univention-domain-join (1.0-17ubuntu4) trusty; urgency=medium
+
+  * Bug #47320: Changelog Bump
+
+ -- Richard Ulmer <ulmer@univention.de>  Mon, 17 Sep 2018 15:51:20 +0200
+
 univention-domain-join (1.0-16ubuntu4) unstable; urgency=medium
 
   * Bug #47320: Fix debian package version

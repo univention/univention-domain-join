@@ -1,3 +1,9 @@
+univention-domain-join (1.0-18ubuntu1) bionic; urgency=medium
+
+  * Bug #47320: Bump changelog
+
+ -- Richard Ulmer <ulmer@univention.de>  Mon, 17 Sep 2018 15:47:59 +0200
+
 univention-domain-join (1.0-17ubuntu1) unstable; urgency=medium
 
   * Bug #47320: Add support for .local domains

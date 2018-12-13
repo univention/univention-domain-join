@@ -44,16 +44,14 @@ userinfo_logger = logging.getLogger('userinfo')
 class ConflictChecker(object):
 	def configuration_conflicts(self):
 		login_manager = self.determin_used_login_manager()
-		if login_manager == 'lightdm':
-			return False
-		elif login_manager == 'gdm3':
+		if login_manager in ['lightdm', 'gdm3', 'sddm']:
 			return False
 		elif login_manager == 'lightdm_account_service':
 			userinfo_logger.error('Error: The login won\'t work with your system, because you are using an incompatible login theme.')
 			userinfo_logger.error('       Please go to "System Settings" -> "Login Screen (LightDM)" and set your login theme to "Classic".')
 		else:
 			userinfo_logger.error('Error: Can\'t enable login with the login manager of your system.')
-			userinfo_logger.error('       Please use LightDM or GDM for full compatibility with UCS.')
+			userinfo_logger.error('       Please use LightDM, SDDM or GDM for full compatibility with UCS.')
 		return True
 
 	def determin_used_login_manager(self):
@@ -106,7 +104,6 @@ class LoginManagerConfigurator(ConflictChecker):
 		login_manager = self.determin_used_login_manager()
 		if login_manager == 'lightdm':
 			self.enable_login_with_foreign_usernames_for_lightdm()
-		# GDM doesn't require any configuration.
 
 	@execute_as_root
 	def enable_login_with_foreign_usernames_for_lightdm(self):

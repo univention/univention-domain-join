@@ -1,3 +1,9 @@
+univention-domain-join (1.0-18ubuntu4) trusty; urgency=medium
+
+  * Bug #48187: Support SDDM login manager and improve an error message
+
+ -- Richard Ulmer <ulmer@univention.de>  Thu, 13 Dec 2018 14:16:57 +0100
+
 univention-domain-join (1.0-17ubuntu4) trusty; urgency=medium
 
   * Bug #47320: Changelog Bump

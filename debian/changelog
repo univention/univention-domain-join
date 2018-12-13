@@ -1,3 +1,9 @@
+univention-domain-join (1.0-20ubuntu1) bionic; urgency=medium
+
+  * Bug #48187: Bump
+
+ -- Richard Ulmer <ulmer@univention.de>  Thu, 13 Dec 2018 14:05:56 +0100
+
 univention-domain-join (1.0-19ubuntu1) bionic; urgency=medium
 
   * Bug #48187: Support SDDM login manager and improve an error message

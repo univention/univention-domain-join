@@ -44,7 +44,7 @@ userinfo_logger = logging.getLogger('userinfo')
 class ConflictChecker(object):
 	def configuration_conflicts(self):
 		login_manager = self.determin_used_login_manager()
-		if login_manager == ['lightdm', 'gdm3', 'sddm']:
+		if login_manager in ['lightdm', 'gdm3', 'sddm']:
 			return False
 		elif login_manager == 'lightdm_account_service':
 			userinfo_logger.error('Error: The login won\'t work with your system, because you are using an incompatible login theme.')

@@ -52,6 +52,7 @@ class ConflictChecker(object):
 		else:
 			userinfo_logger.error('Error: Can\'t enable login with the login manager of your system.')
 			userinfo_logger.error('       Please use LightDM, SDDM or GDM for full compatibility with UCS.')
+			userinfo_logger.error('       This error can be avoided by using the --skip-login-manager parameter.')
 		return True
 
 	def determin_used_login_manager(self):

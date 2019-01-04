@@ -1,3 +1,9 @@
+univention-domain-join (1.0-21ubuntu1) cosmic; urgency=medium
+
+  * Bug #48114: Changelog bump.
+
+ -- Richard Ulmer <ulmer@univention.de>  Fri, 04 Jan 2019 15:26:15 +0100
+
 univention-domain-join (1.0-20ubuntu1) bionic; urgency=medium
 
   * Bug #48187: Bump

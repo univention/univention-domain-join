@@ -1,3 +1,9 @@
+univention-domain-join (1.0-23ubuntu1) cosmic; urgency=medium
+
+  * Bug #48379: Fix changelog's Ubuntu version
+
+ -- Richard Ulmer <ulmer@univention.de>  Mon, 28 Jan 2019 10:56:40 +0100
+
 univention-domain-join (1.0-22ubuntu1) unstable; urgency=medium
 
   * Bug #48379: Improve config to support kerberos-sso usage

@@ -78,6 +78,7 @@ class KerberosConfigurator(ConflictChecker):
 			'    default_tkt_enctypes = arcfour-hmac-md5 des-cbc-md5 des3-hmac-sha1 des-cbc-crc des-cbc-md4 des3-cbc-sha1 aes128-cts-hmac-sha1-96 aes256-cts-hmac-sha1-96\n' \
 			'    permitted_enctypes = des3-hmac-sha1 des-cbc-crc des-cbc-md4 des-cbc-md5 des3-cbc-sha1 arcfour-hmac-md5 aes128-cts-hmac-sha1-96 aes256-cts-hmac-sha1-96\n' \
 			'    allow_weak_crypto=true\n' \
+			'    rdns = false\n' \
 			'\n' \
 			'[realms]\n' \
 			'%(kerberos_realm)s = {\n' \

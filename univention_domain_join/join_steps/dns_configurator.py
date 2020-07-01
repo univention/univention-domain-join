@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Univention Domain Join
 #
@@ -208,7 +208,7 @@ class DnsConfiguratorOldNetworkManager(object):
 					fn,
 					fn_backup
 				)
-				os.chmod(fn_backup, 0600)
+				os.chmod(fn_backup, 0o600)
 
 	@execute_as_root
 	def configure_dns(self, nameservers, domain):

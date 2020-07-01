@@ -37,4 +37,4 @@ export http_proxy=http://127.0.0.1:9
 # Use the setup.py to prepare the python modules for the
 # python-univention-domain-join binary package.
 %:
-	dh $@ --with python2
+	dh $@ --with python3

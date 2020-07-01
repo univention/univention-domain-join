@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 #
 # Univention Domain Join
 #
@@ -29,26 +29,26 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-from PyQt4.QtCore import QRegExp
-from PyQt4.QtCore import QThread
-from PyQt4.QtCore import SIGNAL
-from PyQt4.QtCore import pyqtSlot
-from PyQt4.QtGui import QAction
-from PyQt4.QtGui import QApplication
-from PyQt4.QtGui import QFontMetrics
-from PyQt4.QtGui import QFrame
-from PyQt4.QtGui import QHBoxLayout
-from PyQt4.QtGui import QIcon
-from PyQt4.QtGui import QLabel
-from PyQt4.QtGui import QLineEdit
-from PyQt4.QtGui import QMainWindow
-from PyQt4.QtGui import QMenuBar
-from PyQt4.QtGui import QMessageBox
-from PyQt4.QtGui import QPixmap
-from PyQt4.QtGui import QPushButton
-from PyQt4.QtGui import QRegExpValidator
-from PyQt4.QtGui import QVBoxLayout
-from PyQt4.QtGui import QWidget
+from PyQt5.QtCore import QRegExp
+from PyQt5.QtCore import QThread
+from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtWidgets import QAction
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtGui import QFontMetrics
+from PyQt5.QtWidgets import QFrame
+from PyQt5.QtWidgets import QHBoxLayout
+from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import QLabel
+from PyQt5.QtWidgets import QLineEdit
+from PyQt5.QtWidgets import QMainWindow
+from PyQt5.QtWidgets import QMenuBar
+from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtWidgets import QPushButton
+from PyQt5.QtGui import QRegExpValidator
+from PyQt5.QtWidgets import QVBoxLayout
+from PyQt5.QtWidgets import QWidget
 import importlib
 import logging
 import os

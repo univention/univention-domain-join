@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Univention Domain Join
 #
@@ -85,8 +85,8 @@ class LdapConfigurator(ConflictChecker):
 	def modify_machine_in_ldap(self, password, ldap_master, master_username, master_pw):
 		userinfo_logger.info('Updating old LDAP entry for this machine on the DC master')
 
-		release_id = subprocess.check_output(['lsb_release', '-is']).strip()
-		release = subprocess.check_output(['lsb_release', '-rs']).strip()
+		release_id = subprocess.check_output(['lsb_release', '-is']).strip().decode()
+		release = subprocess.check_output(['lsb_release', '-rs']).strip().decode()
 
 		udm_command = [
 			'/usr/sbin/udm',
@@ -102,7 +102,7 @@ class LdapConfigurator(ConflictChecker):
 			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (master_username, ldap_master), escaped_udm_command],
 			stdin=subprocess.PIPE, stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
 		)
-		ssh_process.communicate(master_pw)
+		ssh_process.communicate(master_pw.encode())
 		if ssh_process.returncode != 0:
 			userinfo_logger.critical('Updating the old LDAP entry for this computer failed.')
 			raise LdapConfigutationException()
@@ -111,9 +111,9 @@ class LdapConfigurator(ConflictChecker):
 	def add_machine_to_ldap(self, password, ldap_master, master_username, master_pw, ldap_base):
 		userinfo_logger.info('Adding LDAP entry for this machine on the DC master')
 
-		hostname = subprocess.check_output(['hostname', '-s']).strip()
-		release_id = subprocess.check_output(['lsb_release', '-is']).strip()
-		release = subprocess.check_output(['lsb_release', '-rs']).strip()
+		hostname = subprocess.check_output(['hostname', '-s']).strip().decode()
+		release_id = subprocess.check_output(['lsb_release', '-is']).strip().decode()
+		release = subprocess.check_output(['lsb_release', '-rs']).strip().decode()
 
 		# TODO: Also add MAC address. Which NIC's address should be used?
 		udm_command = [
@@ -129,7 +129,7 @@ class LdapConfigurator(ConflictChecker):
 			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (master_username, ldap_master), escaped_udm_command],
 			stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
 		)
-		stdout, _ = ssh_process.communicate(master_pw)
+		stdout, _ = ssh_process.communicate(master_pw.encode())
 		if ssh_process.returncode != 0:
 			userinfo_logger.critical('Adding an LDAP object for this computer didn\'t work.')
 			userinfo_logger.critical('%s' % stdout)

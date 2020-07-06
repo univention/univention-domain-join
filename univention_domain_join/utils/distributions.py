@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Univention Domain Join
 #
@@ -33,4 +33,4 @@ import subprocess
 
 
 def get_distribution():
-	return subprocess.check_output(['lsb_release', '-is']).strip()
+	return subprocess.check_output(['lsb_release', '-is']).strip().decode()

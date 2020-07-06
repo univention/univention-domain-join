@@ -51,12 +51,6 @@ class ConflictChecker(object):
 			return True
 		return False
 
-	def sssd_profile_file_exists(self):
-		if os.path.isfile('/etc/auth-client-config/profile.d/sss'):
-			userinfo_logger.warn('Warning: /etc/auth-client-config/profile.d/sss already exists.')
-			return True
-		return False
-
 
 class SssdConfigurator(ConflictChecker):
 
@@ -68,20 +62,13 @@ class SssdConfigurator(ConflictChecker):
 				'/etc/sssd/sssd.conf',
 				os.path.join(backup_dir, 'etc/sssd/sssd.conf')
 			)
-		if self.sssd_profile_file_exists():
-			os.makedirs(os.path.join(backup_dir, 'etc/auth-client-config/profile.d'))
-			copyfile(
-				'//etc/auth-client-config/profile.d/sss',
-				os.path.join(backup_dir, 'etc/auth-client-config/profile.d/sss')
-			)
 
 	@execute_as_root
 	def setup_sssd(self, master_ip, ldap_master, master_username, master_pw, ldap_base, kerberos_realm):
-		self.ldap_password = subprocess.check_output(['cat', '/etc/machine.secret']).strip()
+		self.ldap_password = subprocess.check_output(['cat', '/etc/machine.secret']).strip().decode()
 		RootCertificateProvider().provide_ucs_root_certififcate(ldap_master)
 
 		self.write_sssd_conf(master_ip, ldap_master, master_username, master_pw, ldap_base, kerberos_realm)
-		self.write_sssd_profile()
 		self.configure_sssd()
 		self.restart_sssd()
 
@@ -132,51 +119,11 @@ class SssdConfigurator(ConflictChecker):
 		os.chmod('/etc/sssd/sssd.conf', stat.S_IREAD | stat.S_IWRITE)
 
 	@execute_as_root
-	def write_sssd_profile(self):
-		userinfo_logger.info('Writing /etc/auth-client-config/profile.d/sss ')
-
-		sssd_profile = \
-			'[sss]\n' \
-			'nss_passwd=   passwd:   compat sss\n' \
-			'nss_group=    group:    compat sss\n' \
-			'nss_shadow=   shadow:   compat\n' \
-			'nss_netgroup= netgroup: nis\n' \
-			'\n' \
-			'pam_auth=\n' \
-			'        auth [success=3 default=ignore] pam_unix.so nullok_secure try_first_pass\n' \
-			'        auth requisite pam_succeed_if.so uid >= 500 quiet\n' \
-			'        auth [success=1 default=ignore] pam_sss.so use_first_pass\n' \
-			'        auth requisite pam_deny.so\n' \
-			'        auth required pam_permit.so\n' \
-			'\n' \
-			'pam_account=\n' \
-			'        account required pam_unix.so\n' \
-			'        account sufficient pam_localuser.so\n' \
-			'        account sufficient pam_succeed_if.so uid < 500 quiet\n' \
-			'        account [default=bad success=ok user_unknown=ignore] pam_sss.so\n' \
-			'        account required pam_permit.so\n' \
-			'\n' \
-			'pam_password=\n' \
-			'        password requisite pam_pwquality.so retry=3\n' \
-			'        password sufficient pam_unix.so obscure sha512\n' \
-			'        password sufficient pam_sss.so use_authtok\n' \
-			'        password required pam_deny.so\n' \
-			'\n' \
-			'pam_session=\n' \
-			'        session required pam_mkhomedir.so skel=/etc/skel/ umask=0077\n' \
-			'        session optional pam_keyinit.so revoke\n' \
-			'        session required pam_limits.so\n' \
-			'        session [success=1 default=ignore] pam_sss.so\n' \
-			'        session required pam_unix.so\n'
-		with open('/etc/auth-client-config/profile.d/sss', 'w') as profile_file:
-			profile_file.write(sssd_profile)
-
-	@execute_as_root
 	def configure_sssd(self):
 		userinfo_logger.info('Configuring auth config profile for sssd')
 
 		subprocess.check_call(
-			['auth-client-config', '-a', '-p', 'sss'],
+			['pam-auth-update', '--enable', 'mkhomedir'],
 			stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
 		)
 

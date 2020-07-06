@@ -111,7 +111,7 @@ class DnsConfiguratorSystemd(object):
 			['service', 'systemd-resolved', 'status'],
 			stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
 		)
-		ssh_process.communicate('')
+		ssh_process.communicate(b'')
 		return ssh_process.returncode == 0
 
 	@execute_as_root
@@ -167,23 +167,23 @@ class DnsConfiguratorNetworkManager(object):
 		stdout, stderr = p.communicate()
 		if p.returncode != 0:
 			raise DnsConfigurationException()
-		for line in stdout.splitlines():
+		for line in stdout.decode().splitlines():
 			conn_name, conn_uuid, conn_dev = line.split(':')
 			userinfo_logger.info('Configuring ipv4 DNS servers for %s.' % conn_dev)
 			p = subprocess.Popen(
 				['nmcli', 'connection', 'modify', conn_uuid,
-				'ipv4.dns', " ".join(filter(lambda x: x, nameservers)),
+				'ipv4.dns', " ".join(filter(lambda x: x, nameservers)).encode(),
 				'ipv4.ignore-auto-dns', 'yes',
-				'ipv4.dns-search' , domain]
+				'ipv4.dns-search' , domain.encode()]
 			)
 			p.wait()
 			userinfo_logger.info('Applying new settings to %s.' % conn_dev)
 			p = subprocess.Popen(
-				['nmcli', 'connection', 'down', conn_uuid]
+				['nmcli', 'connection', 'down', conn_uuid.encode()]
 			)
 			p.wait()
 			p = subprocess.Popen(
-				['nmcli', 'connection', 'up', conn_uuid]
+				['nmcli', 'connection', 'up', conn_uuid.encode()]
 			)
 			p.wait()
 

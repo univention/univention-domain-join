@@ -95,7 +95,7 @@ def get_nameservers():
 
 	nameservers = set()
 	last_line_was_dns_servers_line = False
-	for line in output.splitlines():
+	for line in output.decode().splitlines():
 		if last_line_was_dns_servers_line and is_only_ip(line):
 			nameservers.add(line.strip())
 

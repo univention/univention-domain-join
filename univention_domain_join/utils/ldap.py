@@ -53,17 +53,16 @@ def get_machines_udm_type(ldap_master, master_username, master_pw):
 
 @execute_as_root
 def get_machines_ldap_dn_given_the_udm_type(udm_type, ldap_master, master_username, master_pw):
-	hostname = subprocess.check_output(['hostname', '-s']).strip()
+	hostname = subprocess.check_output(['hostname', '-s']).strip().decode()
 	udm_command = ['/usr/sbin/udm', udm_type, 'list', '--filter', 'name=%s' % (hostname,)]
 	escaped_udm_command = ' '.join([pipes.quote(x) for x in udm_command])
 	ssh_process = subprocess.Popen(
 		['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (master_username, ldap_master), escaped_udm_command],
 		stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
 	)
-	stdout, stderr = ssh_process.communicate(master_pw)
-
+	stdout, stderr = ssh_process.communicate(master_pw.encode())
 	for line in stdout.splitlines():
-		if "dn:" == line[0:3].lower():
+		if b"dn:" == line[0:3].lower():
 			machines_ldap_dn = line[3:].strip()
-			return machines_ldap_dn
+			return machines_ldap_dn.decode()
 	return None

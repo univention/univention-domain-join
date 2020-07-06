@@ -96,7 +96,7 @@ def get_joiner_for_this_distribution(master_ip, master_username, master_pw, skip
 
 
 def get_masters_admin_username():
-	return raw_input('Please enter the user name of a domain administrator: ')
+	return input('Please enter the user name of a domain administrator: ')
 
 
 def get_masters_admin_password(master_username):
@@ -110,7 +110,7 @@ def check_if_ssh_works_with_given_account(master_ip, master_username, master_pw)
 		['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (master_username, master_ip), 'echo foo'],
 		stdin=subprocess.PIPE, stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
 	)
-	ssh_process.communicate(master_pw)
+	ssh_process.communicate(master_pw.encode())
 	if ssh_process.returncode != 0:
 		userinfo_logger.critical('It\'s not possible to connect to the DC master via ssh, with the given credentials.')
 		exit(1)
@@ -122,13 +122,13 @@ def get_ucr_variables_from_master(master_ip, master_username, master_pw):
 		['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (master_username, master_ip), '/usr/sbin/ucr shell | grep -v ^hostname='],
 		stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
 	)
-	stdout, stderr = ssh_process.communicate(master_pw)
+	stdout, stderr = ssh_process.communicate(master_pw.encode())
 	if ssh_process.returncode != 0:
 		userinfo_logger.critical('Fetching the UCR variables from the master failed.')
 		exit(1)
 	ucr_variables = {}
 	for raw_ucr_variable in stdout.splitlines():
-		key, value = raw_ucr_variable.strip().split('=', 1)
+		key, value = raw_ucr_variable.strip().split(b'=', 1)
 		ucr_variables[key] = value
 	return ucr_variables
 

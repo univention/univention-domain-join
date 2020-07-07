@@ -535,6 +535,7 @@ if __name__ == '__main__':
 
 	set_up_logging()
 
+	app = QApplication.setSetuidAllowed(True)
 	app = QApplication(sys.argv)
 	form = DomainJoinGui()
 	form.show()

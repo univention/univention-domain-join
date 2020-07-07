@@ -498,7 +498,7 @@ class JoinThread(QThread):
 			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (master_username, master_ip), 'echo foo'],
 			stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
 		)
-		stdout, stderr = ssh_process.communicate(master_pw)
+		stdout, stderr = ssh_process.communicate(master_pw.decode())
 		if ssh_process.returncode != 0:
 			if stderr.strip().endswith(': No route to host'):
 				raise DomainJoinException('IP not reachable via SSH.')
@@ -513,13 +513,13 @@ class JoinThread(QThread):
 			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (master_username, master_ip), '/usr/sbin/ucr shell | grep -v ^hostname='],
 			stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
 		)
-		stdout, stderr = ssh_process.communicate(master_pw)
+		stdout, stderr = ssh_process.communicate(master_pw.decode())
 		if ssh_process.returncode != 0:
 			userinfo_logger.critical('Fetching the UCR variables from the master failed.')
 			return None
 		ucr_variables = {}
 		for raw_ucr_variable in stdout.splitlines():
-			key, value = raw_ucr_variable.strip().split('=', 1)
+			key, value = raw_ucr_variable.strip().split(b'=', 1)
 			ucr_variables[key] = value
 		return ucr_variables
 

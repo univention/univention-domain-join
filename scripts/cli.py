@@ -79,7 +79,7 @@ def set_up_logging():
 	debugging_logger.addHandler(logfile_handler)
 
 
-def get_joiner_for_this_distribution(master_ip, master_username, master_pw, skip_login_manager):
+def get_joiner_for_this_distribution(master_ip, master_username, master_pw, skip_login_manager, skip_network_settings):
 	distribution = get_distribution()
 	try:
 		distribution_join_module = importlib.import_module('univention_domain_join.distributions.%s' % (distribution.lower(),))
@@ -89,7 +89,7 @@ def get_joiner_for_this_distribution(master_ip, master_username, master_pw, skip
 			master_pw = get_masters_admin_password(master_username)
 		check_if_ssh_works_with_given_account(master_ip, master_username, master_pw)
 		masters_ucr_variables = get_ucr_variables_from_master(master_ip, master_username, master_pw)
-		return distribution_join_module.Joiner(masters_ucr_variables, master_ip, master_username, master_pw, skip_login_manager)
+		return distribution_join_module.Joiner(masters_ucr_variables, master_ip, master_username, master_pw, skip_login_manager, skip_network_settings)
 	except ImportError:
 		userinfo_logger.critical('The used distribution "%s" is not supported.' % (distribution,))
 		exit(1)
@@ -150,6 +150,7 @@ if __name__ == '__main__':
 		parser.add_argument('--skip-login-manager', action='store_true', help='Do not configure the login manager.')
 		parser.add_argument('--domain', help='Domain name. Can be left out if the domain is configured for this system.')
 		parser.add_argument('--master-ip', help='IP address of the domain controller master. Can be used if --domain does not work.')
+		parser.add_argument('--skip-network-settings', action='store_true', help='Do not change network/DNS settings (default is to use the UCS DC as DNS server)')
 		args = parser.parse_args()
 
 		if args.master_ip:
@@ -188,8 +189,7 @@ if __name__ == '__main__':
 		else:
 			password = None
 
-		distribution_joiner = get_joiner_for_this_distribution(master_ip, args.username, password, args.skip_login_manager)
-
+		distribution_joiner = get_joiner_for_this_distribution(master_ip, args.username, password, args.skip_login_manager, args.skip_network_settings)
 		distribution_joiner.check_if_join_is_possible_without_problems()
 		distribution_joiner.create_backup_of_config_files()
 		distribution_joiner.join_domain()

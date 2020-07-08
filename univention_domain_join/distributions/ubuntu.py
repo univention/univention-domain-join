@@ -49,11 +49,12 @@ class DomainJoinException(Exception):
 
 
 class Joiner(object):
-	def __init__(self, masters_ucr_variables, master_ip, master_username, master_pw, skip_login_manager):
+	def __init__(self, masters_ucr_variables, master_ip, master_username, master_pw, skip_login_manager, skip_network_settings):
 		self.master_username = master_username
 		self.master_pw = master_pw
 		self.master_ip = master_ip
 		self.skip_login_manager = skip_login_manager
+		self.skip_network_settings = skip_network_settings
 		self.domain = masters_ucr_variables[b'domainname'].decode()
 		self.nameservers = [
 			masters_ucr_variables[b'nameserver1'].decode() if masters_ucr_variables[b'nameserver1'] != b"''" else '',
@@ -75,8 +76,8 @@ class Joiner(object):
 
 	def create_backup_of_config_files(self):
 		backup_dir = self.create_backup_dir()
-
-		DnsConfigurator(self.nameservers, self.domain).backup(backup_dir)
+		if not self.skip_network_settings:
+			DnsConfigurator(self.nameservers, self.domain).backup(backup_dir)
 		LdapConfigurator().backup(backup_dir)
 		SssdConfigurator().backup(backup_dir)
 		PamConfigurator().backup(backup_dir)
@@ -93,7 +94,10 @@ class Joiner(object):
 		return backup_dir
 
 	def join_domain(self):
-		DnsConfigurator(self.nameservers, self.domain).configure_dns()
+		if not self.skip_network_settings:
+			DnsConfigurator(self.nameservers, self.domain).configure_dns()
+		else:
+			userinfo_logger.info('Skipping network/dns configuration as requested.')
 		LdapConfigurator().configure_ldap(self.ldap_master, self.master_username, self.master_pw, self.ldap_base)
 		SssdConfigurator().setup_sssd(self.master_ip, self.ldap_master, self.master_username, self.master_pw, self.ldap_base, self.kerberos_realm)
 		PamConfigurator().setup_pam()

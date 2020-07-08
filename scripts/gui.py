@@ -48,6 +48,7 @@ from PyQt5.QtWidgets import QPushButton
 from PyQt5.QtGui import QRegExpValidator
 from PyQt5.QtWidgets import QVBoxLayout
 from PyQt5.QtWidgets import QWidget
+from PyQt5.QtWidgets import QCheckBox
 import importlib
 import logging
 import os
@@ -211,6 +212,7 @@ class DomainJoinGui(QMainWindow):
 		self.add_domainname_or_ip_input(inputs_box_layout)
 		self.add_username_input(inputs_box_layout)
 		self.add_password_input(inputs_box_layout)
+		self.add_skip_network_settings(inputs_box_layout)
 
 		inputs_box.setLayout(inputs_box_layout)
 		layout.addWidget(inputs_box)
@@ -271,6 +273,13 @@ class DomainJoinGui(QMainWindow):
 		self.admin_username_input.setValidator(username_validator)
 		layout.addWidget(self.admin_username_input)
 
+	def add_skip_network_settings(self, layout):
+		short_description = QLabel('Do not change network/DNS settings (default is to use the UCS DC as DNS server)')
+		short_description.setWordWrap(True)
+		layout.addWidget(short_description)
+		self.skip_network_settings_input = QCheckBox('Skip network settings')
+		layout.addWidget(self.skip_network_settings_input)
+
 	def add_password_input(self, layout):
 		short_description = QLabel('Domain administrator\'s password:')
 		short_description.setWordWrap(True)
@@ -317,7 +326,7 @@ class DomainJoinGui(QMainWindow):
 					self.missing_inputs_dialog.exec_()
 					return
 
-			self.join_domain(master_ip, str(self.admin_username_input.text()), str(self.admin_password_input.text()))
+			self.join_domain(master_ip, str(self.admin_username_input.text()), str(self.admin_password_input.text()), self.skip_network_settings_input.isChecked())
 		else:
 			self.missing_inputs_dialog = MissingInputsDialog()
 			self.missing_inputs_dialog.exec_()
@@ -334,8 +343,8 @@ class DomainJoinGui(QMainWindow):
 		else:
 			return None, None
 
-	def join_domain(self, master_ip, admin_username, admin_pw):
-		self.join_thread = JoinThread(master_ip, admin_username, admin_pw)
+	def join_domain(self, master_ip, admin_username, admin_pw, skip_network_settings):
+		self.join_thread = JoinThread(master_ip, admin_username, admin_pw, skip_network_settings)
 		self.join_thread.join_started.connect(self.join_started)
 		self.join_thread.join_successful.connect(self.join_successful)
 		self.join_thread.join_failed.connect(self.join_failed)
@@ -461,18 +470,18 @@ class JoinThread(QThread):
 	join_failed = pyqtSignal()
 	join_successful = pyqtSignal()
 
-	def __init__(self, master_ip, admin_username, admin_pw):
+	def __init__(self, master_ip, admin_username, admin_pw, skip_network_settings):
 		super(self.__class__, self).__init__()
-
 		self.master_ip = master_ip
 		self.admin_username = admin_username
 		self.admin_pw = admin_pw
+		self.skip_network_settings = skip_network_settings
 
 	def run(self):
 		self.join_started.emit()
 		try:
 			try:
-				distribution_joiner = self.get_joiner_for_this_distribution(self.master_ip, self.admin_username, self.admin_pw)
+				distribution_joiner = self.get_joiner_for_this_distribution(self.master_ip, self.admin_username, self.admin_pw, self.skip_network_settings)
 			except SshException:
 				self.ssh_failed.emit()
 				return
@@ -488,18 +497,15 @@ class JoinThread(QThread):
 			return
 		self.join_successful.emit()
 
-	def get_joiner_for_this_distribution(self, master_ip, master_username, master_pw):
+	def get_joiner_for_this_distribution(self, master_ip, master_username, master_pw, skip_network_settings):
 		distribution = get_distribution()
 		try:
 			distribution_join_module = importlib.import_module('univention_domain_join.distributions.%s' % (distribution.lower(),))
-
 			self.check_if_ssh_works_with_given_account(master_ip, master_username, master_pw)
-
 			masters_ucr_variables = self.get_ucr_variables_from_master(master_ip, master_username, master_pw)
 			if not masters_ucr_variables:
 				raise DomainJoinException()
-
-			return distribution_join_module.Joiner(masters_ucr_variables, master_ip, master_username, master_pw, False)
+			return distribution_join_module.Joiner(masters_ucr_variables, master_ip, master_username, master_pw, False, skip_network_settings)
 		except ImportError:
 			userinfo_logger.critical('The used distribution "%s" is not supported.' % (distribution,))
 			raise DistributionException()

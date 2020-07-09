@@ -210,6 +210,7 @@ class DomainJoinGui(QMainWindow):
 
 		self.add_inputs_description(inputs_box_layout)
 		self.add_domainname_or_ip_input(inputs_box_layout)
+		self.add_dc_ip_input(inputs_box_layout)
 		self.add_username_input(inputs_box_layout)
 		self.add_password_input(inputs_box_layout)
 		self.add_skip_network_settings(inputs_box_layout)
@@ -240,6 +241,21 @@ class DomainJoinGui(QMainWindow):
 		self.domainname_or_ip_input.setValidator(domainname_or_ip_validator)
 		layout.addWidget(self.domainname_or_ip_input)
 		self.try_filling_in_domainname()
+
+	def add_dc_ip_input(self, layout):
+		short_description = QLabel('Opt: TheIP of the UCS DC to join to')
+		short_description.setWordWrap(True)
+		layout.addWidget(short_description)
+
+		self.dc_ip_input = QLineEdit()
+		font_metrics = QFontMetrics(self.domainname_or_ip_input.font())
+		self.dc_ip_input.setFixedWidth(32 * font_metrics.width('a'))
+		self.dc_ip_input.setPlaceholderText('e.g. 10.0.0.4')
+		dc_ip_validator = QRegExpValidator(QRegExp(
+			r'%s|%s' % (self.regex_ipv4, self.regex_ipv6)
+		), self)
+		self.dc_ip_input.setValidator(dc_ip_validator)
+		layout.addWidget(self.dc_ip_input)
 
 	def try_filling_in_domainname(self):
 		self.domainname_thread = DomainnameDetectionThread()
@@ -325,11 +341,24 @@ class DomainJoinGui(QMainWindow):
 					self.missing_inputs_dialog = DnsNotWorkingDialog()
 					self.missing_inputs_dialog.exec_()
 					return
+			dc_ip = self.get_dc_ip()
+			if not dc_ip:
+				dc_ip = master_ip
 
-			self.join_domain(master_ip, str(self.admin_username_input.text()), str(self.admin_password_input.text()), self.skip_network_settings_input.isChecked())
+			self.join_domain(master_ip, str(self.admin_username_input.text()), str(self.admin_password_input.text()), dc_ip, self.skip_network_settings_input.isChecked())
 		else:
 			self.missing_inputs_dialog = MissingInputsDialog()
 			self.missing_inputs_dialog.exec_()
+
+	def get_dc_ip(self):
+		input_text = self.dc_ip_input.text()
+		domainname_qregex = QRegExp(self.regex_domainname)
+		ip_qregex = QRegExp('%s|%s' % (self.regex_ipv4, self.regex_ipv6))
+
+		if ip_qregex.exactMatch(input_text):
+			return input_text
+		else:
+			return None
 
 	def get_domainname_or_master_ip(self):
 		input_text = self.domainname_or_ip_input.text()
@@ -343,8 +372,8 @@ class DomainJoinGui(QMainWindow):
 		else:
 			return None, None
 
-	def join_domain(self, master_ip, admin_username, admin_pw, skip_network_settings):
-		self.join_thread = JoinThread(master_ip, admin_username, admin_pw, skip_network_settings)
+	def join_domain(self, master_ip, admin_username, admin_pw, dc_ip, skip_network_settings):
+		self.join_thread = JoinThread(master_ip, admin_username, admin_pw, dc_ip, skip_network_settings)
 		self.join_thread.join_started.connect(self.join_started)
 		self.join_thread.join_successful.connect(self.join_successful)
 		self.join_thread.join_failed.connect(self.join_failed)
@@ -470,9 +499,10 @@ class JoinThread(QThread):
 	join_failed = pyqtSignal()
 	join_successful = pyqtSignal()
 
-	def __init__(self, master_ip, admin_username, admin_pw, skip_network_settings):
+	def __init__(self, master_ip, admin_username, admin_pw, dc_ip, skip_network_settings):
 		super(self.__class__, self).__init__()
 		self.master_ip = master_ip
+		self.dc_ip = dc_ip
 		self.admin_username = admin_username
 		self.admin_pw = admin_pw
 		self.skip_network_settings = skip_network_settings
@@ -481,7 +511,7 @@ class JoinThread(QThread):
 		self.join_started.emit()
 		try:
 			try:
-				distribution_joiner = self.get_joiner_for_this_distribution(self.master_ip, self.admin_username, self.admin_pw, self.skip_network_settings)
+				distribution_joiner = self.get_joiner_for_this_distribution(self.master_ip, self.admin_username, self.admin_pw, self.dc_ip, self.skip_network_settings)
 			except SshException:
 				self.ssh_failed.emit()
 				return
@@ -497,15 +527,17 @@ class JoinThread(QThread):
 			return
 		self.join_successful.emit()
 
-	def get_joiner_for_this_distribution(self, master_ip, master_username, master_pw, skip_network_settings):
+	def get_joiner_for_this_distribution(self, master_ip, master_username, master_pw, dc_ip, skip_network_settings):
 		distribution = get_distribution()
 		try:
 			distribution_join_module = importlib.import_module('univention_domain_join.distributions.%s' % (distribution.lower(),))
-			self.check_if_ssh_works_with_given_account(master_ip, master_username, master_pw)
-			masters_ucr_variables = self.get_ucr_variables_from_master(master_ip, master_username, master_pw)
+			self.check_if_ssh_works_with_given_account(dc_ip, master_username, master_pw)
+
+			masters_ucr_variables = self.get_ucr_variables_from_master(dc_ip, master_username, master_pw)
 			if not masters_ucr_variables:
 				raise DomainJoinException()
-			return distribution_join_module.Joiner(masters_ucr_variables, master_ip, master_username, master_pw, False, skip_network_settings)
+
+			return distribution_join_module.Joiner(masters_ucr_variables, master_ip, master_username, master_pw, dc_ip, False, skip_network_settings)
 		except ImportError:
 			userinfo_logger.critical('The used distribution "%s" is not supported.' % (distribution,))
 			raise DistributionException()

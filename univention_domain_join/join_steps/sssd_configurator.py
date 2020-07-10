@@ -64,16 +64,16 @@ class SssdConfigurator(ConflictChecker):
 			)
 
 	@execute_as_root
-	def setup_sssd(self, master_ip, ldap_master, master_username, master_pw, ldap_base, kerberos_realm):
-		self.ldap_password = subprocess.check_output(['cat', '/etc/machine.secret']).strip().decode()
+	def setup_sssd(self, master_ip, ldap_master, master_username, master_pw, ldap_base, kerberos_realm, ldap_dc, dc_ip, admin_dn):
+		self.ldap_password = open('/etc/machine.secret').read().strip()
 		RootCertificateProvider().provide_ucs_root_certififcate(ldap_master)
 
-		self.write_sssd_conf(master_ip, ldap_master, master_username, master_pw, ldap_base, kerberos_realm)
+		self.write_sssd_conf(master_ip, ldap_master, master_username, master_pw, ldap_base, kerberos_realm, ldap_dc, dc_ip, admin_dn)
 		self.configure_sssd()
 		self.restart_sssd()
 
 	@execute_as_root
-	def write_sssd_conf(self, master_ip, ldap_master, master_username, master_pw, ldap_base, kerberos_realm):
+	def write_sssd_conf(self, master_ip, ldap_master, master_username, master_pw, ldap_base, kerberos_realm, ldap_dc, dc_ip, admin_dn):
 		userinfo_logger.info('Writing /etc/sssd/sssd.conf ')
 
 		sssd_conf = \
@@ -109,10 +109,10 @@ class SssdConfigurator(ConflictChecker):
 			% {
 				'kerberos_realm': kerberos_realm,
 				'ldap_base': ldap_base,
-				'ldap_master': ldap_master,
+				'ldap_master': ldap_dc,
 				'ldap_password': self.ldap_password,
-				'machines_ldap_dn': get_machines_ldap_dn(ldap_master, master_username, master_pw),
-				'master_ip': master_ip
+				'machines_ldap_dn': get_machines_ldap_dn(ldap_master, master_username, master_pw, admin_dn),
+				'master_ip': dc_ip
 			}
 		with open('/etc/sssd/sssd.conf', 'w') as conf_file:
 			conf_file.write(sssd_conf)

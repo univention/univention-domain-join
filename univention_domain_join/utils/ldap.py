@@ -34,27 +34,58 @@ import subprocess
 
 from univention_domain_join.utils.general import execute_as_root
 
+@execute_as_root
+def authenticate_admin(ldap_dc, master_username, master_pw):
+	ldap_command = ' echo {1} > /tmp/{0}domain-join; chmod 600 /tmp/{0}domain-join; kinit --password-file=/tmp/{0}domain-join {0}'.format(master_username, master_pw)
+	ssh_process = subprocess.Popen(
+		['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (master_username, ldap_dc), ldap_command],
+		stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+	)
+	stdout, stderr = ssh_process.communicate(master_pw.encode())
 
-def get_machines_ldap_dn(ldap_master, master_username, master_pw):
+@execute_as_root
+def cleanup_authentication(ldap_dc, master_username, master_pw):
+	ldap_command = 'rm -f /tmp/{0}domain-join; kdestroy'.format(master_username)
+	ssh_process = subprocess.Popen(
+		['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (master_username, ldap_dc), ldap_command],
+		stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+	)
+	stdout, stderr = ssh_process.communicate(master_pw.encode())
+
+@execute_as_root
+def is_samba_dc(ldap_dc, master_username, master_pw, dc_ip, admin_dn):
+	ldap_command = ['ldapsearch', '-QLLL', 'aRecord=%s' % (dc_ip), 'univentionService']
+	escaped_ldap_command = ' '.join([pipes.quote(x) for x in ldap_command])
+	ssh_process = subprocess.Popen(
+		['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (master_username, ldap_dc), escaped_ldap_command],
+		stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+	)
+	stdout, stderr = ssh_process.communicate(master_pw.encode())
+	for line in stdout.decode().splitlines():
+		if line.endswith('Samba 4'):
+			return True
+	return False
+
+def get_machines_ldap_dn(ldap_master, master_username, master_pw, admin_dn):
 	for udm_type in ['computers/ubuntu', 'computers/linux', 'computers/ucc']:
-		machines_ldap_dn = get_machines_ldap_dn_given_the_udm_type(udm_type, ldap_master, master_username, master_pw)
+		machines_ldap_dn = get_machines_ldap_dn_given_the_udm_type(udm_type, ldap_master, master_username, master_pw, admin_dn)
 		if machines_ldap_dn:
 			return machines_ldap_dn
 	return None
 
 
-def get_machines_udm_type(ldap_master, master_username, master_pw):
+def get_machines_udm_type(ldap_master, master_username, master_pw, admin_dn):
 	for udm_type in ['computers/ubuntu', 'computers/linux', 'computers/ucc']:
-		machines_ldap_dn = get_machines_ldap_dn_given_the_udm_type(udm_type, ldap_master, master_username, master_pw)
+		machines_ldap_dn = get_machines_ldap_dn_given_the_udm_type(udm_type, ldap_master, master_username, master_pw, admin_dn)
 		if machines_ldap_dn:
 			return udm_type
 	return None
 
 
 @execute_as_root
-def get_machines_ldap_dn_given_the_udm_type(udm_type, ldap_master, master_username, master_pw):
+def get_machines_ldap_dn_given_the_udm_type(udm_type, ldap_master, master_username, master_pw, admin_dn):
 	hostname = subprocess.check_output(['hostname', '-s']).strip().decode()
-	udm_command = ['/usr/sbin/udm', udm_type, 'list', '--filter', 'name=%s' % (hostname,)]
+	udm_command = ['/usr/sbin/udm', udm_type, 'list', '--binddn', admin_dn, '--bindpwdfile', '/tmp/%sdomain-join' %(master_username,),'--filter', 'name=%s' % (hostname,)]
 	escaped_udm_command = ' '.join([pipes.quote(x) for x in udm_command])
 	ssh_process = subprocess.Popen(
 		['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (master_username, ldap_master), escaped_udm_command],

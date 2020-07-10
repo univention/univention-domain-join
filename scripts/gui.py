@@ -243,7 +243,7 @@ class DomainJoinGui(QMainWindow):
 		self.try_filling_in_domainname()
 
 	def add_dc_ip_input(self, layout):
-		short_description = QLabel('Opt: TheIP of the UCS DC to join to')
+		short_description = QLabel('Opt: The IP of the UCS DC to join to')
 		short_description.setWordWrap(True)
 		layout.addWidget(short_description)
 

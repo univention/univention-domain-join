@@ -568,8 +568,8 @@ class JoinThread(QThread):
 			userinfo_logger.critical('Fetching the UCR variables from the master failed.')
 			return None
 		ucr_variables = {}
-		for raw_ucr_variable in stdout.splitlines():
-			key, value = raw_ucr_variable.strip().split(b'=', 1)
+		for raw_ucr_variable in stdout.decode('utf-8', 'replace').splitlines():
+			key, value = raw_ucr_variable.strip().split('=', 1)
 			ucr_variables[key] = value
 		return ucr_variables
 

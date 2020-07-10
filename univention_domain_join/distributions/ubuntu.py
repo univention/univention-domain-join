@@ -59,17 +59,17 @@ class Joiner(object):
 		self.dc_ip = dc_ip
 		self.skip_login_manager = skip_login_manager
 		self.skip_network_settings = skip_network_settings
-		self.domain = masters_ucr_variables[b'domainname'].decode()
+		self.domain = masters_ucr_variables['domainname']
 		self.nameservers = [
-			masters_ucr_variables[b'nameserver1'].decode() if masters_ucr_variables[b'nameserver1'] != b"''" else '',
-			masters_ucr_variables[b'nameserver2'].decode() if masters_ucr_variables[b'nameserver2'] != b"''" else '',
-			masters_ucr_variables[b'nameserver3'].decode() if masters_ucr_variables[b'nameserver3'] != b"''" else ''
+			masters_ucr_variables['nameserver1'] if masters_ucr_variables['nameserver1'] != "''" else '',
+			masters_ucr_variables['nameserver2'] if masters_ucr_variables['nameserver2'] != "''" else '',
+			masters_ucr_variables['nameserver3'] if masters_ucr_variables['nameserver3'] != "''" else ''
 		]
-		self.ldap_master = masters_ucr_variables[b'ldap_master'].decode()
-		self.ldap_dc = masters_ucr_variables[b'ldap_server_name'].decode()
-		self.ldap_base = masters_ucr_variables[b'ldap_base'].decode()
+		self.ldap_master = masters_ucr_variables['ldap_master']
+		self.ldap_dc = masters_ucr_variables['ldap_server_name']
+		self.ldap_base = masters_ucr_variables['ldap_base']
 		userinfo_logger.info(self.ldap_base)
-		self.kerberos_realm = masters_ucr_variables[b'kerberos_realm'].decode()
+		self.kerberos_realm = masters_ucr_variables['kerberos_realm']
 
 	def check_if_join_is_possible_without_problems(self):
 		if not self.skip_login_manager and LoginManagerConfigurator().configuration_conflicts():

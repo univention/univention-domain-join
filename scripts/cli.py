@@ -128,7 +128,7 @@ def get_ucr_variables_from_master(dc_ip, master_username, master_pw):
 		exit(1)
 	ucr_variables = {}
 	for raw_ucr_variable in stdout.splitlines():
-		key, value = raw_ucr_variable.strip().split(b'=', 1)
+		key, value = raw_ucr_variable.decode('utf-8', 'replace').strip().split('=', 1)
 		ucr_variables[key] = value
 	return ucr_variables
 

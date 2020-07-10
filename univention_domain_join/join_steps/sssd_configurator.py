@@ -65,7 +65,7 @@ class SssdConfigurator(ConflictChecker):
 
 	@execute_as_root
 	def setup_sssd(self, master_ip, ldap_master, master_username, master_pw, ldap_base, kerberos_realm, ldap_dc, dc_ip, admin_dn):
-		self.ldap_password = subprocess.check_output(['cat', '/etc/machine.secret']).strip().decode()
+		self.ldap_password = open('/etc/machine.secret').read().strip()
 		RootCertificateProvider().provide_ucs_root_certififcate(ldap_master)
 
 		self.write_sssd_conf(master_ip, ldap_master, master_username, master_pw, ldap_base, kerberos_realm, ldap_dc, dc_ip, admin_dn)

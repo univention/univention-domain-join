@@ -93,7 +93,7 @@ class LdapConfigurator(ConflictChecker):
 			get_machines_udm_type(ldap_master, master_username, master_pw, admin_dn),
 			'modify',
 			'--binddn','%s' % (admin_dn,),
-			'--bindpwdfile','/tmp/%sdomain-join' % (master_username,),
+			'--bindpwdfile','/dev/shm/%sdomain-join' % (master_username,),
 			'--dn', get_machines_ldap_dn(ldap_master, master_username, master_pw, admin_dn),
 			'--set', 'password=%s' % (password,),
 			'--set', 'operatingSystem=%s' % (release_id,),
@@ -122,7 +122,7 @@ class LdapConfigurator(ConflictChecker):
 		udm_command = [
 			'/usr/sbin/udm', 'computers/ubuntu', 'create',
 			'--binddn','%s' % (admin_dn,),
-			'--bindpwdfile','/tmp/%sdomain-join' % (master_username,),
+			'--bindpwdfile','/dev/shm/%sdomain-join' % (master_username,),
 			'--position', 'cn=computers,%s' % (ldap_base,),
 			'--set', 'name=%s' % (hostname,),
 			'--set', 'password=%s' % (password,),

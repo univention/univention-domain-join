@@ -31,12 +31,13 @@
 
 import pipes
 import subprocess
-
+from ldap.filter import filter_format
 from univention_domain_join.utils.general import execute_as_root
 
 @execute_as_root
 def authenticate_admin(ldap_dc, master_username, master_pw):
-	ldap_command = ' echo {1} > /dev/shm/{0}domain-join; chmod 600 /dev/shm/{0}domain-join; kinit --password-file=/dev/shm/{0}domain-join {0}'.format(master_username, master_pw)
+	ldap_command = ' echo {1} > /dev/shm/{0}domain-join; chmod 600 /dev/shm/{0}domain-join; kinit --password-file=/dev/shm/{0}domain-join {0}'.format(pipes.quote(master_username), pipes.quote(master_pw))
+	escaped_ldap_command = pipes.quote(ldap_command)
 	ssh_process = subprocess.Popen(
 		['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (master_username, ldap_dc), ldap_command],
 		stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
@@ -45,7 +46,7 @@ def authenticate_admin(ldap_dc, master_username, master_pw):
 
 @execute_as_root
 def cleanup_authentication(ldap_dc, master_username, master_pw):
-	ldap_command = 'rm -f /dev/shm/{0}domain-join; kdestroy'.format(master_username)
+	ldap_command = 'rm -f /dev/shm/{0}domain-join; kdestroy'.format(pipes.quote(master_username))
 	ssh_process = subprocess.Popen(
 		['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (master_username, ldap_dc), ldap_command],
 		stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
@@ -54,7 +55,7 @@ def cleanup_authentication(ldap_dc, master_username, master_pw):
 
 @execute_as_root
 def is_samba_dc(ldap_dc, master_username, master_pw, dc_ip, admin_dn):
-	ldap_command = ['ldapsearch', '-QLLL', 'aRecord=%s' % (dc_ip), 'univentionService']
+	ldap_command = ['ldapsearch', '-QLLL', filter_format('aRecord=%s', [dc_ip]), 'univentionService']
 	escaped_ldap_command = ' '.join([pipes.quote(x) for x in ldap_command])
 	ssh_process = subprocess.Popen(
 		['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (master_username, ldap_dc), escaped_ldap_command],

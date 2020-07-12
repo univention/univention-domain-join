@@ -39,6 +39,7 @@ Package: python3-univention-domain-join
 Architecture: all
 Depends: python3-ipy,
  python3-dnspython,
+ python3-ldap,
  ${python3:Depends},
  ${misc:Depends},
 Recommends: univention-domain-join

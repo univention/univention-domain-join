@@ -127,7 +127,6 @@ class LdapConfigurator(ConflictChecker):
 			'--set', 'operatingSystemVersion=%s' % (release,)
 		]
 		escaped_udm_command = ' '.join([pipes.quote(x) for x in udm_command])
-		userinfo_logger.info('%s' % escaped_udm_command)
 		ssh_process = subprocess.Popen(
 			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (admin_username, dc_ip), escaped_udm_command],
 			stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT

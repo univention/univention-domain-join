@@ -79,52 +79,52 @@ def set_up_logging():
 	debugging_logger.addHandler(logfile_handler)
 
 
-def get_joiner_for_this_distribution(master_ip, dc_ip, master_username, master_pw, skip_login_manager, skip_network_settings):
+def get_joiner_for_this_distribution(dc_ip, admin_username, admin_pw, skip_login_manager, force_ucs_dns):
 	distribution = get_distribution()
 	try:
 		distribution_join_module = importlib.import_module('univention_domain_join.distributions.%s' % (distribution.lower(),))
-		if not master_username:
-			master_username = get_masters_admin_username()
-		if not master_pw:
-			master_pw = get_masters_admin_password(master_username)
-		check_if_ssh_works_with_given_account(dc_ip, master_username, master_pw)
-		masters_ucr_variables = get_ucr_variables_from_master(dc_ip, master_username, master_pw)
-		return distribution_join_module.Joiner(masters_ucr_variables, master_ip, master_username, master_pw, dc_ip, skip_login_manager, skip_network_settings)
+		if not admin_username:
+			admin_username = get_admin_username()
+		if not admin_pw:
+			admin_pw = get_admin_password(admin_username)
+		check_if_ssh_works_with_given_account(dc_ip, admin_username, admin_pw)
+		ucr_variables = get_ucr_variables_from_dc(dc_ip, admin_username, admin_pw)
+		return distribution_join_module.Joiner(ucr_variables, admin_username, admin_pw, dc_ip, skip_login_manager, force_ucs_dns)
 	except ImportError:
 		userinfo_logger.critical('The used distribution "%s" is not supported.' % (distribution,))
 		exit(1)
 
 
-def get_masters_admin_username():
+def get_admin_username():
 	return input('Please enter the user name of a domain administrator: ')
 
 
-def get_masters_admin_password(master_username):
+def get_admin_password(admin_username):
 	# TODO: Don't ask for the password if ssh works passwordless already.
-	return getpass(prompt='Please enter the password for %s: ' % (master_username,))
+	return getpass(prompt='Please enter the password for %s: ' % (admin_username,))
 
 
 @execute_as_root
-def check_if_ssh_works_with_given_account(master_ip, master_username, master_pw):
+def check_if_ssh_works_with_given_account(dc_ip, admin_username, admin_pw):
 	ssh_process = subprocess.Popen(
-		['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (master_username, master_ip), 'echo foo'],
+		['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (admin_username, dc_ip), 'echo foo'],
 		stdin=subprocess.PIPE, stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
 	)
-	ssh_process.communicate(master_pw.encode())
+	ssh_process.communicate(admin_pw.encode())
 	if ssh_process.returncode != 0:
-		userinfo_logger.critical('It\'s not possible to connect to the DC master via ssh, with the given credentials.')
+		userinfo_logger.critical('It\'s not possible to connect to the UCS DC via ssh, with the given credentials.')
 		exit(1)
 
 
 @execute_as_root
-def get_ucr_variables_from_master(dc_ip, master_username, master_pw):
+def get_ucr_variables_from_dc(dc_ip, admin_username, admin_pw):
 	ssh_process = subprocess.Popen(
-		['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (master_username, dc_ip), '/usr/sbin/ucr shell | grep -v ^hostname='],
+		['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (admin_username, dc_ip), '/usr/sbin/ucr shell | grep -v ^hostname='],
 		stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
 	)
-	stdout, stderr = ssh_process.communicate(master_pw.encode())
+	stdout, stderr = ssh_process.communicate(admin_pw.encode())
 	if ssh_process.returncode != 0:
-		userinfo_logger.critical('Fetching the UCR variables from the master failed.')
+		userinfo_logger.critical('Fetching the UCR variables from the UCS DC failed.')
 		exit(1)
 	ucr_variables = {}
 	for raw_ucr_variable in stdout.splitlines():
@@ -149,38 +149,27 @@ if __name__ == '__main__':
 		parser.add_argument('--password-file', help='Path to a file, containing the password for the domain administrator.')
 		parser.add_argument('--skip-login-manager', action='store_true', help='Do not configure the login manager.')
 		parser.add_argument('--domain', help='Domain name. Can be left out if the domain is configured for this system.')
-		parser.add_argument('--dc-ip', help='IP address of the domain controller to join to. Can be used if --domain does not work.')
-		parser.add_argument('--master-ip', help='IP address of the domain controller master. Can be used if --domain does not work.')
-		parser.add_argument('--skip-network-settings', action='store_true', help='Do not change network/DNS settings (default is to use the UCS DC as DNS server)')
+		parser.add_argument('--dc-ip', help='IP address of the UCS domain controller to join to. Can be used if --domain does not work. If unsure, use the IP of the UCS Master.')
+		parser.add_argument('--force-ucs-dns', action='store_true', help='Change the system\'s DNS settings and set the UCS DC as DNS nameserver (default is to use the standard network settings, but make sure the your system can resolve the hostname of the UCS DC and the UCS master system)')
 		args = parser.parse_args()
 
-		if args.master_ip:
-			master_ip = args.master_ip
-		else:
-			if args.domain:
-				domain = args.domain
-			else:
-				domain = get_ucs_domainname()
-			if domain:
-				userinfo_logger.info('Automatically detected the domain %r.' % (domain,))
-			else:
+		if not args.dc_ip:
+			if not args.domain:
+				args.domain = get_ucs_domainname()
+				userinfo_logger.info('Automatically detected the domain %r.' % (args.domain))
+			if not args.domain:
 				userinfo_logger.critical(
 					'Unable to determine the UCS domain automatically. Please provide '
-					'it using the --domain parameter or use the tool with --master-ip.'
+					'it using the --domain parameter or use the tool with --dc-ip.'
 				)
 				exit(1)
-
-			master_ip = get_master_ip_through_dns(domain)
-			if not master_ip:
+			args.dc_ip = get_master_ip_through_dns(args.domain)
+			if not args.dc_ip:
 				userinfo_logger.critical(
 					'No DNS record for the DC master could be found. Please make sure that '
-					'the DC master is the DNS server for this computer or use this tool with --master-ip.'
+					'the DC master is the DNS server for this computer or use this tool with --dc-ip.'
 				)
 				exit(1)
-		if args.dc_ip:
-			dc_ip = args.dc_ip
-		else:
-			dc_ip = master_ip
 
 		if args.password:
 			password = args.password
@@ -194,12 +183,11 @@ if __name__ == '__main__':
 		else:
 			password = None
 
-		distribution_joiner = get_joiner_for_this_distribution(master_ip, dc_ip, args.username, password, args.skip_login_manager, args.skip_network_settings)
-
+		distribution_joiner = get_joiner_for_this_distribution(args.dc_ip, args.username, password, args.skip_login_manager, args.force_ucs_dns)
 		distribution_joiner.check_if_join_is_possible_without_problems()
 		distribution_joiner.create_backup_of_config_files()
 		distribution_joiner.join_domain()
 	except Exception as e:
-		userinfo_logger.critical('An error occurred. Please check %s for more information.' % (debugging_logger.handlers[0].baseFilename,))
+		userinfo_logger.critical('An error occurred: %s. Please check %s for more information.' % (str(e), debugging_logger.handlers[0].baseFilename,))
 		debugging_logger.critical(e, exc_info=True)
 		exit(1)

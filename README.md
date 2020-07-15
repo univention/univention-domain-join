@@ -4,7 +4,7 @@ This is an assistant for joining Ubuntu computers into Univention Corporate
 Server (UCS) domains. It will perform the following steps for you:
 
 - Create an LDAP object for your Ubuntu computer on UCS
-- Configure DNS
+- Configure DNS (optional, default no)
 - Configure Kerberos
 - Configure the login manager, if necessary
 - Configure PAM
@@ -12,14 +12,14 @@ Server (UCS) domains. It will perform the following steps for you:
 
 Univention Domain Join supports the following Linux distributions:
 
+- Ubuntu 20.04 LTS („Focal Fossa“)
 - Ubuntu 18.04 LTS („Bionic Beaver“)
 - Linux Mint („Tara“)
 - Ubuntu 17.10 („Artful Aardvark“)
 - Ubuntu 16.04 LTS („Xenial Xerus“)
 - Ubuntu 14.04 LTS („Trusty Tahr“)
 
-This is the source branch for ubuntu18.04 which suppports Ubuntu 18.04 and
-Linux Mint.
+This is the source branch for ubuntu20.04 which suppports Ubuntu 20.04.
 
 Univention Domain Join supports the Gnome and Unity desktop environments. The
 configuration of the login manager of other desktop environments may not work,

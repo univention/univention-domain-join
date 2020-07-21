@@ -1,3 +1,9 @@
+univention-domain-join (1.0-24ubuntu1) cosmic; urgency=medium
+
+  * Bug #51163: Add support for ubuntu 20.04 and linux mint 20
+
+ -- Julia Bremer <bremer@univention.de>  Tue, 21 Jul 2020 12:13:29 +0200
+
 univention-domain-join (1.0-23ubuntu1) cosmic; urgency=medium
 
   * Bug #48379: Fix changelog's Ubuntu version

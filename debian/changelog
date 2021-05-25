@@ -1,3 +1,10 @@
+univention-domain-join (1.0-26ubuntu1) focal; urgency=medium
+
+  * Bug #53025: Specify GSSAPI Mechanism in ldapsearch so that a
+    join to a UCS5 System can be completed.
+
+ -- Julia Bremer <bremer@univention.de>  Tue, 25 May 2021 11:54:32 +0200
+
 univention-domain-join (1.0-25ubuntu1) focal; urgency=medium
 
   * Bug #51163: Fix changelog Ubuntu version

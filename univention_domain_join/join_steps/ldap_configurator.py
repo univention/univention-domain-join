@@ -140,7 +140,7 @@ class LdapConfigurator(ConflictChecker):
 	@execute_as_root
 	def get_admin_dn(self, dc_ip, admin_username, admin_pw, ldap_base):
 		userinfo_logger.info('Getting the DN of the Administrator ')
-		ldap_command = 'ldapsearch -QLLL uid=%s dn' % (pipes.quote(admin_username),)
+		ldap_command = 'ldapsearch -QLLL -Y GSSAPI uid=%s dn' % (pipes.quote(admin_username),)
 		ssh_process = subprocess.Popen(
 			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (admin_username, dc_ip), ldap_command],
 			stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT

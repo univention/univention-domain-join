@@ -3,31 +3,30 @@ Section: admin
 Priority: optional
 Maintainer: Univention GmbH <packages@univention.de>
 Build-Depends: debhelper (>=8),
- python (>=2.7),
+ python3 (>=3.7),
  dh-python,
- python-all,
+ python3-all,
  python-setuptools
 Standards-Version: 3.6.1
 
 Package: univention-domain-join
 Architecture: all
 Depends: univention-domain-join-cli,
- python-qt4,
+ python3-pyqt5,
  ${misc:Depends}
 Description: Graphical front end for univention-domain-join
 
 Package: univention-domain-join-cli
 Architecture: all
-Depends: python-univention-domain-join,
+Depends: python3-univention-domain-join,
  sssd,
  libnss-sss,
  libpam-sss,
  libsss-sudo,
- auth-client-config,
  heimdal-clients,
  ntpdate,
  sshpass,
- python (>= 2.7),
+ python3 (>= 3.7),
  ${misc:Depends}
 Recommends: univention-domain-join
 Description: Join a Linux client into an UCS domain
@@ -36,10 +35,13 @@ Description: Join a Linux client into an UCS domain
  include steps like setting up kerberos, pam, sssd, the login manager and
  creating an LDAP object on the DC master for your computer.
 
-Package: python-univention-domain-join
+Package: python3-univention-domain-join
 Architecture: all
-Depends: ${python:Depends},
- ${misc:Depends}
+Depends: python3-ipy,
+ python3-dnspython,
+ python3-ldap,
+ ${python3:Depends},
+ ${misc:Depends},
 Recommends: univention-domain-join
-Provides: ${python:Provides}
-Description: Python modules used by univention-domain-join
+Provides: ${python3:Provides}
+Description: Python3 modules used by univention-domain-join

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Univention Domain Join
 #
@@ -60,14 +60,17 @@ class KerberosConfigurator(ConflictChecker):
 				os.path.join(backup_dir, 'etc/krb5.conf')
 			)
 
-	def configure_kerberos(self, kerberos_realm, master_ip, ldap_master):
-		self.write_config_file(kerberos_realm, master_ip, ldap_master)
-		self.synchronize_time_with_master(ldap_master)
+	def configure_kerberos(self, kerberos_realm, ldap_master, ldap_server_name, is_samba_dc, dc_ip):
+		self.write_config_file(kerberos_realm, ldap_master, ldap_server_name, is_samba_dc)
+		self.synchronize_time_with_master(dc_ip)
 
 	@execute_as_root
-	def write_config_file(self, kerberos_realm, master_ip, ldap_master):
+	def write_config_file(self, kerberos_realm, ldap_master, ldap_server_name, is_samba_dc):
 		userinfo_logger.info('Writing /etc/krb5.conf ')
-
+		if is_samba_dc:
+			kpasswd_name = ldap_server_name
+		else:
+			kpasswd_name = ldap_master
 		config = \
 			'[libdefaults]\n' \
 			'    default_realm = %(kerberos_realm)s\n' \
@@ -82,24 +85,22 @@ class KerberosConfigurator(ConflictChecker):
 			'\n' \
 			'[realms]\n' \
 			'%(kerberos_realm)s = {\n' \
-			'   kdc = %(master_ip)s %(ldap_master)s\n' \
-			'   admin_server = %(master_ip)s %(ldap_master)s\n' \
-			'   kpasswd_server = %(master_ip)s %(ldap_master)s\n' \
+			'   kdc = %(ldap_server_name)s\n' \
+			'   admin_server = %(ldap_server_name)s\n' \
+			'   kpasswd_server = %(kpasswd_name)s\n' \
 			'}\n' \
 			% {
 				'kerberos_realm': kerberos_realm,
-				'master_ip': master_ip,
-				'ldap_master': ldap_master
+				'ldap_server_name': ldap_server_name,
+				'kpasswd_name': kpasswd_name
 			}
-
 		with open('/etc/krb5.conf', 'w') as conf_file:
 			conf_file.write(config)
 
 	@execute_as_root
-	def synchronize_time_with_master(self, ldap_master):
-		userinfo_logger.info('Synchronizing time with the DC master')
-
+	def synchronize_time_with_master(self, dc_ip):
+		userinfo_logger.info('Synchronizing time with the DC')
 		subprocess.check_call(
-			['ntpdate', '-bu', ldap_master],
+			['ntpdate', '-bu', dc_ip],
 			stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
 		)

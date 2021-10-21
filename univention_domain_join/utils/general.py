@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Univention Domain Join
 #
@@ -30,6 +30,7 @@
 # <http://www.gnu.org/licenses/>.
 
 import os
+import socket
 
 
 def execute_as_root(func):
@@ -42,3 +43,11 @@ def execute_as_root(func):
 			os.seteuid(old_euid)
 		return return_value
 	return root_wrapper
+
+
+def name_is_resolvable(name):
+	try:
+		socket.gethostbyaddr(name)
+		return True
+	except Exception:
+		return False

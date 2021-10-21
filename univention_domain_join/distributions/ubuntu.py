@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Univention Domain Join
 #
@@ -39,7 +39,9 @@ from univention_domain_join.join_steps.ldap_configurator import LdapConfigurator
 from univention_domain_join.join_steps.login_manager_configurator import LoginManagerConfigurator
 from univention_domain_join.join_steps.pam_configurator import PamConfigurator
 from univention_domain_join.join_steps.sssd_configurator import SssdConfigurator
-from univention_domain_join.utils.general import execute_as_root
+import univention_domain_join.utils.ldap as ldap
+from univention_domain_join.utils.general import execute_as_root, name_is_resolvable
+
 
 userinfo_logger = logging.getLogger('userinfo')
 
@@ -48,21 +50,27 @@ class DomainJoinException(Exception):
 	pass
 
 
+class DcResolveException(Exception):
+	pass
+
+
 class Joiner(object):
-	def __init__(self, masters_ucr_variables, master_ip, master_username, master_pw, skip_login_manager):
-		self.master_username = master_username
-		self.master_pw = master_pw
-		self.master_ip = master_ip
+	def __init__(self, ucr_variables, admin_username, admin_pw, dc_ip, skip_login_manager, force_ucs_dns):
+		self.admin_username = admin_username
+		self.admin_pw = admin_pw
+		self.dc_ip = dc_ip
 		self.skip_login_manager = skip_login_manager
-		self.domain = masters_ucr_variables['domainname']
+		self.force_ucs_dns = force_ucs_dns
+		self.domain = ucr_variables['domainname']
 		self.nameservers = [
-			masters_ucr_variables['nameserver1'] if masters_ucr_variables['nameserver1'] != "''" else '',
-			masters_ucr_variables['nameserver2'] if masters_ucr_variables['nameserver2'] != "''" else '',
-			masters_ucr_variables['nameserver3'] if masters_ucr_variables['nameserver3'] != "''" else ''
+			ucr_variables['nameserver1'] if ucr_variables['nameserver1'] != "''" else '',
+			ucr_variables['nameserver2'] if ucr_variables['nameserver2'] != "''" else '',
+			ucr_variables['nameserver3'] if ucr_variables['nameserver3'] != "''" else ''
 		]
-		self.ldap_master = masters_ucr_variables['ldap_master']
-		self.ldap_base = masters_ucr_variables['ldap_base']
-		self.kerberos_realm = masters_ucr_variables['kerberos_realm']
+		self.ldap_master = ucr_variables['ldap_master']
+		self.ldap_base = ucr_variables['ldap_base']
+		self.ldap_server_name = ucr_variables['ldap_server_name']
+		self.kerberos_realm = ucr_variables['kerberos_realm']
 
 	def check_if_join_is_possible_without_problems(self):
 		if not self.skip_login_manager and LoginManagerConfigurator().configuration_conflicts():
@@ -74,15 +82,14 @@ class Joiner(object):
 
 	def create_backup_of_config_files(self):
 		backup_dir = self.create_backup_dir()
-
-		DnsConfigurator(self.nameservers, self.domain).backup(backup_dir)
+		if self.force_ucs_dns:
+			DnsConfigurator(self.nameservers, self.domain).backup(backup_dir)
 		LdapConfigurator().backup(backup_dir)
 		SssdConfigurator().backup(backup_dir)
 		PamConfigurator().backup(backup_dir)
 		if not self.skip_login_manager:
 			LoginManagerConfigurator().backup(backup_dir)
 		KerberosConfigurator().backup(backup_dir)
-
 		userinfo_logger.info('Created a backup of all configuration files, that will be modified at \'%s\'.' % backup_dir)
 
 	@execute_as_root
@@ -92,13 +99,26 @@ class Joiner(object):
 		return backup_dir
 
 	def join_domain(self):
-		DnsConfigurator(self.nameservers, self.domain).configure_dns()
-		LdapConfigurator().configure_ldap(self.ldap_master, self.master_username, self.master_pw, self.ldap_base)
-		SssdConfigurator().setup_sssd(self.master_ip, self.ldap_master, self.master_username, self.master_pw, self.ldap_base, self.kerberos_realm)
-		PamConfigurator().setup_pam()
-		if not self.skip_login_manager:
-			LoginManagerConfigurator().enable_login_with_foreign_usernames()
-		KerberosConfigurator().configure_kerberos(self.kerberos_realm, self.master_ip, self.ldap_master)
-		# TODO: Stop avahi service to prevent problems with sssd?
-		userinfo_logger.info('The domain join was successful.')
-		userinfo_logger.info('Please reboot the system.')
+		try:
+			if self.force_ucs_dns:
+				userinfo_logger.info('changing network/dns configuration as requested.')
+				DnsConfigurator(self.nameservers, self.domain).configure_dns()
+			# check if we can resolve the ldap_server_name and ldap_master
+			if not name_is_resolvable(self.ldap_master):
+				raise DcResolveException('The UCS master name %s can not be resolved, please check your DNS settings' % self.ldap_master)
+			if not name_is_resolvable(self.ldap_server_name):
+				raise DcResolveException('The UCS DC name %s can not be resolved, please check your DNS settings' % self.ldap_server_name)
+			ldap.authenticate_admin(self.dc_ip, self.admin_username, self.admin_pw)
+			admin_dn = LdapConfigurator().get_admin_dn(self.dc_ip, self.admin_username, self.admin_pw, self.ldap_base)
+			is_samba_dc = ldap.is_samba_dc(self.admin_username, self.admin_pw, self.dc_ip, admin_dn)
+			LdapConfigurator().configure_ldap(self.dc_ip, self.ldap_server_name, self.admin_username, self.admin_pw, self.ldap_base, admin_dn)
+			SssdConfigurator().setup_sssd(self.dc_ip, self.ldap_master, self.ldap_server_name, self.admin_username, self.admin_pw, self.ldap_base, self.kerberos_realm, admin_dn, is_samba_dc)
+			PamConfigurator().setup_pam()
+			if not self.skip_login_manager:
+				LoginManagerConfigurator().enable_login_with_foreign_usernames()
+			KerberosConfigurator().configure_kerberos(self.kerberos_realm, self.ldap_master, self.ldap_server_name, is_samba_dc, self.dc_ip)
+			# TODO: Stop avahi service to prevent problems with sssd?
+			userinfo_logger.info('The domain join was successful.')
+			userinfo_logger.info('Please reboot the system.')
+		finally:
+			ldap.cleanup_authentication(self.dc_ip, self.admin_username, self.admin_pw)

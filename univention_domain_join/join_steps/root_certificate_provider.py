@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Univention Domain Join
 #
@@ -41,9 +41,9 @@ userinfo_logger = logging.getLogger('userinfo')
 
 
 class RootCertificateProvider(object):
-	def provide_ucs_root_certififcate(self, ldap_master):
+	def provide_ucs_root_certififcate(self, dc_ip):
 		if not self.ucs_root_certificate_available_locally():
-			self.download_ucs_root_certificate(ldap_master)
+			self.download_ucs_root_certificate(dc_ip)
 			self.add_certificate_to_certificate_store()
 
 	def ucs_root_certificate_available_locally(self):
@@ -51,7 +51,7 @@ class RootCertificateProvider(object):
 			os.path.isfile('/usr/local/share/ca-certificates/UCSdomain.crt')
 
 	@execute_as_root
-	def download_ucs_root_certificate(self, ldap_master):
+	def download_ucs_root_certificate(self, dc_ip):
 		userinfo_logger.info('Downloading the UCS root certificate to /etc/univention/ssl/ucsCA/CAcert.pem')
 
 		if not os.path.exists('/etc/univention/ssl/ucsCA'):
@@ -61,7 +61,7 @@ class RootCertificateProvider(object):
 				'wget',
 				'--no-check-certificate',
 				'-O', '/etc/univention/ssl/ucsCA/CAcert.pem',
-				'http://%s/ucs-root-ca.crt' % (ldap_master,)
+				'http://%s/ucs-root-ca.crt' % (dc_ip,)
 			],
 			stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
 		)

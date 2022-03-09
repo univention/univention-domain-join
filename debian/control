@@ -13,10 +13,17 @@ Standards-Version: 3.6.1
 Package: univention-domain-join
 Architecture: all
 Depends: univention-domain-join-cli,
+ policykit-1,
  python3 (>= 3.7),
  python3-pyqt5,
  ${misc:Depends}
 Description: Graphical front end for univention-domain-join
+ This tool performs all steps necessary for joining a Linux computer into an UCS
+ domain. The necessary join-steps depend on your Linux distribution, but may
+ include steps like setting up kerberos, pam, sssd, the login manager and
+ creating an LDAP object on the DC master for your computer.
+ .
+ This package contains the graphical front end.
 
 Package: univention-domain-join-cli
 Architecture: all
@@ -36,6 +43,8 @@ Description: Join a Linux client into an UCS domain
  domain. The necessary join-steps depend on your Linux distribution, but may
  include steps like setting up kerberos, pam, sssd, the login manager and
  creating an LDAP object on the DC master for your computer.
+ .
+ This package contains the command line tool.
 
 Package: python3-univention-domain-join
 Architecture: all
@@ -45,3 +54,9 @@ Depends:
  ${misc:Depends},
 Recommends: univention-domain-join
 Description: Python3 modules used by univention-domain-join
+ This tool performs all steps necessary for joining a Linux computer into an UCS
+ domain. The necessary join-steps depend on your Linux distribution, but may
+ include steps like setting up kerberos, pam, sssd, the login manager and
+ creating an LDAP object on the DC master for your computer.
+ .
+ This package contains the Python modules.

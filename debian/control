@@ -2,7 +2,8 @@ Source: univention-domain-join
 Section: admin
 Priority: optional
 Maintainer: Univention GmbH <packages@univention.de>
-Build-Depends: debhelper (>=8),
+Build-Depends:
+ debhelper-compat (= 12),
  python3 (>=3.7),
  dh-python,
  python3-all,

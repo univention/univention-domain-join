@@ -32,6 +32,7 @@
 import logging
 import os
 import time
+from typing import Dict
 
 from univention_domain_join.join_steps.dns_configurator import DnsConfigurator
 from univention_domain_join.join_steps.kerberos_configurator import KerberosConfigurator
@@ -54,7 +55,7 @@ class DcResolveException(Exception):
 
 
 class Joiner(object):
-	def __init__(self, ucr_variables, admin_username, admin_pw, dc_ip, skip_login_manager, force_ucs_dns):
+	def __init__(self, ucr_variables: Dict[str, str], admin_username: str, admin_pw: str, dc_ip: str, skip_login_manager: bool, force_ucs_dns: bool) -> None:
 		self.admin_username = admin_username
 		self.admin_pw = admin_pw
 		self.dc_ip = dc_ip
@@ -71,7 +72,7 @@ class Joiner(object):
 		self.ldap_server_name = ucr_variables['ldap_server_name']
 		self.kerberos_realm = ucr_variables['kerberos_realm']
 
-	def check_if_join_is_possible_without_problems(self):
+	def check_if_join_is_possible_without_problems(self) -> None:
 		if not self.skip_login_manager and LoginManagerConfigurator().configuration_conflicts():
 			userinfo_logger.critical(
 				'Joining the UCS domain is not safely possible.\n'
@@ -79,7 +80,7 @@ class Joiner(object):
 			)
 			raise DomainJoinException()
 
-	def create_backup_of_config_files(self):
+	def create_backup_of_config_files(self) -> None:
 		backup_dir = self.create_backup_dir()
 		if self.force_ucs_dns:
 			DnsConfigurator(self.nameservers, self.domain).backup(backup_dir)
@@ -92,12 +93,12 @@ class Joiner(object):
 		userinfo_logger.info('Created a backup of all configuration files, that will be modified at \'%s\'.' % backup_dir)
 
 	@execute_as_root
-	def create_backup_dir(self):
+	def create_backup_dir(self) -> str:
 		backup_dir = os.path.join('/var/univention-backup', time.strftime("%Y%m%d%H%M%S_domain-join", time.gmtime()))
 		os.makedirs(backup_dir)
 		return backup_dir
 
-	def join_domain(self):
+	def join_domain(self) -> None:
 		try:
 			if self.force_ucs_dns:
 				userinfo_logger.info('changing network/dns configuration as requested.')

@@ -34,6 +34,7 @@ import logging
 import os
 import subprocess
 from shutil import copyfile
+from typing import List
 
 import dns.resolver
 
@@ -47,7 +48,7 @@ class DnsConfigurationException(Exception):
 
 
 class DnsConfigurator(object):
-	def __init__(self, nameservers, domain):
+	def __init__(self, nameservers: List[str], domain: str) -> None:
 		self.nameservers = nameservers
 		self.domain = domain
 
@@ -69,11 +70,11 @@ class DnsConfigurator(object):
 		else:
 			self.working_configurator = DnsConfiguratorTrusty()
 
-	def backup(self, backup_dir):
+	def backup(self, backup_dir: str) -> None:
 		self.working_configurator.backup(backup_dir)
 
 	@execute_as_root
-	def configure_dns(self):
+	def configure_dns(self) -> None:
 		self.working_configurator.configure_dns(self.nameservers, self.domain)
 		if self.domain.endswith('.local'):
 			subprocess.check_call([
@@ -83,7 +84,7 @@ class DnsConfigurator(object):
 			], close_fds=True)
 		self.check_if_dns_works()
 
-	def check_if_dns_works(self):
+	def check_if_dns_works(self) -> None:
 		resolver = dns.resolver.Resolver()
 		try:
 			resolver.query('_domaincontroller_master._tcp.%s.' % (self.domain,), 'SRV')
@@ -96,20 +97,20 @@ class DnsConfigurator(object):
 
 
 class DnsConfiguratorTrusty(object):
-	def __init__(self):
+	def __init__(self) -> None:
 		self.sub_configurators = (DnsConfiguratorDHClient(), DnsConfiguratorOldNetworkManager(), DnsConfiguratorResolvconf())
 
-	def backup(self, backup_dir):
+	def backup(self, backup_dir: str) -> None:
 		for configurator in self.sub_configurators:
 			configurator.backup(backup_dir)
 
-	def configure_dns(self, nameservers, domain):
+	def configure_dns(self, nameservers: List[str], domain: str) -> None:
 		for configurator in self.sub_configurators:
 			configurator.configure_dns(nameservers, domain)
 
 
 class DnsConfiguratorSystemd(object):
-	def works_on_this_system(self):
+	def works_on_this_system(self) -> bool:
 		ssh_process = subprocess.Popen(
 			['service', 'systemd-resolved', 'status'],
 			stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
@@ -118,7 +119,7 @@ class DnsConfiguratorSystemd(object):
 		return ssh_process.returncode == 0
 
 	@execute_as_root
-	def backup(self, backup_dir):
+	def backup(self, backup_dir: str) -> None:
 		if os.path.isfile('/etc/systemd/resolved.conf'):
 			userinfo_logger.warn('Warning: /etc/systemd/resolved.conf already exists.')
 			os.makedirs(os.path.join(backup_dir, 'etc/systemd'))
@@ -128,7 +129,7 @@ class DnsConfiguratorSystemd(object):
 			)
 
 	@execute_as_root
-	def configure_dns(self, nameservers, domain):
+	def configure_dns(self, nameservers: List[str], domain: str) -> None:
 		userinfo_logger.info('Writing /etc/systemd/resolved.conf')
 		with open('/etc/systemd/resolved.conf', 'w') as conf_file:
 			conf_file.write('[Resolve]\n')
@@ -140,7 +141,7 @@ class DnsConfiguratorSystemd(object):
 
 
 class DnsConfiguratorNetworkManager(object):
-	def works_on_this_system(self):
+	def works_on_this_system(self) -> bool:
 		# could also check lsb_release -sr here instead
 		p = subprocess.Popen(
 			['nmcli', '-v'],
@@ -157,12 +158,12 @@ class DnsConfiguratorNetworkManager(object):
 		return p.returncode == 0
 
 	@execute_as_root
-	def backup(self, backup_dir):
+	def backup(self, backup_dir: str) -> None:
 		# TODO: where does nmcli store the DNS settings?
 		return
 
 	@execute_as_root
-	def configure_dns(self, nameservers, domain):
+	def configure_dns(self, nameservers: List[str], domain: str) -> None:
 		p = subprocess.Popen(
 			['nmcli', '-t', '-f', 'NAME,UUID,DEVICE', 'connection', 'show', '--active'],
 			stdout=subprocess.PIPE, stderr=subprocess.PIPE
@@ -193,7 +194,7 @@ class DnsConfiguratorNetworkManager(object):
 
 class DnsConfiguratorOldNetworkManager(object):
 	@execute_as_root
-	def backup(self, backup_dir):
+	def backup(self, backup_dir: str) -> None:
 		p = subprocess.Popen(
 			['nmcli', '-t', '-f', 'NAME,UUID', 'connection', 'list'],
 			stdout=subprocess.PIPE, stderr=subprocess.PIPE
@@ -215,7 +216,7 @@ class DnsConfiguratorOldNetworkManager(object):
 				os.chmod(fn_backup, 0o600)
 
 	@execute_as_root
-	def configure_dns(self, nameservers, domain):
+	def configure_dns(self, nameservers: List[str], domain: str) -> None:
 		ns_string = ';'.join(filter(lambda x: x, nameservers)) + ';'
 		p = subprocess.Popen(
 			['nmcli', '-t', '-f', 'NAME,UUID', 'connection', 'list'],
@@ -240,7 +241,7 @@ class DnsConfiguratorOldNetworkManager(object):
 
 class DnsConfiguratorDHClient(object):
 	@execute_as_root
-	def backup(self, backup_dir):
+	def backup(self, backup_dir: str) -> None:
 		if os.path.isfile('/etc/dhcp/dhclient.conf'):
 			os.makedirs(os.path.join(backup_dir, 'etc/dhcp'))
 			copyfile(
@@ -249,7 +250,7 @@ class DnsConfiguratorDHClient(object):
 			)
 
 	@execute_as_root
-	def configure_dns(self, nameservers, domain):
+	def configure_dns(self, nameservers: List[str], domain: str) -> None:
 		ns_string = " ".join(filter(lambda x: x, nameservers))
 		p = subprocess.Popen([
 			'grep', '-q', '^prepend domain-name-servers %s' % ns_string,
@@ -266,7 +267,7 @@ class DnsConfiguratorDHClient(object):
 
 class DnsConfiguratorResolvconf(object):
 	@execute_as_root
-	def backup(self, backup_dir):
+	def backup(self, backup_dir: str) -> None:
 		if os.path.isfile('/etc/resolvconf/resolv.conf.d/base'):
 			userinfo_logger.warn('Warning: /etc/resolvconf/resolv.conf.d/base already exists.')
 			os.makedirs(os.path.join(backup_dir, 'etc/resolvconf/resolv.conf.d'))
@@ -276,7 +277,7 @@ class DnsConfiguratorResolvconf(object):
 			)
 
 	@execute_as_root
-	def configure_dns(self, nameservers, domain):
+	def configure_dns(self, nameservers: List[str], domain: str) -> None:
 		userinfo_logger.info('Writing /etc/resolvconf/resolv.conf.d/base')
 		with open('/etc/resolvconf/resolv.conf.d/base', 'w') as conf_file:
 			for nameserver in nameservers:

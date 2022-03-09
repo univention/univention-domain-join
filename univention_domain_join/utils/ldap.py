@@ -31,6 +31,7 @@
 
 import pipes
 import subprocess
+from typing import Optional
 
 from ldap.filter import filter_format
 
@@ -38,7 +39,7 @@ from univention_domain_join.utils.general import execute_as_root
 
 
 @execute_as_root
-def authenticate_admin(dc_ip, admin_username, admin_pw):
+def authenticate_admin(dc_ip: str, admin_username: str, admin_pw: str) -> None:
 	ldap_command = ' echo {1} > /dev/shm/{0}domain-join; chmod 600 /dev/shm/{0}domain-join; kinit --password-file=/dev/shm/{0}domain-join {0}'.format(pipes.quote(admin_username), pipes.quote(admin_pw))
 	ssh_process = subprocess.Popen(
 		['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (admin_username, dc_ip), ldap_command],
@@ -48,7 +49,7 @@ def authenticate_admin(dc_ip, admin_username, admin_pw):
 
 
 @execute_as_root
-def cleanup_authentication(dc_ip, admin_username, admin_pw):
+def cleanup_authentication(dc_ip: str, admin_username: str, admin_pw: str) -> None:
 	ldap_command = 'rm -f /dev/shm/{0}domain-join; kdestroy'.format(pipes.quote(admin_username))
 	ssh_process = subprocess.Popen(
 		['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (admin_username, dc_ip), ldap_command],
@@ -58,7 +59,7 @@ def cleanup_authentication(dc_ip, admin_username, admin_pw):
 
 
 @execute_as_root
-def is_samba_dc(admin_username, admin_pw, dc_ip, admin_dn):
+def is_samba_dc(admin_username: str, admin_pw: str, dc_ip: str, admin_dn: str) -> bool:
 	ldap_command = ['ldapsearch', '-QLLL', filter_format('aRecord=%s', [dc_ip]), 'univentionService']
 	escaped_ldap_command = ' '.join([pipes.quote(x) for x in ldap_command])
 	ssh_process = subprocess.Popen(
@@ -72,7 +73,7 @@ def is_samba_dc(admin_username, admin_pw, dc_ip, admin_dn):
 	return False
 
 
-def get_machines_ldap_dn(dc_ip, admin_username, admin_pw, admin_dn):
+def get_machines_ldap_dn(dc_ip: str, admin_username: str, admin_pw: str, admin_dn: str) -> Optional[str]:
 	for udm_type in ['computers/ubuntu', 'computers/linux', 'computers/ucc']:
 		machines_ldap_dn = get_machines_ldap_dn_given_the_udm_type(udm_type, dc_ip, admin_username, admin_pw, admin_dn)
 		if machines_ldap_dn:
@@ -80,7 +81,7 @@ def get_machines_ldap_dn(dc_ip, admin_username, admin_pw, admin_dn):
 	return None
 
 
-def get_machines_udm_type(dc_ip, admin_username, admin_pw, admin_dn):
+def get_machines_udm_type(dc_ip: str, admin_username: str, admin_pw: str, admin_dn: str) -> Optional[str]:
 	for udm_type in ['computers/ubuntu', 'computers/linux', 'computers/ucc']:
 		machines_ldap_dn = get_machines_ldap_dn_given_the_udm_type(udm_type, dc_ip, admin_username, admin_pw, admin_dn)
 		if machines_ldap_dn:
@@ -89,7 +90,7 @@ def get_machines_udm_type(dc_ip, admin_username, admin_pw, admin_dn):
 
 
 @execute_as_root
-def get_machines_ldap_dn_given_the_udm_type(udm_type, dc_ip, admin_username, admin_pw, admin_dn):
+def get_machines_ldap_dn_given_the_udm_type(udm_type: str, dc_ip: str, admin_username: str, admin_pw: str, admin_dn: str) -> Optional[str]:
 	hostname = subprocess.check_output(['hostname', '-s']).strip().decode()
 	udm_command = ['/usr/sbin/udm', udm_type, 'list', '--binddn', admin_dn, '--bindpwdfile', '/dev/shm/%sdomain-join' % (admin_username,), '--filter', 'name=%s' % (hostname,)]
 	escaped_udm_command = ' '.join([pipes.quote(x) for x in udm_command])

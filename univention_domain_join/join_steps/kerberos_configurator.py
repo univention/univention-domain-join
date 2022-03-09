@@ -42,7 +42,7 @@ userinfo_logger = logging.getLogger('userinfo')
 
 
 class ConflictChecker(object):
-	def config_file_exists(self):
+	def config_file_exists(self) -> bool:
 		if os.path.isfile('/etc/krb5.conf'):
 			userinfo_logger.warn('Warning: /etc/krb5.conf already exists.')
 			return True
@@ -51,7 +51,7 @@ class ConflictChecker(object):
 
 class KerberosConfigurator(ConflictChecker):
 	@execute_as_root
-	def backup(self, backup_dir):
+	def backup(self, backup_dir: str) -> None:
 		if self.config_file_exists():
 			if not os.path.exists(os.path.join(backup_dir, 'etc')):
 				os.makedirs(os.path.join(backup_dir, 'etc'))
@@ -60,12 +60,12 @@ class KerberosConfigurator(ConflictChecker):
 				os.path.join(backup_dir, 'etc/krb5.conf')
 			)
 
-	def configure_kerberos(self, kerberos_realm, ldap_master, ldap_server_name, is_samba_dc, dc_ip):
+	def configure_kerberos(self, kerberos_realm: str, ldap_master: str, ldap_server_name: str, is_samba_dc: bool, dc_ip: str) -> None:
 		self.write_config_file(kerberos_realm, ldap_master, ldap_server_name, is_samba_dc)
 		self.synchronize_time_with_master(dc_ip)
 
 	@execute_as_root
-	def write_config_file(self, kerberos_realm, ldap_master, ldap_server_name, is_samba_dc):
+	def write_config_file(self, kerberos_realm: str, ldap_master: str, ldap_server_name: str, is_samba_dc: bool) -> None:
 		userinfo_logger.info('Writing /etc/krb5.conf ')
 		if is_samba_dc:
 			kpasswd_name = ldap_server_name
@@ -98,7 +98,7 @@ class KerberosConfigurator(ConflictChecker):
 			conf_file.write(config)
 
 	@execute_as_root
-	def synchronize_time_with_master(self, dc_ip):
+	def synchronize_time_with_master(self, dc_ip: str) -> None:
 		userinfo_logger.info('Synchronizing time with the DC')
 		subprocess.check_call(
 			['ntpdate', '-bu', dc_ip],

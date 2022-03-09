@@ -45,7 +45,7 @@ userinfo_logger = logging.getLogger('userinfo')
 
 
 class ConflictChecker(object):
-	def sssd_conf_file_exists(self):
+	def sssd_conf_file_exists(self) -> bool:
 		if os.path.isfile('/etc/sssd/sssd.conf'):
 			userinfo_logger.warn('Warning: /etc/sssd/sssd.conf already exists.')
 			return True
@@ -55,7 +55,7 @@ class ConflictChecker(object):
 class SssdConfigurator(ConflictChecker):
 
 	@execute_as_root
-	def backup(self, backup_dir):
+	def backup(self, backup_dir: str) -> None:
 		if self.sssd_conf_file_exists():
 			os.makedirs(os.path.join(backup_dir, 'etc/sssd'))
 			copyfile(
@@ -64,7 +64,7 @@ class SssdConfigurator(ConflictChecker):
 			)
 
 	@execute_as_root
-	def setup_sssd(self, dc_ip, ldap_master, ldap_server_name, admin_username, admin_pw, ldap_base, kerberos_realm, admin_dn, is_samba_dc):
+	def setup_sssd(self, dc_ip: str, ldap_master: str, ldap_server_name: str, admin_username: str, admin_pw: str, ldap_base: str, kerberos_realm: str, admin_dn: str, is_samba_dc: bool) -> None:
 		self.ldap_password = open('/etc/machine.secret').read().strip()
 		RootCertificateProvider().provide_ucs_root_certififcate(dc_ip)
 		self.write_sssd_conf(dc_ip, ldap_master, ldap_server_name, admin_username, admin_pw, ldap_base, kerberos_realm, admin_dn, is_samba_dc)
@@ -72,7 +72,7 @@ class SssdConfigurator(ConflictChecker):
 		self.restart_sssd()
 
 	@execute_as_root
-	def write_sssd_conf(self, dc_ip, ldap_master, ldap_server_name, admin_username, admin_pw, ldap_base, kerberos_realm, admin_dn, is_samba_dc):
+	def write_sssd_conf(self, dc_ip: str, ldap_master: str, ldap_server_name: str, admin_username: str, admin_pw: str, ldap_base: str, kerberos_realm: str, admin_dn: str, is_samba_dc: bool) -> None:
 		userinfo_logger.info('Writing /etc/sssd/sssd.conf ')
 		if is_samba_dc:
 			kpasswd_server = ldap_server_name
@@ -120,7 +120,7 @@ class SssdConfigurator(ConflictChecker):
 		os.chmod('/etc/sssd/sssd.conf', stat.S_IREAD | stat.S_IWRITE)
 
 	@execute_as_root
-	def configure_sssd(self):
+	def configure_sssd(self) -> None:
 		userinfo_logger.info('Configuring auth config profile for sssd')
 
 		subprocess.check_call(
@@ -129,7 +129,7 @@ class SssdConfigurator(ConflictChecker):
 		)
 
 	@execute_as_root
-	def restart_sssd(self):
+	def restart_sssd(self) -> None:
 		userinfo_logger.info('Restarting sssd')
 
 		subprocess.check_call(

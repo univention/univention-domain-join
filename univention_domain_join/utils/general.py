@@ -31,10 +31,13 @@
 
 import os
 import socket
+from typing import Any, Callable, TypeVar, cast
+
+F = TypeVar('F', bound=Callable[..., Any])
 
 
-def execute_as_root(func):
-	def root_wrapper(*args, **kwargs):
+def execute_as_root(func: F) -> F:
+	def root_wrapper(*args: Any, **kwargs: Any) -> Any:
 		old_euid = os.geteuid()
 		os.seteuid(0)
 		try:
@@ -42,10 +45,10 @@ def execute_as_root(func):
 		finally:
 			os.seteuid(old_euid)
 		return return_value
-	return root_wrapper
+	return cast(F, root_wrapper)
 
 
-def name_is_resolvable(name):
+def name_is_resolvable(name: str) -> bool:
 	try:
 		return bool(socket.getaddrinfo(name, 22, socket.AF_UNSPEC, socket.SOCK_STREAM, socket.IPPROTO_TCP))
 	except Exception:

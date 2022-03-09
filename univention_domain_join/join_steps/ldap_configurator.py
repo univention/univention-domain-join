@@ -50,7 +50,7 @@ class LdapConfigutationException(Exception):
 
 
 class ConflictChecker(object):
-	def ldap_conf_exists(self):
+	def ldap_conf_exists(self) -> bool:
 		if os.path.isfile('/etc/ldap/ldap.conf'):
 			userinfo_logger.warn('Warning: /etc/ldap/ldap.conf already exists.')
 			return True
@@ -59,7 +59,7 @@ class ConflictChecker(object):
 
 class LdapConfigurator(ConflictChecker):
 	@execute_as_root
-	def backup(self, backup_dir):
+	def backup(self, backup_dir: str) -> None:
 		if self.ldap_conf_exists():
 			os.makedirs(os.path.join(backup_dir, 'etc/ldap'))
 			copyfile(
@@ -67,21 +67,21 @@ class LdapConfigurator(ConflictChecker):
 				os.path.join(backup_dir, 'etc/ldap/ldap.conf')
 			)
 
-	def configure_ldap(self, dc_ip, ldap_server_name, admin_username, admin_pw, ldap_base, admin_dn):
+	def configure_ldap(self, dc_ip: str, ldap_server_name: str, admin_username: str, admin_pw: str, ldap_base: str, admin_dn: str) -> None:
 		RootCertificateProvider().provide_ucs_root_certififcate(dc_ip)
 		password = self.random_password()
 		self.modify_old_entry_or_add_machine_to_ldap(password, dc_ip, admin_username, admin_pw, ldap_base, admin_dn)
 		self.create_ldap_conf_file(ldap_server_name, ldap_base)
 		self.create_machine_secret_file(password)
 
-	def modify_old_entry_or_add_machine_to_ldap(self, password, dc_ip, admin_username, admin_pw, ldap_base, admin_dn):
+	def modify_old_entry_or_add_machine_to_ldap(self, password: str, dc_ip: str, admin_username: str, admin_pw: str, ldap_base: str, admin_dn: str) -> None:
 		if get_machines_ldap_dn(dc_ip, admin_username, admin_pw, admin_dn):
 			self.modify_machine_in_ldap(password, dc_ip, admin_username, admin_pw, admin_dn)
 		else:
 			self.add_machine_to_ldap(password, dc_ip, admin_username, admin_pw, ldap_base, admin_dn)
 
 	@execute_as_root
-	def modify_machine_in_ldap(self, password, dc_ip, admin_username, admin_pw, admin_dn):
+	def modify_machine_in_ldap(self, password: str, dc_ip: str, admin_username: str, admin_pw: str, admin_dn: str) -> None:
 		userinfo_logger.info('Updating old LDAP entry for this machine on the UCS DC')
 
 		release_id = subprocess.check_output(['lsb_release', '-is']).strip().decode()
@@ -109,7 +109,7 @@ class LdapConfigurator(ConflictChecker):
 			raise LdapConfigutationException()
 
 	@execute_as_root
-	def add_machine_to_ldap(self, password, dc_ip, admin_username, admin_pw, ldap_base, admin_dn):
+	def add_machine_to_ldap(self, password: str, dc_ip: str, admin_username: str, admin_pw: str, ldap_base: str, admin_dn: str) -> None:
 		userinfo_logger.info('Adding LDAP entry for this machine on the UCS DC')
 		hostname = subprocess.check_output(['hostname', '-s']).strip().decode()
 		release_id = subprocess.check_output(['lsb_release', '-is']).strip().decode()
@@ -137,7 +137,7 @@ class LdapConfigurator(ConflictChecker):
 			raise LdapConfigutationException()
 
 	@execute_as_root
-	def get_admin_dn(self, dc_ip, admin_username, admin_pw, ldap_base):
+	def get_admin_dn(self, dc_ip: str, admin_username: str, admin_pw: str, ldap_base: str) -> str:
 		userinfo_logger.info('Getting the DN of the Administrator ')
 		ldap_command = 'ldapsearch -QLLL -Y GSSAPI uid=%s dn' % (pipes.quote(admin_username),)
 		ssh_process = subprocess.Popen(
@@ -152,7 +152,7 @@ class LdapConfigurator(ConflictChecker):
 		return admin_dn
 
 	@execute_as_root
-	def create_ldap_conf_file(self, ldap_server_name, ldap_base):
+	def create_ldap_conf_file(self, ldap_server_name: str, ldap_base: str) -> None:
 		userinfo_logger.info('Writing /etc/ldap/ldap.conf ')
 		ldap_conf = \
 			"TLS_CACERT /etc/univention/ssl/ucsCA/CAcert.pem\n" \
@@ -163,13 +163,13 @@ class LdapConfigurator(ConflictChecker):
 			conf_file.write(ldap_conf)
 
 	@execute_as_root
-	def create_machine_secret_file(self, password):
+	def create_machine_secret_file(self, password: str) -> None:
 		userinfo_logger.info('Writing /etc/machine.secret ')
 		with open('/etc/machine.secret', 'w') as secret_file:
 			secret_file.write(password)
 		os.chmod('/etc/machine.secret', stat.S_IREAD)
 
-	def random_password(self, length=20):
+	def random_password(self, length: int = 20) -> str:
 		chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!"#$%&\'()*+,-./:;<=>?@[]^_`{|}~'
 		password = ''
 		for _ in range(length):

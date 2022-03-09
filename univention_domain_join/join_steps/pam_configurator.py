@@ -42,13 +42,13 @@ userinfo_logger = logging.getLogger('userinfo')
 
 
 class ConflictChecker(object):
-	def home_dir_conf_file_exists(self):
+	def home_dir_conf_file_exists(self) -> bool:
 		if os.path.isfile('/usr/share/pam-configs/ucs_mkhomedir'):
 			userinfo_logger.warn('Warning: /usr/share/pam-configs/ucs_mkhomedir already exists.')
 			return True
 		return False
 
-	def group_conf_file_exists(self):
+	def group_conf_file_exists(self) -> bool:
 		if os.path.isfile('/usr/share/pam-configs/local_groups'):
 			userinfo_logger.warn('Warning: /usr/share/pam-configs/local_groups already exists.')
 			return True
@@ -58,7 +58,7 @@ class ConflictChecker(object):
 class PamConfigurator(ConflictChecker):
 
 	@execute_as_root
-	def backup(self, backup_dir):
+	def backup(self, backup_dir: str) -> None:
 		copy_home_dir_conf = self.home_dir_conf_file_exists()
 		copy_group_conf = self.group_conf_file_exists()
 		if copy_home_dir_conf or copy_group_conf:
@@ -79,13 +79,13 @@ class PamConfigurator(ConflictChecker):
 			os.path.join(backup_dir, 'etc/security/group.conf')
 		)
 
-	def setup_pam(self):
+	def setup_pam(self) -> None:
 		self.configure_home_dir_creation()
 		self.add_users_to_requiered_system_groups()
 		self.update_pam()
 
 	@execute_as_root
-	def configure_home_dir_creation(self):
+	def configure_home_dir_creation(self) -> None:
 		userinfo_logger.info('Writing /usr/share/pam-configs/ucs_mkhomedir ')
 
 		home_dir_conf = \
@@ -98,12 +98,12 @@ class PamConfigurator(ConflictChecker):
 		with open('/usr/share/pam-configs/ucs_mkhomedir', 'w') as conf_file:
 			conf_file.write(home_dir_conf)
 
-	def add_users_to_requiered_system_groups(self):
+	def add_users_to_requiered_system_groups(self) -> None:
 		self.add_groups_to_group_conf()
 		self.write_pam_group_conf()
 
 	@execute_as_root
-	def add_groups_to_group_conf(self):
+	def add_groups_to_group_conf(self) -> None:
 		if self.group_conf_already_ok():
 			return
 
@@ -115,7 +115,7 @@ class PamConfigurator(ConflictChecker):
 				'*;*;*;Al0000-2400;audio,cdrom,dialout,floppy,plugdev,adm\n'
 			)
 
-	def group_conf_already_ok(self):
+	def group_conf_already_ok(self) -> bool:
 		with open('/etc/security/group.conf', 'r') as groups_file:
 			for line in groups_file:
 				if '*;*;*;Al0000-2400;audio,cdrom,dialout,floppy,plugdev,adm\n' in line:
@@ -123,7 +123,7 @@ class PamConfigurator(ConflictChecker):
 		return False
 
 	@execute_as_root
-	def write_pam_group_conf(self):
+	def write_pam_group_conf(self) -> None:
 		userinfo_logger.info('Adding  groups to /usr/share/pam-configs/local_groups ')
 
 		group_conf = \
@@ -138,7 +138,7 @@ class PamConfigurator(ConflictChecker):
 			conf_file.write(group_conf)
 
 	@execute_as_root
-	def update_pam(self):
+	def update_pam(self) -> None:
 		userinfo_logger.info('Updating PAM')
 
 		env = os.environ.copy()

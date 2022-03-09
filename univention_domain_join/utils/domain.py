@@ -32,6 +32,7 @@
 import os
 import socket
 import subprocess
+from typing import List, Optional, Set
 
 import dns.resolver
 import IPy
@@ -40,7 +41,7 @@ import netifaces
 OUTPUT_SINK = open(os.devnull, 'w')
 
 
-def get_master_ip_through_dns(domain):
+def get_master_ip_through_dns(domain: str) -> Optional[str]:
 	resolver = dns.resolver.Resolver()
 	try:
 		response = resolver.query('_domaincontroller_master._tcp.%s.' % (domain,), 'SRV')
@@ -50,7 +51,7 @@ def get_master_ip_through_dns(domain):
 	return socket.gethostbyname(master_fqdn)
 
 
-def get_ucs_domainname():
+def get_ucs_domainname() -> Optional[str]:
 	domainname = get_ucs_domainname_via_local_configuration()
 	if not domainname:
 		domainname = get_ucs_domainname_via_reverse_dns()
@@ -59,7 +60,7 @@ def get_ucs_domainname():
 	return domainname
 
 
-def get_ucs_domainname_via_local_configuration():
+def get_ucs_domainname_via_local_configuration() -> Optional[str]:
 	try:
 		domainname = socket.getfqdn().split('.', 1)[1]
 	except Exception:
@@ -67,7 +68,7 @@ def get_ucs_domainname_via_local_configuration():
 	return domainname
 
 
-def get_ucs_domainname_via_reverse_dns():
+def get_ucs_domainname_via_reverse_dns() -> Optional[str]:
 	ip_addresses = get_all_ip_addresses()
 	possible_ucs_domainnames = set()
 	for ip_address in ip_addresses:
@@ -79,7 +80,7 @@ def get_ucs_domainname_via_reverse_dns():
 	return None
 
 
-def get_ucs_domainname_of_dns_server():
+def get_ucs_domainname_of_dns_server() -> Optional[str]:
 	nameservers = get_nameservers()
 	possible_ucs_domainnames = set()
 	for nameserver in nameservers:
@@ -91,7 +92,7 @@ def get_ucs_domainname_of_dns_server():
 	return None
 
 
-def get_nameservers():
+def get_nameservers() -> Set[str]:
 	output = subprocess.check_output(['systemd-resolve', '--status'])
 
 	nameservers = set()
@@ -108,7 +109,7 @@ def get_nameservers():
 	return nameservers
 
 
-def is_only_ip(line):
+def is_only_ip(line: str) -> bool:
 	try:
 		IPy.IP(line.strip())
 		return True
@@ -116,7 +117,7 @@ def is_only_ip(line):
 		return False
 
 
-def get_all_ip_addresses():
+def get_all_ip_addresses() -> List[str]:
 	ip_addresses = []
 	for interface in netifaces.interfaces():
 		# Skip the loopback device.
@@ -127,7 +128,7 @@ def get_all_ip_addresses():
 	return ip_addresses
 
 
-def get_ipv4_addresses(interface):
+def get_ipv4_addresses(interface: str) -> List[str]:
 	short_addresses = []
 	if netifaces.AF_INET in netifaces.ifaddresses(interface):
 		ipv4_addresses = netifaces.ifaddresses(interface)[netifaces.AF_INET]
@@ -136,7 +137,7 @@ def get_ipv4_addresses(interface):
 	return short_addresses
 
 
-def get_ipv6_addresses(interface):
+def get_ipv6_addresses(interface: str) -> List[str]:
 	short_addresses = []
 	if netifaces.AF_INET6 in netifaces.ifaddresses(interface):
 		ipv6_addresses = netifaces.ifaddresses(interface)[netifaces.AF_INET6]
@@ -147,7 +148,7 @@ def get_ipv6_addresses(interface):
 	return short_addresses
 
 
-def get_ucs_domainname_from_fqdn(fqdn):
+def get_ucs_domainname_from_fqdn(fqdn: str) -> Optional[str]:
 	try:
 		domainname = fqdn.split('.', 1)[1]
 		# Check if the _domaincontroller_master._tcp record exists, to ensure

@@ -29,6 +29,7 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
+import configparser
 import logging
 import os
 import subprocess
@@ -216,7 +217,6 @@ class DnsConfiguratorOldNetworkManager(object):
 	@execute_as_root
 	def configure_dns(self, nameservers, domain):
 		ns_string = ';'.join(filter(lambda x: x, nameservers)) + ';'
-		import ConfigParser
 		p = subprocess.Popen(
 			['nmcli', '-t', '-f', 'NAME,UUID', 'connection', 'list'],
 			stdout=subprocess.PIPE, stderr=subprocess.PIPE
@@ -228,7 +228,7 @@ class DnsConfiguratorOldNetworkManager(object):
 			conn_name, conn_uuid = line.split(':')
 			fn = '/etc/NetworkManager/system-connections/%s' % conn_name
 			if os.path.isfile(fn):
-				Config = ConfigParser.ConfigParser()
+				Config = configparser.ConfigParser()
 				Config.read(fn)
 				Config.set('ipv4', 'dns', ns_string)
 				Config.set('ipv4', 'dns-search', '')

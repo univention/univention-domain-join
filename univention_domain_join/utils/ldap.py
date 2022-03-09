@@ -31,7 +31,9 @@
 
 import pipes
 import subprocess
+
 from ldap.filter import filter_format
+
 from univention_domain_join.utils.general import execute_as_root
 
 

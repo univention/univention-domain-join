@@ -29,17 +29,16 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-from shutil import copyfile
 import logging
 import os
 import pipes
 import stat
 import subprocess
+from shutil import copyfile
 
 from univention_domain_join.join_steps.root_certificate_provider import RootCertificateProvider
 from univention_domain_join.utils.general import execute_as_root
-from univention_domain_join.utils.ldap import get_machines_ldap_dn
-from univention_domain_join.utils.ldap import get_machines_udm_type
+from univention_domain_join.utils.ldap import get_machines_ldap_dn, get_machines_udm_type
 
 userinfo_logger = logging.getLogger('userinfo')
 

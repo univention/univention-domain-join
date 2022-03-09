@@ -29,11 +29,12 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-from shutil import copyfile
-import dns.resolver
 import logging
 import os
 import subprocess
+from shutil import copyfile
+
+import dns.resolver
 
 from univention_domain_join.utils.general import execute_as_root
 

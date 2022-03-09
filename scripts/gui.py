@@ -29,35 +29,18 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-from PyQt5.QtCore import QRegExp
-from PyQt5.QtCore import QThread
-from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import QAction
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtGui import QFontMetrics
-from PyQt5.QtWidgets import QFrame
-from PyQt5.QtWidgets import QHBoxLayout
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QLabel
-from PyQt5.QtWidgets import QLineEdit
-from PyQt5.QtWidgets import QMainWindow
-from PyQt5.QtWidgets import QMenuBar
-from PyQt5.QtWidgets import QMessageBox
-from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import QPushButton
-from PyQt5.QtGui import QRegExpValidator
-from PyQt5.QtWidgets import QVBoxLayout
-from PyQt5.QtWidgets import QWidget
-from PyQt5.QtWidgets import QCheckBox
 import importlib
 import logging
 import os
 import subprocess
 import sys
 
+from PyQt5.QtCore import QRegExp, QThread, pyqtSignal
+from PyQt5.QtGui import QFontMetrics, QIcon, QPixmap, QRegExpValidator
+from PyQt5.QtWidgets import QAction, QApplication, QCheckBox, QFrame, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMenuBar, QMessageBox, QPushButton, QVBoxLayout, QWidget
+
 from univention_domain_join.utils.distributions import get_distribution
-from univention_domain_join.utils.domain import get_master_ip_through_dns
-from univention_domain_join.utils.domain import get_ucs_domainname
+from univention_domain_join.utils.domain import get_master_ip_through_dns, get_ucs_domainname
 from univention_domain_join.utils.general import execute_as_root
 
 OUTPUT_SINK = open(os.devnull, 'w')

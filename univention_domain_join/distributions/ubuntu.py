@@ -39,9 +39,8 @@ from univention_domain_join.join_steps.ldap_configurator import LdapConfigurator
 from univention_domain_join.join_steps.login_manager_configurator import LoginManagerConfigurator
 from univention_domain_join.join_steps.pam_configurator import PamConfigurator
 from univention_domain_join.join_steps.sssd_configurator import SssdConfigurator
-import univention_domain_join.utils.ldap as ldap
+from univention_domain_join.utils import ldap
 from univention_domain_join.utils.general import execute_as_root, name_is_resolvable
-
 
 userinfo_logger = logging.getLogger('userinfo')
 

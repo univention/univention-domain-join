@@ -29,12 +29,13 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-import IPy
-import dns.resolver
-import netifaces
 import os
 import socket
 import subprocess
+
+import dns.resolver
+import IPy
+import netifaces
 
 OUTPUT_SINK = open(os.devnull, 'w')
 

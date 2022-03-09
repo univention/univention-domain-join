@@ -29,11 +29,6 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-from setuptools import find_packages, setup
+from setuptools import setup
 
-setup(
-	name='univention-domain-join',
-	version='1.0',
-	packages=find_packages(),
-	install_requires=['dnspython', 'netifaces', 'IPy']
-)
+setup()

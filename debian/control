@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Univention GmbH <packages@univention.de>
 Build-Depends:
  debhelper-compat (= 12),
- python3 (>=3.7),
+ python3 (>= 3.7),
  dh-python,
  python3-all,
  python3-setuptools
@@ -13,6 +13,7 @@ Standards-Version: 3.6.1
 Package: univention-domain-join
 Architecture: all
 Depends: univention-domain-join-cli,
+ python3 (>= 3.7),
  python3-pyqt5,
  ${misc:Depends}
 Description: Graphical front end for univention-domain-join

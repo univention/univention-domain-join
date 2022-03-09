@@ -38,8 +38,7 @@ Description: Join a Linux client into an UCS domain
 
 Package: python3-univention-domain-join
 Architecture: all
-Depends: python3-ipy,
- python3-dnspython,
+Depends:
  python3-ldap,
  ${python3:Depends},
  ${misc:Depends},

@@ -43,5 +43,4 @@ Depends: python3-ipy,
  ${python3:Depends},
  ${misc:Depends},
 Recommends: univention-domain-join
-Provides: ${python3:Provides}
 Description: Python3 modules used by univention-domain-join

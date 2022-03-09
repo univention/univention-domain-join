@@ -44,7 +44,7 @@ def get_master_ip_through_dns(domain):
 	try:
 		response = resolver.query('_domaincontroller_master._tcp.%s.' % (domain,), 'SRV')
 		master_fqdn = response[0].target.canonicalize().split(1)[0].to_text()
-	except:
+	except Exception:
 		return None
 	return socket.gethostbyname(master_fqdn)
 
@@ -61,7 +61,7 @@ def get_ucs_domainname():
 def get_ucs_domainname_via_local_configuration():
 	try:
 		domainname = socket.getfqdn().split('.', 1)[1]
-	except:
+	except Exception:
 		return None
 	return domainname
 
@@ -153,6 +153,6 @@ def get_ucs_domainname_from_fqdn(fqdn):
 		# that this is an UCS domain.
 		resolver = dns.resolver.Resolver()
 		resolver.query('_domaincontroller_master._tcp.%s' % (domainname,), 'SRV')
-	except:
+	except Exception:
 		return None
 	return domainname

@@ -76,7 +76,7 @@ class DnsConfigurator(object):
 		if self.domain.endswith('.local'):
 			subprocess.check_call([
 				'sed', '-i', '-E',
-				's/^(hosts: +.*)( mdns4_minimal)(.*)\\[NOTFOUND=return\\](.*)( dns)(.*)/\\1\\5\\2\\3\[NOTFOUND=return\]\\4\\6/',
+				r's/^(hosts: +.*)( mdns4_minimal)(.*)\[NOTFOUND=return\](.*)( dns)(.*)/\1\5\2\3[NOTFOUND=return]\4\6/',
 				'/etc/nsswitch.conf'
 			], close_fds=True)
 		self.check_if_dns_works()
@@ -104,6 +104,7 @@ class DnsConfiguratorTrusty(object):
 	def configure_dns(self, nameservers, domain):
 		for configurator in self.sub_configurators:
 			configurator.configure_dns(nameservers, domain)
+
 
 class DnsConfiguratorSystemd(object):
 	def works_on_this_system(self):
@@ -138,7 +139,7 @@ class DnsConfiguratorSystemd(object):
 
 class DnsConfiguratorNetworkManager(object):
 	def works_on_this_system(self):
-		## could also check lsb_release -sr here instead
+		# could also check lsb_release -sr here instead
 		p = subprocess.Popen(
 			['nmcli', '-v'],
 			stdout=subprocess.PIPE, stderr=subprocess.PIPE
@@ -155,7 +156,7 @@ class DnsConfiguratorNetworkManager(object):
 
 	@execute_as_root
 	def backup(self, backup_dir):
-		## TODO: where does nmcli store the DNS settings?
+		# TODO: where does nmcli store the DNS settings?
 		return
 
 	@execute_as_root
@@ -170,12 +171,12 @@ class DnsConfiguratorNetworkManager(object):
 		for line in stdout.decode().splitlines():
 			conn_name, conn_uuid, conn_dev = line.split(':')
 			userinfo_logger.info('Configuring ipv4 DNS servers for %s.' % conn_dev)
-			p = subprocess.Popen(
-				['nmcli', 'connection', 'modify', conn_uuid,
+			p = subprocess.Popen([
+				'nmcli', 'connection', 'modify', conn_uuid,
 				'ipv4.dns', " ".join(filter(lambda x: x, nameservers)).encode(),
 				'ipv4.ignore-auto-dns', 'yes',
-				'ipv4.dns-search' , domain.encode()]
-			)
+				'ipv4.dns-search', domain.encode()
+			])
 			p.wait()
 			userinfo_logger.info('Applying new settings to %s.' % conn_dev)
 			p = subprocess.Popen(
@@ -186,6 +187,7 @@ class DnsConfiguratorNetworkManager(object):
 				['nmcli', 'connection', 'up', conn_uuid.encode()]
 			)
 			p.wait()
+
 
 class DnsConfiguratorOldNetworkManager(object):
 	@execute_as_root
@@ -198,7 +200,7 @@ class DnsConfiguratorOldNetworkManager(object):
 		if p.returncode != 0:
 			raise DnsConfigurationException()
 		for line in stdout.splitlines():
-			conn_name, conn_uuid= line.split(':')
+			conn_name, conn_uuid = line.split(':')
 			fn = '/etc/NetworkManager/system-connections/%s' % conn_name
 			fn_backup = os.path.join(backup_dir, fn[1:])
 			if os.path.isfile(fn):
@@ -212,7 +214,7 @@ class DnsConfiguratorOldNetworkManager(object):
 
 	@execute_as_root
 	def configure_dns(self, nameservers, domain):
-		ns_string = ';'.join(filter(lambda x: x, nameservers))+';'
+		ns_string = ';'.join(filter(lambda x: x, nameservers)) + ';'
 		import ConfigParser
 		p = subprocess.Popen(
 			['nmcli', '-t', '-f', 'NAME,UUID', 'connection', 'list'],
@@ -222,7 +224,7 @@ class DnsConfiguratorOldNetworkManager(object):
 		if p.returncode != 0:
 			raise DnsConfigurationException()
 		for line in stdout.splitlines():
-			conn_name, conn_uuid= line.split(':')
+			conn_name, conn_uuid = line.split(':')
 			fn = '/etc/NetworkManager/system-connections/%s' % conn_name
 			if os.path.isfile(fn):
 				Config = ConfigParser.ConfigParser()
@@ -233,6 +235,7 @@ class DnsConfiguratorOldNetworkManager(object):
 				with open(fn, 'w') as f:
 					Config.write(f)
 		subprocess.check_call(['service', 'network-manager', 'restart'])
+
 
 class DnsConfiguratorDHClient(object):
 	@execute_as_root
@@ -247,10 +250,10 @@ class DnsConfiguratorDHClient(object):
 	@execute_as_root
 	def configure_dns(self, nameservers, domain):
 		ns_string = " ".join(filter(lambda x: x, nameservers))
-		p = subprocess.Popen(
-			['grep', '-q', '^prepend domain-name-servers %s' % ns_string,
-			'/etc/dhcp/dhclient.conf']
-		)
+		p = subprocess.Popen([
+			'grep', '-q', '^prepend domain-name-servers %s' % ns_string,
+			'/etc/dhcp/dhclient.conf'
+		])
 		p.wait()
 		if p.returncode == 0:
 			userinfo_logger.info('"prepend domain-name-servers" already in /etc/dhcp/dhclient.conf')

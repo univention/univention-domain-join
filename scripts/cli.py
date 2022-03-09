@@ -132,6 +132,7 @@ def get_ucr_variables_from_dc(dc_ip, admin_username, admin_pw):
 		ucr_variables[key] = value
 	return ucr_variables
 
+
 if __name__ == '__main__':
 	check_if_run_as_root()
 	sudo_uid = os.environ.get('SUDO_UID')

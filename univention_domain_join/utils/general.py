@@ -31,12 +31,14 @@
 
 import os
 import socket
+from functools import wraps
 from typing import Any, Callable, TypeVar, cast
 
 F = TypeVar('F', bound=Callable[..., Any])
 
 
 def execute_as_root(func: F) -> F:
+	@wraps(func)
 	def root_wrapper(*args: Any, **kwargs: Any) -> Any:
 		old_euid = os.geteuid()
 		os.seteuid(0)

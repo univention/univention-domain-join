@@ -34,7 +34,7 @@ import logging
 import os
 import subprocess
 from shutil import copyfile
-from typing import List
+from typing import List, Tuple
 
 import dns.resolver
 
@@ -65,10 +65,7 @@ class DnsConfigurator(object):
 			)
 			raise DnsConfigurationException()
 
-		if DnsConfiguratorNetworkManager().works_on_this_system():
-			self.working_configurator = DnsConfiguratorNetworkManager()
-		else:
-			self.working_configurator = DnsConfiguratorTrusty()
+		self.working_configurator: BaseDnsConfigurator = DnsConfiguratorNetworkManager() if DnsConfiguratorNetworkManager().works_on_this_system() else DnsConfiguratorTrusty()
 
 	def backup(self, backup_dir: str) -> None:
 		self.working_configurator.backup(backup_dir)
@@ -96,9 +93,17 @@ class DnsConfigurator(object):
 			raise DnsConfigurationException()
 
 
-class DnsConfiguratorTrusty(object):
+class BaseDnsConfigurator(object):
+	def backup(self, backup_dir: str) -> None:
+		raise NotImplementedError()
+
+	def configure_dns(self, nameservers: List[str], domain: str) -> None:
+		raise NotImplementedError()
+
+
+class DnsConfiguratorTrusty(BaseDnsConfigurator):
 	def __init__(self) -> None:
-		self.sub_configurators = (DnsConfiguratorDHClient(), DnsConfiguratorOldNetworkManager(), DnsConfiguratorResolvconf())
+		self.sub_configurators: Tuple[BaseDnsConfigurator, ...] = (DnsConfiguratorDHClient(), DnsConfiguratorOldNetworkManager(), DnsConfiguratorResolvconf())
 
 	def backup(self, backup_dir: str) -> None:
 		for configurator in self.sub_configurators:
@@ -109,7 +114,7 @@ class DnsConfiguratorTrusty(object):
 			configurator.configure_dns(nameservers, domain)
 
 
-class DnsConfiguratorSystemd(object):
+class DnsConfiguratorSystemd(BaseDnsConfigurator):
 	def works_on_this_system(self) -> bool:
 		ssh_process = subprocess.Popen(
 			['service', 'systemd-resolved', 'status'],
@@ -140,7 +145,7 @@ class DnsConfiguratorSystemd(object):
 		subprocess.check_call(['systemctl', 'restart', 'systemd-resolved'])
 
 
-class DnsConfiguratorNetworkManager(object):
+class DnsConfiguratorNetworkManager(BaseDnsConfigurator):
 	def works_on_this_system(self) -> bool:
 		# could also check lsb_release -sr here instead
 		p = subprocess.Popen(
@@ -192,7 +197,7 @@ class DnsConfiguratorNetworkManager(object):
 			p.wait()
 
 
-class DnsConfiguratorOldNetworkManager(object):
+class DnsConfiguratorOldNetworkManager(BaseDnsConfigurator):
 	@execute_as_root
 	def backup(self, backup_dir: str) -> None:
 		p = subprocess.Popen(
@@ -239,7 +244,7 @@ class DnsConfiguratorOldNetworkManager(object):
 		subprocess.check_call(['service', 'network-manager', 'restart'])
 
 
-class DnsConfiguratorDHClient(object):
+class DnsConfiguratorDHClient(BaseDnsConfigurator):
 	@execute_as_root
 	def backup(self, backup_dir: str) -> None:
 		if os.path.isfile('/etc/dhcp/dhclient.conf'):
@@ -265,7 +270,7 @@ class DnsConfiguratorDHClient(object):
 			conf_file.write('\nprepend domain-name-servers %s\n' % (ns_string,))
 
 
-class DnsConfiguratorResolvconf(object):
+class DnsConfiguratorResolvconf(BaseDnsConfigurator):
 	@execute_as_root
 	def backup(self, backup_dir: str) -> None:
 		if os.path.isfile('/etc/resolvconf/resolv.conf.d/base'):

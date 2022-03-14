@@ -133,7 +133,7 @@ class LdapConfigurator(ConflictChecker):
 		stdout, _ = ssh_process.communicate(admin_pw.encode())
 		if ssh_process.returncode != 0 or stdout.decode().startswith('E: '):
 			userinfo_logger.critical('Adding an LDAP object for this computer didn\'t work.')
-			userinfo_logger.critical('%s' % stdout)
+			userinfo_logger.critical(stdout.decode())
 			raise LdapConfigutationException()
 
 	@execute_as_root
@@ -146,8 +146,8 @@ class LdapConfigurator(ConflictChecker):
 		)
 		stdout, _ = ssh_process.communicate(admin_pw.encode())
 		if ssh_process.returncode != 0:
-			userinfo_logger.critical('get admin DN failed with: {}'.format(stdout))
-			raise LdapConfigutationException('get admin DN failed with: {}'.format(stdout))
+			userinfo_logger.critical('get admin DN failed with: {}'.format(stdout.decode()))
+			raise LdapConfigutationException('get admin DN failed with: {}'.format(stdout.decode()))
 		admin_dn = stdout.decode().strip().split(': ', 1)[1]
 		return admin_dn
 

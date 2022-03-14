@@ -208,7 +208,7 @@ class DnsConfiguratorOldNetworkManager(BaseDnsConfigurator):
 		if p.returncode != 0:
 			raise DnsConfigurationException()
 		for line in stdout.splitlines():
-			conn_name, conn_uuid = line.split(':')
+			conn_name, conn_uuid = line.decode().split(':')
 			fn = '/etc/NetworkManager/system-connections/%s' % conn_name
 			fn_backup = os.path.join(backup_dir, fn[1:])
 			if os.path.isfile(fn):
@@ -231,7 +231,7 @@ class DnsConfiguratorOldNetworkManager(BaseDnsConfigurator):
 		if p.returncode != 0:
 			raise DnsConfigurationException()
 		for line in stdout.splitlines():
-			conn_name, conn_uuid = line.split(':')
+			conn_name, conn_uuid = line.decode().split(':')
 			fn = '/etc/NetworkManager/system-connections/%s' % conn_name
 			if os.path.isfile(fn):
 				Config = configparser.ConfigParser()

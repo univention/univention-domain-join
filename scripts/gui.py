@@ -34,6 +34,7 @@ import logging
 import os
 import subprocess
 import sys
+from logging import getLogger
 from typing import Dict, Optional, Tuple
 
 from PyQt5.QtCore import QRegExp, QThread, pyqtSignal
@@ -46,7 +47,6 @@ from univention_domain_join.utils.domain import get_master_ip_through_dns, get_u
 from univention_domain_join.utils.general import execute_as_root
 
 OUTPUT_SINK = open(os.devnull, 'w')
-userinfo_logger: Optional[logging.Logger] = None
 
 
 def check_if_run_as_root() -> None:
@@ -59,8 +59,6 @@ def check_if_run_as_root() -> None:
 
 @execute_as_root
 def set_up_logging() -> None:
-	global userinfo_logger
-
 	verbose_formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s %(message)s')
 	plain_formatter = logging.Formatter('%(message)s')
 
@@ -466,7 +464,7 @@ class JoinThread(QThread):
 			distribution_joiner.create_backup_of_config_files()
 			distribution_joiner.join_domain()
 		except Exception as e:
-			userinfo_logger.critical(e, exc_info=True)
+			getLogger("userinfo").critical(e, exc_info=True)
 			self.join_failed.emit(str(e))
 			return
 		self.join_successful.emit()
@@ -481,7 +479,7 @@ class JoinThread(QThread):
 				raise DomainJoinException()
 			return distribution_join_module.Joiner(ucr_variables, self.admin_username, self.admin_pw, self.dc_ip, False, self.force_ucs_dns)
 		except ImportError:
-			userinfo_logger.critical('The used distribution "%s" is not supported.' % (distribution,))
+			getLogger("userinfo").critical('The used distribution "%s" is not supported.' % (distribution,))
 			raise DistributionException()
 
 	@execute_as_root
@@ -507,7 +505,7 @@ class JoinThread(QThread):
 		)
 		stdout, stderr = ssh_process.communicate(self.admin_pw.encode())
 		if ssh_process.returncode != 0:
-			userinfo_logger.critical('Fetching the UCR variables from the UCS DC failed.')
+			getLogger("userinfo").critical('Fetching the UCR variables from the UCS DC failed.')
 			return None
 		ucr_variables = {}
 		for raw_ucr_variable in stdout.decode('utf-8', 'replace').splitlines():

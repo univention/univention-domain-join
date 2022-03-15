@@ -36,7 +36,8 @@ import os
 import subprocess
 import sys
 from getpass import getpass
-from typing import Dict, Optional
+from logging import getLogger
+from typing import Dict
 
 from univention_domain_join.distributions import AbstractJoiner
 from univention_domain_join.utils.distributions import get_distribution
@@ -44,8 +45,6 @@ from univention_domain_join.utils.domain import get_master_ip_through_dns, get_u
 from univention_domain_join.utils.general import execute_as_root
 
 OUTPUT_SINK = open(os.devnull, 'w')
-userinfo_logger: Optional[logging.Logger] = None
-debugging_logger: Optional[logging.Logger] = None
 
 
 def check_if_run_as_root() -> None:
@@ -56,9 +55,6 @@ def check_if_run_as_root() -> None:
 
 @execute_as_root
 def set_up_logging() -> None:
-	global userinfo_logger
-	global debugging_logger
-
 	verbose_formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s %(message)s')
 	plain_formatter = logging.Formatter('%(message)s')
 
@@ -94,7 +90,7 @@ def get_joiner_for_this_distribution(dc_ip: str, admin_username: str, admin_pw: 
 		ucr_variables = get_ucr_variables_from_dc(dc_ip, admin_username, admin_pw)
 		return distribution_join_module.Joiner(ucr_variables, admin_username, admin_pw, dc_ip, skip_login_manager, force_ucs_dns)
 	except ImportError:
-		userinfo_logger.critical('The used distribution "%s" is not supported.' % (distribution,))
+		getLogger("userinfo").critical('The used distribution "%s" is not supported.' % (distribution,))
 		exit(1)
 
 
@@ -115,7 +111,7 @@ def check_if_ssh_works_with_given_account(dc_ip: str, admin_username: str, admin
 	)
 	ssh_process.communicate(admin_pw.encode())
 	if ssh_process.returncode != 0:
-		userinfo_logger.critical('It\'s not possible to connect to the UCS DC via ssh, with the given credentials.')
+		getLogger("userinfo").critical('It\'s not possible to connect to the UCS DC via ssh, with the given credentials.')
 		exit(1)
 
 
@@ -127,7 +123,7 @@ def get_ucr_variables_from_dc(dc_ip: str, admin_username: str, admin_pw: str) ->
 	)
 	stdout, stderr = ssh_process.communicate(admin_pw.encode())
 	if ssh_process.returncode != 0:
-		userinfo_logger.critical('Fetching the UCR variables from the UCS DC failed.')
+		getLogger("userinfo").critical('Fetching the UCR variables from the UCS DC failed.')
 		exit(1)
 	ucr_variables = {}
 	for raw_ucr_variable in stdout.splitlines():
@@ -165,16 +161,16 @@ if __name__ == '__main__':
 		if not args.dc_ip:
 			if not args.domain:
 				args.domain = get_ucs_domainname()
-				userinfo_logger.info('Automatically detected the domain %r.' % (args.domain))
+				getLogger("userinfo").info('Automatically detected the domain %r.' % (args.domain))
 			if not args.domain:
-				userinfo_logger.critical(
+				getLogger("userinfo").critical(
 					'Unable to determine the UCS domain automatically. Please provide '
 					'it using the --domain parameter or use the tool with --dc-ip.'
 				)
 				exit(1)
 			args.dc_ip = get_master_ip_through_dns(args.domain)
 			if not args.dc_ip:
-				userinfo_logger.critical(
+				getLogger("userinfo").critical(
 					'No DNS record for the DC master could be found. Please make sure that '
 					'the DC master is the DNS server for this computer or use this tool with --dc-ip.'
 				)
@@ -187,7 +183,7 @@ if __name__ == '__main__':
 				with open(args.password_file) as password_file:
 					password = password_file.read().strip()
 			except IOError:
-				userinfo_logger.error('Error: The password file could not be read.')
+				getLogger("userinfo").error('Error: The password file could not be read.')
 				password = None
 		else:
 			password = None
@@ -197,6 +193,6 @@ if __name__ == '__main__':
 		distribution_joiner.create_backup_of_config_files()
 		distribution_joiner.join_domain()
 	except Exception as e:
-		userinfo_logger.critical('An error occurred: %s. Please check %s for more information.' % (str(e), debugging_logger.handlers[0].baseFilename,))
-		debugging_logger.critical(e, exc_info=True)
+		getLogger("userinfo").critical('An error occurred: %s. Please check %s for more information.' % (e, debugging_logger.handlers[0].baseFilename,))
+		getLogger("debugging").critical(e, exc_info=True)
 		exit(1)

@@ -68,23 +68,26 @@ def is_samba_dc(admin_username: str, admin_pw: str, dc_ip: str, admin_dn: str) -
 	return False
 
 
-def get_machines_ldap_dn(dc_ip: str, admin_username: str, admin_pw: str, admin_dn: str) -> Optional[str]:
+def get_machines_ldap_dn(dc_ip: str, admin_username: str, admin_pw: str, admin_dn: str) -> str:
 	for udm_type in ['computers/ubuntu', 'computers/linux', 'computers/ucc']:
-		machines_ldap_dn = get_machines_ldap_dn_given_the_udm_type(udm_type, dc_ip, admin_username, admin_pw, admin_dn)
-		if machines_ldap_dn:
-			return machines_ldap_dn
-	return None
+		try:
+			return get_machines_ldap_dn_given_the_udm_type(udm_type, dc_ip, admin_username, admin_pw, admin_dn)
+		except LookupError:
+			pass
+	raise LookupError(dc_ip)
 
 
-def get_machines_udm_type(dc_ip: str, admin_username: str, admin_pw: str, admin_dn: str) -> Optional[str]:
+def get_machines_udm_type(dc_ip: str, admin_username: str, admin_pw: str, admin_dn: str) -> str:
 	for udm_type in ['computers/ubuntu', 'computers/linux', 'computers/ucc']:
-		machines_ldap_dn = get_machines_ldap_dn_given_the_udm_type(udm_type, dc_ip, admin_username, admin_pw, admin_dn)
-		if machines_ldap_dn:
+		try:
+			get_machines_ldap_dn_given_the_udm_type(udm_type, dc_ip, admin_username, admin_pw, admin_dn)
 			return udm_type
-	return None
+		except LookupError:
+			pass
+	raise LookupError(dc_ip)
 
 
-def get_machines_ldap_dn_given_the_udm_type(udm_type: str, dc_ip: str, admin_username: str, admin_pw: str, admin_dn: str) -> Optional[str]:
+def get_machines_ldap_dn_given_the_udm_type(udm_type: str, dc_ip: str, admin_username: str, admin_pw: str, admin_dn: str) -> str:
 	hostname = gethostname()
 	udm_command = ['/usr/sbin/udm', udm_type, 'list', '--binddn', admin_dn, '--bindpwdfile', '/dev/shm/%sdomain-join' % (admin_username,), '--filter', 'name=%s' % (hostname,)]
 	escaped_udm_command = ' '.join([pipes.quote(x) for x in udm_command])
@@ -97,4 +100,4 @@ def get_machines_ldap_dn_given_the_udm_type(udm_type: str, dc_ip: str, admin_use
 		if b"dn:" == line[0:3].lower():
 			machines_ldap_dn = line[3:].strip()
 			return machines_ldap_dn.decode()
-	return None
+	raise LookupError(hostname)

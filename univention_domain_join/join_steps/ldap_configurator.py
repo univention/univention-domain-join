@@ -75,10 +75,12 @@ class LdapConfigurator(ConflictChecker):
 		self.create_machine_secret_file(password)
 
 	def modify_old_entry_or_add_machine_to_ldap(self, password: str, dc_ip: str, admin_username: str, admin_pw: str, ldap_base: str, admin_dn: str) -> None:
-		if get_machines_ldap_dn(dc_ip, admin_username, admin_pw, admin_dn):
-			self.modify_machine_in_ldap(password, dc_ip, admin_username, admin_pw, admin_dn)
-		else:
+		try:
+			get_machines_ldap_dn(dc_ip, admin_username, admin_pw, admin_dn)
+		except LookupError:
 			self.add_machine_to_ldap(password, dc_ip, admin_username, admin_pw, ldap_base, admin_dn)
+		else:
+			self.modify_machine_in_ldap(password, dc_ip, admin_username, admin_pw, admin_dn)
 
 	def modify_machine_in_ldap(self, password: str, dc_ip: str, admin_username: str, admin_pw: str, admin_dn: str) -> None:
 		userinfo_logger.info('Updating old LDAP entry for this machine on the UCS DC')

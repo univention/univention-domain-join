@@ -54,13 +54,13 @@ def check_if_run_as_root() -> None:
 
 
 @execute_as_root
-def set_up_logging() -> None:
+def set_up_logging(logfile: str) -> None:
 	verbose_formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s %(message)s')
 	plain_formatter = logging.Formatter('%(message)s')
 
 	if not os.path.exists('/var/log/univention/'):
 		os.makedirs('/var/log/univention/')
-	logfile_handler = logging.FileHandler('/var/log/univention/domain-join-cli.log')
+	logfile_handler = logging.FileHandler(logfile)
 	logfile_handler.setLevel(logging.DEBUG)
 	logfile_handler.setFormatter(verbose_formatter)
 
@@ -143,6 +143,7 @@ def parse_args() -> argparse.Namespace:
 	parser.add_argument('--domain', help='Domain name. Can be left out if the domain is configured for this system')
 	parser.add_argument('--dc-ip', help='IP address of the UCS domain controller to join to. Can be used if --domain does not work. If unsure, use the IP of the UCS Master', metavar="IP")
 	parser.add_argument('--force-ucs-dns', action='store_true', help='Change the system\'s DNS settings and set the UCS DC as DNS nameserver (default is to use the standard network settings, but make sure the your system can resolve the hostname of the UCS DC and the UCS master system)')
+	parser.add_argument("--logfile", "-L", help="Path to log file %(default)s", metavar="FILE", default="/var/log/univention/domain-join-cli.log")
 	args = parser.parse_args()
 	return args
 
@@ -155,7 +156,7 @@ if __name__ == '__main__':
 	if sudo_uid:
 		os.seteuid(int(sudo_uid))
 
-	set_up_logging()
+	set_up_logging(args.logfile)
 
 	try:
 		if not args.dc_ip:
@@ -193,6 +194,6 @@ if __name__ == '__main__':
 		distribution_joiner.create_backup_of_config_files()
 		distribution_joiner.join_domain()
 	except Exception as e:
-		getLogger("userinfo").critical('An error occurred: %s. Please check %s for more information.' % (e, debugging_logger.handlers[0].baseFilename,))
+		getLogger("userinfo").critical('An error occurred: %s. Please check %s for more information.' % (e, args.logfile))
 		getLogger("debugging").critical(e, exc_info=True)
 		exit(1)

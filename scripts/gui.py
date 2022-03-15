@@ -58,13 +58,13 @@ def check_if_run_as_root() -> None:
 
 
 @execute_as_root
-def set_up_logging() -> None:
+def set_up_logging(logfile: str) -> None:
 	verbose_formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s %(message)s')
 	plain_formatter = logging.Formatter('%(message)s')
 
 	if not os.path.exists('/var/log/univention/'):
 		os.makedirs('/var/log/univention/')
-	logfile_handler = logging.FileHandler('/var/log/univention/domain-join-gui.log')
+	logfile_handler = logging.FileHandler(logfile)
 	logfile_handler.setLevel(logging.DEBUG)
 	logfile_handler.setFormatter(verbose_formatter)
 
@@ -522,7 +522,7 @@ if __name__ == '__main__':
 		os.seteuid(int(pkexec_uid))
 	elif sudo_uid:
 		os.seteuid(int(sudo_uid))
-	set_up_logging()
+	set_up_logging('/var/log/univention/domain-join-gui.log')
 	app = QApplication.setSetuidAllowed(True)
 	app = QApplication(sys.argv)
 	form = DomainJoinGui()

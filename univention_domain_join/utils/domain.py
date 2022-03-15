@@ -32,7 +32,7 @@
 import os
 import socket
 import subprocess
-from typing import List, Optional, Set
+from typing import List, Set
 
 import dns.resolver
 import IPy
@@ -41,17 +41,17 @@ import netifaces
 OUTPUT_SINK = open(os.devnull, 'w')
 
 
-def get_master_ip_through_dns(domain: str) -> Optional[str]:
+def get_master_ip_through_dns(domain: str) -> str:
 	resolver = dns.resolver.Resolver()
 	try:
 		response = resolver.query('_domaincontroller_master._tcp.%s.' % (domain,), 'SRV')
 		master_fqdn = response[0].target.canonicalize().split(1)[0].to_text()
 	except Exception:
-		return None
+		return ""
 	return socket.gethostbyname(master_fqdn)
 
 
-def get_ucs_domainname() -> Optional[str]:
+def get_ucs_domainname() -> str:
 	domainname = get_ucs_domainname_via_local_configuration()
 	if not domainname:
 		domainname = get_ucs_domainname_via_reverse_dns()
@@ -60,15 +60,15 @@ def get_ucs_domainname() -> Optional[str]:
 	return domainname
 
 
-def get_ucs_domainname_via_local_configuration() -> Optional[str]:
+def get_ucs_domainname_via_local_configuration() -> str:
 	try:
 		domainname = socket.getfqdn().split('.', 1)[1]
 	except Exception:
-		return None
+		return ""
 	return domainname
 
 
-def get_ucs_domainname_via_reverse_dns() -> Optional[str]:
+def get_ucs_domainname_via_reverse_dns() -> str:
 	ip_addresses = get_all_ip_addresses()
 	possible_ucs_domainnames = set()
 	for ip_address in ip_addresses:
@@ -77,10 +77,10 @@ def get_ucs_domainname_via_reverse_dns() -> Optional[str]:
 			possible_ucs_domainnames.add(domainname)
 	if len(possible_ucs_domainnames) == 1:
 		return possible_ucs_domainnames.pop()
-	return None
+	return ""
 
 
-def get_ucs_domainname_of_dns_server() -> Optional[str]:
+def get_ucs_domainname_of_dns_server() -> str:
 	nameservers = get_nameservers()
 	possible_ucs_domainnames = set()
 	for nameserver in nameservers:
@@ -89,7 +89,7 @@ def get_ucs_domainname_of_dns_server() -> Optional[str]:
 			possible_ucs_domainnames.add(domainname)
 	if len(possible_ucs_domainnames) == 1:
 		return possible_ucs_domainnames.pop()
-	return None
+	return ""
 
 
 def get_nameservers() -> Set[str]:
@@ -148,7 +148,7 @@ def get_ipv6_addresses(interface: str) -> List[str]:
 	return short_addresses
 
 
-def get_ucs_domainname_from_fqdn(fqdn: str) -> Optional[str]:
+def get_ucs_domainname_from_fqdn(fqdn: str) -> str:
 	try:
 		domainname = fqdn.split('.', 1)[1]
 		# Check if the _domaincontroller_master._tcp record exists, to ensure
@@ -156,5 +156,5 @@ def get_ucs_domainname_from_fqdn(fqdn: str) -> Optional[str]:
 		resolver = dns.resolver.Resolver()
 		resolver.query('_domaincontroller_master._tcp.%s' % (domainname,), 'SRV')
 	except Exception:
-		return None
+		return ""
 	return domainname

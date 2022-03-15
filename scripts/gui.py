@@ -294,7 +294,7 @@ class DomainJoinGui(QMainWindow):
 			dc_ip, domain = self.get_domainname_or_dc_ip()
 			if not dc_ip:
 				dc_ip = get_master_ip_through_dns(domain)
-				if dc_ip is None:
+				if not dc_ip:
 					self.missing_inputs_dialog = DnsNotWorkingDialog()
 					self.missing_inputs_dialog.exec_()
 					return

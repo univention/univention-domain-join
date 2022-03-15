@@ -34,6 +34,7 @@ import os
 import time
 from typing import Dict
 
+from univention_domain_join.distributions import AbstractJoiner
 from univention_domain_join.join_steps.dns_configurator import DnsConfigurator
 from univention_domain_join.join_steps.kerberos_configurator import KerberosConfigurator
 from univention_domain_join.join_steps.ldap_configurator import LdapConfigurator
@@ -54,7 +55,7 @@ class DcResolveException(Exception):
 	pass
 
 
-class Joiner(object):
+class Joiner(AbstractJoiner):
 	def __init__(self, ucr_variables: Dict[str, str], admin_username: str, admin_pw: str, dc_ip: str, skip_login_manager: bool, force_ucs_dns: bool) -> None:
 		self.admin_username = admin_username
 		self.admin_pw = admin_pw

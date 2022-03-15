@@ -40,6 +40,7 @@ from PyQt5.QtCore import QRegExp, QThread, pyqtSignal
 from PyQt5.QtGui import QFontMetrics, QIcon, QPixmap, QRegExpValidator
 from PyQt5.QtWidgets import QAction, QApplication, QBoxLayout, QCheckBox, QFrame, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMenuBar, QMessageBox, QPushButton, QVBoxLayout, QWidget
 
+from univention_domain_join.distributions import AbstractJoiner
 from univention_domain_join.utils.distributions import get_distribution
 from univention_domain_join.utils.domain import get_master_ip_through_dns, get_ucs_domainname
 from univention_domain_join.utils.general import execute_as_root
@@ -470,7 +471,7 @@ class JoinThread(QThread):
 			return
 		self.join_successful.emit()
 
-	def get_joiner_for_this_distribution(self) -> object:
+	def get_joiner_for_this_distribution(self) -> AbstractJoiner:
 		distribution = get_distribution()
 		try:
 			distribution_join_module = importlib.import_module('univention_domain_join.distributions.%s' % (distribution.lower(),))

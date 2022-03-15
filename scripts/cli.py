@@ -38,6 +38,7 @@ import sys
 from getpass import getpass
 from typing import Dict, Optional
 
+from univention_domain_join.distributions import AbstractJoiner
 from univention_domain_join.utils.distributions import get_distribution
 from univention_domain_join.utils.domain import get_master_ip_through_dns, get_ucs_domainname
 from univention_domain_join.utils.general import execute_as_root
@@ -81,7 +82,7 @@ def set_up_logging() -> None:
 	debugging_logger.addHandler(logfile_handler)
 
 
-def get_joiner_for_this_distribution(dc_ip: str, admin_username: str, admin_pw: str, skip_login_manager: bool, force_ucs_dns: bool) -> object:
+def get_joiner_for_this_distribution(dc_ip: str, admin_username: str, admin_pw: str, skip_login_manager: bool, force_ucs_dns: bool) -> AbstractJoiner:
 	distribution = get_distribution()
 	try:
 		distribution_join_module = importlib.import_module('univention_domain_join.distributions.%s' % (distribution.lower(),))

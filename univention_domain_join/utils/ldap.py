@@ -31,7 +31,7 @@
 
 import pipes
 import subprocess
-from typing import Optional
+from socket import gethostname
 
 from ldap.filter import filter_format
 
@@ -91,7 +91,7 @@ def get_machines_udm_type(dc_ip: str, admin_username: str, admin_pw: str, admin_
 
 @execute_as_root
 def get_machines_ldap_dn_given_the_udm_type(udm_type: str, dc_ip: str, admin_username: str, admin_pw: str, admin_dn: str) -> Optional[str]:
-	hostname = subprocess.check_output(['hostname', '-s']).strip().decode()
+	hostname = gethostname()
 	udm_command = ['/usr/sbin/udm', udm_type, 'list', '--binddn', admin_dn, '--bindpwdfile', '/dev/shm/%sdomain-join' % (admin_username,), '--filter', 'name=%s' % (hostname,)]
 	escaped_udm_command = ' '.join([pipes.quote(x) for x in udm_command])
 	ssh_process = subprocess.Popen(

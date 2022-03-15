@@ -35,10 +35,7 @@ from socket import gethostname
 
 from ldap.filter import filter_format
 
-from univention_domain_join.utils.general import execute_as_root
 
-
-@execute_as_root
 def authenticate_admin(dc_ip: str, admin_username: str, admin_pw: str) -> None:
 	ldap_command = ' echo {1} > /dev/shm/{0}domain-join; chmod 600 /dev/shm/{0}domain-join; kinit --password-file=/dev/shm/{0}domain-join {0}'.format(pipes.quote(admin_username), pipes.quote(admin_pw))
 	ssh_process = subprocess.Popen(
@@ -48,7 +45,6 @@ def authenticate_admin(dc_ip: str, admin_username: str, admin_pw: str) -> None:
 	stdout, stderr = ssh_process.communicate(admin_pw.encode())
 
 
-@execute_as_root
 def cleanup_authentication(dc_ip: str, admin_username: str, admin_pw: str) -> None:
 	ldap_command = 'rm -f /dev/shm/{0}domain-join; kdestroy'.format(pipes.quote(admin_username))
 	ssh_process = subprocess.Popen(
@@ -58,7 +54,6 @@ def cleanup_authentication(dc_ip: str, admin_username: str, admin_pw: str) -> No
 	stdout, stderr = ssh_process.communicate(admin_pw.encode())
 
 
-@execute_as_root
 def is_samba_dc(admin_username: str, admin_pw: str, dc_ip: str, admin_dn: str) -> bool:
 	ldap_command = ['ldapsearch', '-QLLL', filter_format('aRecord=%s', [dc_ip]), 'univentionService']
 	escaped_ldap_command = ' '.join([pipes.quote(x) for x in ldap_command])
@@ -89,7 +84,6 @@ def get_machines_udm_type(dc_ip: str, admin_username: str, admin_pw: str, admin_
 	return None
 
 
-@execute_as_root
 def get_machines_ldap_dn_given_the_udm_type(udm_type: str, dc_ip: str, admin_username: str, admin_pw: str, admin_dn: str) -> Optional[str]:
 	hostname = gethostname()
 	udm_command = ['/usr/sbin/udm', udm_type, 'list', '--binddn', admin_dn, '--bindpwdfile', '/dev/shm/%sdomain-join' % (admin_username,), '--filter', 'name=%s' % (hostname,)]

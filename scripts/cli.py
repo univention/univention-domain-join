@@ -102,7 +102,6 @@ def get_admin_password(admin_username: str) -> str:
 	return getpass(prompt='Please enter the password for %s: ' % (admin_username,))
 
 
-@execute_as_root
 def check_if_ssh_works_with_given_account(dc_ip: str, admin_username: str, admin_pw: str) -> None:
 	ssh_process = subprocess.Popen(
 		['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (admin_username, dc_ip), 'echo foo'],
@@ -114,7 +113,6 @@ def check_if_ssh_works_with_given_account(dc_ip: str, admin_username: str, admin
 		exit(1)
 
 
-@execute_as_root
 def get_ucr_variables_from_dc(dc_ip: str, admin_username: str, admin_pw: str) -> Dict[str, str]:
 	ssh_process = subprocess.Popen(
 		['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (admin_username, dc_ip), '/usr/sbin/ucr shell | grep -v ^hostname='],

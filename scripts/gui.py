@@ -481,7 +481,6 @@ class JoinThread(QThread):
 			getLogger("userinfo").critical('The used distribution "%s" is not supported.' % (distribution,))
 			raise DistributionException()
 
-	@execute_as_root
 	def check_if_ssh_works_with_given_account(self) -> bool:
 		ssh_process = subprocess.Popen(
 			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (self.admin_username, self.dc_ip), 'echo foo'],
@@ -496,7 +495,6 @@ class JoinThread(QThread):
 			return False
 		return True
 
-	@execute_as_root
 	def get_ucr_variables_from_dc(self) -> Optional[Dict[str, str]]:
 		ssh_process = subprocess.Popen(
 			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (self.admin_username, self.dc_ip), '/usr/sbin/ucr shell | grep -v ^hostname='],

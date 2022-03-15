@@ -80,7 +80,6 @@ class LdapConfigurator(ConflictChecker):
 		else:
 			self.add_machine_to_ldap(password, dc_ip, admin_username, admin_pw, ldap_base, admin_dn)
 
-	@execute_as_root
 	def modify_machine_in_ldap(self, password: str, dc_ip: str, admin_username: str, admin_pw: str, admin_dn: str) -> None:
 		userinfo_logger.info('Updating old LDAP entry for this machine on the UCS DC')
 
@@ -108,7 +107,6 @@ class LdapConfigurator(ConflictChecker):
 			userinfo_logger.critical('Updating the old LDAP entry for this computer failed.')
 			raise LdapConfigutationException()
 
-	@execute_as_root
 	def add_machine_to_ldap(self, password: str, dc_ip: str, admin_username: str, admin_pw: str, ldap_base: str, admin_dn: str) -> None:
 		userinfo_logger.info('Adding LDAP entry for this machine on the UCS DC')
 		hostname = subprocess.check_output(['hostname', '-s']).strip().decode()
@@ -136,7 +134,6 @@ class LdapConfigurator(ConflictChecker):
 			userinfo_logger.critical(stdout.decode())
 			raise LdapConfigutationException()
 
-	@execute_as_root
 	def get_admin_dn(self, dc_ip: str, admin_username: str, admin_pw: str, ldap_base: str) -> str:
 		userinfo_logger.info('Getting the DN of the Administrator ')
 		ldap_command = 'ldapsearch -QLLL -Y GSSAPI uid=%s dn' % (pipes.quote(admin_username),)

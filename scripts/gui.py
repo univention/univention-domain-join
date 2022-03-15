@@ -295,13 +295,11 @@ class DomainJoinGui(QMainWindow):
 			if not dc_ip:
 				dc_ip = get_master_ip_through_dns(domain)
 				if not dc_ip:
-					self.missing_inputs_dialog = DnsNotWorkingDialog()
-					self.missing_inputs_dialog.exec_()
+					DnsNotWorkingDialog().exec_()
 					return
 			self.join_domain(dc_ip, str(self.admin_username_input.text()), str(self.admin_password_input.text()), self.force_ucs_dns_input.isChecked())
 		else:
-			self.missing_inputs_dialog = MissingInputsDialog()
-			self.missing_inputs_dialog.exec_()
+			MissingInputsDialog().exec_()
 
 	def get_domainname_or_dc_ip(self) -> Tuple[Optional[str], Optional[str]]:
 		input_text = self.domainname_or_ip_input.text()
@@ -332,29 +330,25 @@ class DomainJoinGui(QMainWindow):
 		self.join_button.setText('Join')
 		self.cancel_button.setText('Close')
 		self.cancel_button.setEnabled(True)
-		self.successful_join_dialog = SuccessfulJoinDialog()
-		self.successful_join_dialog.exec_()
+		SuccessfulJoinDialog().exec_()
 
 	def join_failed(self, err: str) -> None:
 		self.join_button.setText('Join')
 		self.join_button.setEnabled(True)
 		self.cancel_button.setEnabled(True)
-		self.successful_join_dialog = FailedJoinDialog(err)
-		self.successful_join_dialog.exec_()
+		FailedJoinDialog(err).exec_()
 
 	def ssh_failed(self) -> None:
 		self.join_button.setText('Join')
 		self.join_button.setEnabled(True)
 		self.cancel_button.setEnabled(True)
-		self.successful_join_dialog = FailedSSHDialog()
-		self.successful_join_dialog.exec_()
+		FailedSSHDialog().exec_()
 
 	def dist_failed(self) -> None:
 		self.join_button.setText('Join')
 		self.join_button.setEnabled(False)
 		self.cancel_button.setEnabled(True)
-		self.successful_join_dialog = FailedDistDialog()
-		self.successful_join_dialog.exec_()
+		FailedDistDialog().exec_()
 
 
 class SuccessfulJoinDialog(QMessageBox):

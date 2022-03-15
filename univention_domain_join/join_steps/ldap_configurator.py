@@ -61,7 +61,7 @@ class LdapConfigurator(ConflictChecker):
 	@execute_as_root
 	def backup(self, backup_dir: str) -> None:
 		if self.ldap_conf_exists():
-			os.makedirs(os.path.join(backup_dir, 'etc/ldap'))
+			os.makedirs(os.path.join(backup_dir, 'etc/ldap'), exist_ok=True)
 			copyfile(
 				'/etc/ldap/ldap.conf',
 				os.path.join(backup_dir, 'etc/ldap/ldap.conf')

@@ -95,7 +95,7 @@ class LoginManagerConfigurator(ConflictChecker):
 	@execute_as_root
 	def backup(self, backup_dir: str) -> None:
 		if self.lightdm_config_file_exists():
-			os.makedirs(os.path.join(backup_dir, 'etc/lightdm/lightdm.conf.d'))
+			os.makedirs(os.path.join(backup_dir, 'etc/lightdm/lightdm.conf.d'), exist_ok=True)
 			copyfile(
 				'/etc/lightdm/lightdm.conf.d/99-show-manual-userlogin.conf',
 				os.path.join(backup_dir, 'etc/lightdm/lightdm.conf.d/99-show-manual-userlogin.conf')
@@ -115,8 +115,6 @@ class LoginManagerConfigurator(ConflictChecker):
 			'greeter-show-manual-login=true\n' \
 			'greeter-hide-users=true\n'
 
-		if not os.path.exists('/etc/lightdm/lightdm.conf.d'):
-			os.mkdir('/etc/lightdm/lightdm.conf.d')
-
+		os.makedirs('/etc/lightdm/lightdm.conf.d', exist_ok=True)
 		with open('/etc/lightdm/lightdm.conf.d/99-show-manual-userlogin.conf', 'w') as conf_file:
 			conf_file.write(lightdm_config)

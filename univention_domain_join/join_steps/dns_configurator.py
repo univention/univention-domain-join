@@ -127,7 +127,7 @@ class DnsConfiguratorSystemd(BaseDnsConfigurator):
 	def backup(self, backup_dir: str) -> None:
 		if os.path.isfile('/etc/systemd/resolved.conf'):
 			userinfo_logger.warn('Warning: /etc/systemd/resolved.conf already exists.')
-			os.makedirs(os.path.join(backup_dir, 'etc/systemd'))
+			os.makedirs(os.path.join(backup_dir, 'etc/systemd'), exist_ok=True)
 			copyfile(
 				'/etc/systemd/resolved.conf',
 				os.path.join(backup_dir, 'etc/systemd/resolved.conf')
@@ -213,7 +213,7 @@ class DnsConfiguratorOldNetworkManager(BaseDnsConfigurator):
 			fn_backup = os.path.join(backup_dir, fn[1:])
 			if os.path.isfile(fn):
 				userinfo_logger.info('Backing up %s' % fn)
-				os.makedirs(os.path.join(backup_dir, 'etc/NetworkManager/system-connections'))
+				os.makedirs(os.path.join(backup_dir, 'etc/NetworkManager/system-connections'), exist_ok=True)
 				copyfile(
 					fn,
 					fn_backup
@@ -248,7 +248,7 @@ class DnsConfiguratorDHClient(BaseDnsConfigurator):
 	@execute_as_root
 	def backup(self, backup_dir: str) -> None:
 		if os.path.isfile('/etc/dhcp/dhclient.conf'):
-			os.makedirs(os.path.join(backup_dir, 'etc/dhcp'))
+			os.makedirs(os.path.join(backup_dir, 'etc/dhcp'), exist_ok=True)
 			copyfile(
 				'/etc/dhcp/dhclient.conf',
 				os.path.join(backup_dir, 'etc/dhcp/dhclient.conf')
@@ -275,7 +275,7 @@ class DnsConfiguratorResolvconf(BaseDnsConfigurator):
 	def backup(self, backup_dir: str) -> None:
 		if os.path.isfile('/etc/resolvconf/resolv.conf.d/base'):
 			userinfo_logger.warn('Warning: /etc/resolvconf/resolv.conf.d/base already exists.')
-			os.makedirs(os.path.join(backup_dir, 'etc/resolvconf/resolv.conf.d'))
+			os.makedirs(os.path.join(backup_dir, 'etc/resolvconf/resolv.conf.d'), exist_ok=True)
 			copyfile(
 				'/etc/resolvconf/resolv.conf.d/base',
 				os.path.join(backup_dir, 'etc/resolvconf/resolv.conf.d/base')

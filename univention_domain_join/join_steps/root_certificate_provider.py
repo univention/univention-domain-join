@@ -54,8 +54,7 @@ class RootCertificateProvider(object):
 	def download_ucs_root_certificate(self, dc_ip: str) -> None:
 		userinfo_logger.info('Downloading the UCS root certificate to /etc/univention/ssl/ucsCA/CAcert.pem')
 
-		if not os.path.exists('/etc/univention/ssl/ucsCA'):
-			os.makedirs('/etc/univention/ssl/ucsCA')
+		os.makedirs('/etc/univention/ssl/ucsCA', exist_ok=True)
 		subprocess.check_call(
 			[
 				'wget',

@@ -62,8 +62,7 @@ def set_up_logging(logfile: str) -> None:
 	verbose_formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s %(message)s')
 	plain_formatter = logging.Formatter('%(message)s')
 
-	if not os.path.exists('/var/log/univention/'):
-		os.makedirs('/var/log/univention/')
+	os.makedirs(os.path.dirname(logfile), exist_ok=True)
 	logfile_handler = logging.FileHandler(logfile)
 	logfile_handler.setLevel(logging.DEBUG)
 	logfile_handler.setFormatter(verbose_formatter)

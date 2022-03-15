@@ -62,7 +62,7 @@ class PamConfigurator(ConflictChecker):
 		copy_home_dir_conf = self.home_dir_conf_file_exists()
 		copy_group_conf = self.group_conf_file_exists()
 		if copy_home_dir_conf or copy_group_conf:
-			os.makedirs(os.path.join(backup_dir, 'usr/share/pam-configs'))
+			os.makedirs(os.path.join(backup_dir, 'usr/share/pam-configs'), exist_ok=True)
 		if copy_home_dir_conf:
 			copyfile(
 				'/usr/share/pam-configs/ucs_mkhomedir',
@@ -73,7 +73,7 @@ class PamConfigurator(ConflictChecker):
 				'/usr/share/pam-configs/local_groups',
 				os.path.join(backup_dir, 'usr/share/pam-configs/local_groups')
 			)
-		os.makedirs(os.path.join(backup_dir, 'etc/security'))
+		os.makedirs(os.path.join(backup_dir, 'etc/security'), exist_ok=True)
 		copyfile(
 			'/etc/security/group.conf',
 			os.path.join(backup_dir, 'etc/security/group.conf')

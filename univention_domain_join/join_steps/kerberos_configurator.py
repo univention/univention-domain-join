@@ -53,8 +53,7 @@ class KerberosConfigurator(ConflictChecker):
 	@execute_as_root
 	def backup(self, backup_dir: str) -> None:
 		if self.config_file_exists():
-			if not os.path.exists(os.path.join(backup_dir, 'etc')):
-				os.makedirs(os.path.join(backup_dir, 'etc'))
+			os.makedirs(os.path.join(backup_dir, 'etc'), exist_ok=True)
 			copyfile(
 				'/etc/krb5.conf',
 				os.path.join(backup_dir, 'etc/krb5.conf')

@@ -57,7 +57,7 @@ class SssdConfigurator(ConflictChecker):
 	@execute_as_root
 	def backup(self, backup_dir: str) -> None:
 		if self.sssd_conf_file_exists():
-			os.makedirs(os.path.join(backup_dir, 'etc/sssd'))
+			os.makedirs(os.path.join(backup_dir, 'etc/sssd'), exist_ok=True)
 			copyfile(
 				'/etc/sssd/sssd.conf',
 				os.path.join(backup_dir, 'etc/sssd/sssd.conf')

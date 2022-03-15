@@ -292,11 +292,11 @@ class DomainJoinGui(QMainWindow):
 			self.admin_password_input.hasAcceptableInput()
 		):
 			dc_ip, domain = self.get_domainname_or_dc_ip()
-			if not dc_ip:
+			if not dc_ip and domain:
 				dc_ip = get_master_ip_through_dns(domain)
-				if not dc_ip:
-					DnsNotWorkingDialog().exec_()
-					return
+			if not dc_ip:
+				DnsNotWorkingDialog().exec_()
+				return
 			self.join_domain(dc_ip, str(self.admin_username_input.text()), str(self.admin_password_input.text()), self.force_ucs_dns_input.isChecked())
 		else:
 			MissingInputsDialog().exec_()

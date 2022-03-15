@@ -136,7 +136,24 @@ def get_ucr_variables_from_dc(dc_ip: str, admin_username: str, admin_pw: str) ->
 	return ucr_variables
 
 
+def parse_args() -> argparse.Namespace:
+	parser = argparse.ArgumentParser(
+		description='Tool for joining a client computer into an UCS domain.'
+	)
+	parser.add_argument('--username', help='User name of a domain administrator')
+	parser.add_argument('--password', help='Password for the domain administrator')
+	parser.add_argument('--password-file', help='Path to a file, containing the password for the domain administrator', metavar="FILE")
+	parser.add_argument('--skip-login-manager', action='store_true', help='Do not configure the login manager')
+	parser.add_argument('--domain', help='Domain name. Can be left out if the domain is configured for this system')
+	parser.add_argument('--dc-ip', help='IP address of the UCS domain controller to join to. Can be used if --domain does not work. If unsure, use the IP of the UCS Master', metavar="IP")
+	parser.add_argument('--force-ucs-dns', action='store_true', help='Change the system\'s DNS settings and set the UCS DC as DNS nameserver (default is to use the standard network settings, but make sure the your system can resolve the hostname of the UCS DC and the UCS master system)')
+	args = parser.parse_args()
+	return args
+
+
 if __name__ == '__main__':
+	args = parse_args()
+
 	check_if_run_as_root()
 	sudo_uid = os.environ.get('SUDO_UID')
 	if sudo_uid:
@@ -145,18 +162,6 @@ if __name__ == '__main__':
 	set_up_logging()
 
 	try:
-		parser = argparse.ArgumentParser(
-			description='Tool for joining a client computer into an UCS domain.'
-		)
-		parser.add_argument('--username', help='User name of a domain administrator.')
-		parser.add_argument('--password', help='Password for the domain administrator.')
-		parser.add_argument('--password-file', help='Path to a file, containing the password for the domain administrator.')
-		parser.add_argument('--skip-login-manager', action='store_true', help='Do not configure the login manager.')
-		parser.add_argument('--domain', help='Domain name. Can be left out if the domain is configured for this system.')
-		parser.add_argument('--dc-ip', help='IP address of the UCS domain controller to join to. Can be used if --domain does not work. If unsure, use the IP of the UCS Master.')
-		parser.add_argument('--force-ucs-dns', action='store_true', help='Change the system\'s DNS settings and set the UCS DC as DNS nameserver (default is to use the standard network settings, but make sure the your system can resolve the hostname of the UCS DC and the UCS master system)')
-		args = parser.parse_args()
-
 		if not args.dc_ip:
 			if not args.domain:
 				args.domain = get_ucs_domainname()

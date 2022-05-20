@@ -90,7 +90,7 @@ def get_ucs_domainname_of_dns_server() -> str:
 
 
 def get_nameservers() -> Set[str]:
-	output = subprocess.check_output(['systemd-resolve', '--status'])
+	output = subprocess.check_output(['resolvectl'])
 
 	nameservers = set()
 	last_line_was_dns_servers_line = False

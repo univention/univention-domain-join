@@ -12,6 +12,7 @@ Server (UCS) domains. It will perform the following steps for you:
 
 Univention Domain Join supports the following Linux distributions:
 
+- Ubuntu 22.04 LTS („Jammy Jellyfish“)
 - Ubuntu 20.04 LTS („Focal Fossa“)
 - Linux Mint („Ulyana“)
 - Ubuntu 18.04 LTS („Bionic Beaver“)
@@ -20,7 +21,7 @@ Univention Domain Join supports the following Linux distributions:
 - Ubuntu 16.04 LTS („Xenial Xerus“)
 - Ubuntu 14.04 LTS („Trusty Tahr“)
 
-This is the source branch for ubuntu20.04 which suppports Ubuntu 20.04.
+This is the source branch for ubuntu22.04 which suppports Ubuntu 22.04.
 
 Univention Domain Join supports the Gnome and Unity desktop environments. The
 configuration of the login manager of other desktop environments may not work,

@@ -1,3 +1,9 @@
+univention-domain-join (1.0-28ubuntu1) jammy; urgency=medium
+
+  * Bug #54775: Add support for Ubuntu 22.04
+
+ -- Maximilian Janßen <janssen@univention.de>  Fri, 20 May 2022 10:33:29 +0200
+
 univention-domain-join (1.0-27ubuntu1) focal; urgency=medium
 
   * Bug #52726: Fix resolving DC Primrary address

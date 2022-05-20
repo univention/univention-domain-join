@@ -30,7 +30,7 @@ lint:
     - mypy
 
 deb:
-  image: ubuntu:20.04
+  image: ubuntu:22.04
   variables:
     DEBIAN_FRONTEND: noninteractive
   before_script:

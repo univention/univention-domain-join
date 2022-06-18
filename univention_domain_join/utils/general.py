@@ -47,7 +47,7 @@ def execute_as_root(func):
 
 def name_is_resolvable(name):
 	try:
-		socket.gethostbyname(name)
+		socket.gethostbyaddr(name)
 		return True
 	except Exception:
 		return False

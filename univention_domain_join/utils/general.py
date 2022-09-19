@@ -47,7 +47,6 @@ def execute_as_root(func):
 
 def name_is_resolvable(name):
 	try:
-		socket.gethostbyaddr(name)
-		return True
+		return bool(socket.getaddrinfo(name, 22, socket.AF_UNSPEC, socket.SOCK_STREAM, socket.IPPROTO_TCP))
 	except Exception:
 		return False

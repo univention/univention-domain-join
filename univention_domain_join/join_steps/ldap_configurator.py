@@ -127,13 +127,14 @@ class LdapConfigurator(ConflictChecker):
 
 	def get_admin_dn(self, dc_ip: str, admin_username: str, admin_pw: str, ldap_base: str) -> str:
 		userinfo_logger.info('Getting the DN of the Administrator ')
-		ldap_command = ['ldapsearch', '-QLLLY', 'GSSAPI', 'uid=%s' % (admin_username,), 'dn']
-		ssh_process = ssh(admin_username, admin_pw, dc_ip, ldap_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-		stdout, _ = ssh_process.communicate()
+		ldap_command = ['ldapwhoami', '-QY', 'GSSAPI']
+		ssh_process = ssh(admin_username, admin_pw, dc_ip, ldap_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		stdout, stderr = ssh_process.communicate()
 		if ssh_process.returncode != 0:
-			userinfo_logger.critical('get admin DN failed with: {}'.format(stdout.decode()))
-			raise LdapConfigutationException('get admin DN failed with: {}'.format(stdout.decode()))
-		admin_dn = stdout.decode().strip().split(': ', 1)[1]
+			userinfo_logger.critical('get admin DN failed with: {}'.format(stderr.decode()))
+			raise LdapConfigutationException('get admin DN failed with: {}'.format(stderr.decode()))
+		dn, _, admin_dn = stdout.decode().strip().partition(':')
+		assert dn == "dn", stdout
 		return admin_dn
 
 	@execute_as_root

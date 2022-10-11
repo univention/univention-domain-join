@@ -58,15 +58,12 @@ def cleanup_authentication(dc_ip: str, admin_username: str, admin_pw: str) -> No
 
 
 def is_samba_dc(admin_username: str, admin_pw: str, dc_ip: str, admin_dn: str) -> bool:
-	cmd = ['ldapsearch', '-QLLL', filter_format('aRecord=%s', [dc_ip]), 'univentionService']
+	cmd = ['ldapsearch', '-QLLL', filter_format('(&(aRecord=%s)(univentionService=Samba 4))', [dc_ip]), '1.1']
 	ssh_process = ssh(admin_username, admin_pw, dc_ip, cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	stdout, stderr = ssh_process.communicate()
 	if ssh_process.returncode or stderr:
 		log.debug("%r returned %d: %s", cmd, ssh_process.returncode, stderr.decode())
-	for line in stdout.decode().splitlines():
-		if line.endswith('Samba 4'):
-			return True
-	return False
+	return bool(stdout.lstrip())
 
 
 def get_machines_ldap_dn(dc_ip: str, admin_username: str, admin_pw: str, admin_dn: str) -> str:

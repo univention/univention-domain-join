@@ -29,7 +29,6 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-import os
 import socket
 import subprocess
 from typing import List, Set
@@ -37,8 +36,6 @@ from typing import List, Set
 import dns.resolver
 import IPy
 import netifaces
-
-OUTPUT_SINK = open(os.devnull, 'w')
 
 
 def get_master_ip_through_dns(domain: str) -> str:

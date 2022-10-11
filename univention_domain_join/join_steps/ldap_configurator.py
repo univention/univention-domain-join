@@ -42,8 +42,6 @@ from univention_domain_join.utils.ldap import get_machines_ldap_dn, get_machines
 
 userinfo_logger = logging.getLogger('userinfo')
 
-OUTPUT_SINK = open(os.devnull, 'w')
-
 
 class LdapConfigutationException(Exception):
 	pass
@@ -102,7 +100,7 @@ class LdapConfigurator(ConflictChecker):
 		escaped_udm_command = ' '.join([pipes.quote(x) for x in udm_command])
 		ssh_process = subprocess.Popen(
 			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (admin_username, dc_ip), escaped_udm_command],
-			stdin=subprocess.PIPE, stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
+			stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
 		)
 		ssh_process.communicate(admin_pw.encode())
 		if ssh_process.returncode != 0:

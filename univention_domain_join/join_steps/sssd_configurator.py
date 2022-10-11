@@ -39,8 +39,6 @@ from univention_domain_join.join_steps.root_certificate_provider import RootCert
 from univention_domain_join.utils.general import execute_as_root
 from univention_domain_join.utils.ldap import get_machines_ldap_dn
 
-OUTPUT_SINK = open(os.devnull, 'w')
-
 userinfo_logger = logging.getLogger('userinfo')
 
 
@@ -125,7 +123,7 @@ class SssdConfigurator(ConflictChecker):
 
 		subprocess.check_call(
 			['pam-auth-update', '--enable', 'mkhomedir'],
-			stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
+			stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
 		)
 
 	@execute_as_root
@@ -134,5 +132,5 @@ class SssdConfigurator(ConflictChecker):
 
 		subprocess.check_call(
 			['service', 'sssd', 'restart'],
-			stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
+			stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
 		)

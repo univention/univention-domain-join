@@ -36,8 +36,6 @@ from shutil import copyfile
 
 from univention_domain_join.utils.general import execute_as_root
 
-OUTPUT_SINK = open(os.devnull, 'w')
-
 userinfo_logger = logging.getLogger('userinfo')
 
 
@@ -101,5 +99,5 @@ class KerberosConfigurator(ConflictChecker):
 		userinfo_logger.info('Synchronizing time with the DC')
 		subprocess.check_call(
 			['ntpdate', '-bu', dc_ip],
-			stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
+			stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
 		)

@@ -46,8 +46,6 @@ from univention_domain_join.utils.distributions import get_distribution
 from univention_domain_join.utils.domain import get_master_ip_through_dns, get_ucs_domainname
 from univention_domain_join.utils.general import execute_as_root
 
-OUTPUT_SINK = open(os.devnull, 'w')
-
 
 def check_if_run_as_root() -> None:
 	if os.getuid() != 0:

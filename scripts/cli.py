@@ -44,8 +44,6 @@ from univention_domain_join.utils.distributions import get_distribution
 from univention_domain_join.utils.domain import get_master_ip_through_dns, get_ucs_domainname
 from univention_domain_join.utils.general import execute_as_root
 
-OUTPUT_SINK = open(os.devnull, 'w')
-
 
 def check_if_run_as_root() -> None:
 	if os.getuid() != 0:
@@ -105,7 +103,7 @@ def get_admin_password(admin_username: str) -> str:
 def check_if_ssh_works_with_given_account(dc_ip: str, admin_username: str, admin_pw: str) -> None:
 	ssh_process = subprocess.Popen(
 		['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (admin_username, dc_ip), 'echo foo'],
-		stdin=subprocess.PIPE, stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
+		stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
 	)
 	ssh_process.communicate(admin_pw.encode())
 	if ssh_process.returncode != 0:

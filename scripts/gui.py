@@ -91,7 +91,7 @@ class DistributionException(Exception):
 
 class NotRootDialog(QMessageBox):
 	def __init__(self) -> None:
-		super(self.__class__, self).__init__()
+		super().__init__()
 		self.setWindowTitle('Univention Domain Join')
 		scriptDir = os.path.dirname(os.path.realpath(__file__))
 		self.setWindowIcon(QIcon(scriptDir + os.path.sep + 'univention_icon.svg'))
@@ -101,7 +101,7 @@ class NotRootDialog(QMessageBox):
 class DomainJoinGui(QMainWindow):
 
 	def __init__(self) -> None:
-		super(self.__class__, self).__init__()
+		super().__init__()
 
 		self.regex_ipv4 = r'(25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})(\.(25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})){3}'
 		self.regex_ipv6 = r'(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))'
@@ -353,7 +353,7 @@ class DomainJoinGui(QMainWindow):
 
 class SuccessfulJoinDialog(QMessageBox):
 	def __init__(self) -> None:
-		super(self.__class__, self).__init__()
+		super().__init__()
 		self.setWindowTitle('Successful Join')
 		scriptDir = os.path.dirname(os.path.realpath(__file__))
 		self.setWindowIcon(QIcon(scriptDir + os.path.sep + 'univention_icon.svg'))
@@ -362,7 +362,7 @@ class SuccessfulJoinDialog(QMessageBox):
 
 class FailedJoinDialog(QMessageBox):
 	def __init__(self, err: str) -> None:
-		super(self.__class__, self).__init__()
+		super().__init__()
 		self.setWindowTitle('Failed Join')
 		scriptDir = os.path.dirname(os.path.realpath(__file__))
 		self.setWindowIcon(QIcon(scriptDir + os.path.sep + 'univention_icon.svg'))
@@ -374,7 +374,7 @@ class FailedJoinDialog(QMessageBox):
 
 class FailedSSHDialog(QMessageBox):
 	def __init__(self) -> None:
-		super(self.__class__, self).__init__()
+		super().__init__()
 		self.setWindowTitle('SSH Connection Failed')
 		scriptDir = os.path.dirname(os.path.realpath(__file__))
 		self.setWindowIcon(QIcon(scriptDir + os.path.sep + 'univention_icon.svg'))
@@ -385,7 +385,7 @@ class FailedSSHDialog(QMessageBox):
 
 class FailedDistDialog(QMessageBox):
 	def __init__(self) -> None:
-		super(self.__class__, self).__init__()
+		super().__init__()
 		self.setWindowTitle('Distribution Check Failed')
 		scriptDir = os.path.dirname(os.path.realpath(__file__))
 		self.setWindowIcon(QIcon(scriptDir + os.path.sep + 'univention_icon.svg'))
@@ -396,7 +396,7 @@ class FailedDistDialog(QMessageBox):
 
 class MissingInputsDialog(QMessageBox):
 	def __init__(self) -> None:
-		super(self.__class__, self).__init__()
+		super().__init__()
 		self.setWindowTitle('Missing Inputs')
 		scriptDir = os.path.dirname(os.path.realpath(__file__))
 		self.setWindowIcon(QIcon(scriptDir + os.path.sep + 'univention_icon.svg'))
@@ -408,7 +408,7 @@ class MissingInputsDialog(QMessageBox):
 
 class DnsNotWorkingDialog(QMessageBox):
 	def __init__(self) -> None:
-		super(self.__class__, self).__init__()
+		super().__init__()
 		self.setWindowTitle('DNS Not Working')
 		scriptDir = os.path.dirname(os.path.realpath(__file__))
 		self.setWindowIcon(QIcon(scriptDir + os.path.sep + 'univention_icon.svg'))
@@ -436,7 +436,7 @@ class JoinThread(QThread):
 	join_successful = pyqtSignal()
 
 	def __init__(self, dc_ip: str, admin_username: str, admin_pw: str, force_ucs_dns: bool) -> None:
-		super(self.__class__, self).__init__()
+		super().__init__()
 		self.dc_ip = dc_ip
 		self.admin_username = admin_username
 		self.admin_pw = admin_pw

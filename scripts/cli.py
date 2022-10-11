@@ -42,7 +42,7 @@ from typing import Dict
 from univention_domain_join.distributions import AbstractJoiner
 from univention_domain_join.utils.distributions import get_distribution
 from univention_domain_join.utils.domain import get_master_ip_through_dns, get_ucs_domainname
-from univention_domain_join.utils.general import execute_as_root
+from univention_domain_join.utils.general import execute_as_root, ssh
 
 
 def check_if_run_as_root() -> None:
@@ -101,29 +101,28 @@ def get_admin_password(admin_username: str) -> str:
 
 
 def check_if_ssh_works_with_given_account(dc_ip: str, admin_username: str, admin_pw: str) -> None:
-	ssh_process = subprocess.Popen(
-		['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (admin_username, dc_ip), 'echo foo'],
-		stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-	)
-	ssh_process.communicate(admin_pw.encode())
+	cmd = "true"
+	ssh_process = ssh(admin_username, admin_pw, dc_ip, cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+	ssh_process.communicate()
 	if ssh_process.returncode != 0:
 		getLogger("userinfo").critical('It\'s not possible to connect to the UCS DC via ssh, with the given credentials.')
 		exit(1)
 
 
 def get_ucr_variables_from_dc(dc_ip: str, admin_username: str, admin_pw: str) -> Dict[str, str]:
-	ssh_process = subprocess.Popen(
-		['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (admin_username, dc_ip), '/usr/sbin/ucr shell | grep -v ^hostname='],
-		stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+	cmd = "/usr/sbin/ucr shell"
+	ssh_process = ssh(admin_username, admin_pw, dc_ip, cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+	assert ssh_process.stdout
+	ucr_variables = dict(
+		line.decode("utf-8", "replace").strip().split("=", 1)
+		for line in ssh_process.stdout
 	)
-	stdout, stderr = ssh_process.communicate(admin_pw.encode())
-	if ssh_process.returncode != 0:
+
+	if ssh_process.wait() != 0:
 		getLogger("userinfo").critical('Fetching the UCR variables from the UCS DC failed.')
 		exit(1)
-	ucr_variables = {}
-	for raw_ucr_variable in stdout.splitlines():
-		key, value = raw_ucr_variable.decode('utf-8', 'replace').strip().split('=', 1)
-		ucr_variables[key] = value
+
+	ucr_variables.pop("hostname", None)
 	return ucr_variables
 
 

@@ -44,7 +44,7 @@ from PyQt5.QtWidgets import QAction, QApplication, QBoxLayout, QCheckBox, QFrame
 from univention_domain_join.distributions import AbstractJoiner
 from univention_domain_join.utils.distributions import get_distribution
 from univention_domain_join.utils.domain import get_master_ip_through_dns, get_ucs_domainname
-from univention_domain_join.utils.general import execute_as_root
+from univention_domain_join.utils.general import execute_as_root, ssh
 
 LOG = '/var/log/univention/domain-join-gui.log'
 
@@ -476,11 +476,9 @@ class JoinThread(QThread):
 			raise DistributionException()
 
 	def check_if_ssh_works_with_given_account(self) -> bool:
-		ssh_process = subprocess.Popen(
-			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (self.admin_username, self.dc_ip), 'echo foo'],
-			stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-		)
-		stdout, stderr = ssh_process.communicate(self.admin_pw.encode())
+		cmd = "true"
+		ssh_process = ssh(self.admin_username, self.admin_pw, self.dc_ip, cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+		_, stderr = ssh_process.communicate()
 		if ssh_process.returncode != 0:
 			if stderr.decode().strip().endswith(': No route to host'):
 				raise SshException('IP not reachable via SSH.')
@@ -490,18 +488,19 @@ class JoinThread(QThread):
 		return True
 
 	def get_ucr_variables_from_dc(self) -> Optional[Dict[str, str]]:
-		ssh_process = subprocess.Popen(
-			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (self.admin_username, self.dc_ip), '/usr/sbin/ucr shell | grep -v ^hostname='],
-			stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+		cmd = "/usr/sbin/ucr shell"
+		ssh_process = ssh(self.admin_username, self.admin_pw, self.dc_ip, cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+		assert ssh_process.stdout
+		ucr_variables = dict(
+			line.decode("utf-8", "replace").strip().split("=", 1)
+			for line in ssh_process.stdout
 		)
-		stdout, stderr = ssh_process.communicate(self.admin_pw.encode())
-		if ssh_process.returncode != 0:
+
+		if ssh_process.wait() != 0:
 			getLogger("userinfo").critical('Fetching the UCR variables from the UCS DC failed.')
 			return None
-		ucr_variables = {}
-		for raw_ucr_variable in stdout.decode('utf-8', 'replace').splitlines():
-			key, value = raw_ucr_variable.strip().split('=', 1)
-			ucr_variables[key] = value
+
+		ucr_variables.pop("hostname", None)
 		return ucr_variables
 
 

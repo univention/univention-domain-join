@@ -31,8 +31,10 @@
 
 import os
 import socket
+import subprocess
 from functools import wraps
-from typing import Any, Callable, TypeVar, cast
+from pipes import quote
+from typing import Any, Callable, List, TypeVar, Union, cast
 
 F = TypeVar('F', bound=Callable[..., Any])
 
@@ -55,3 +57,21 @@ def name_is_resolvable(name: str) -> bool:
 		return bool(socket.getaddrinfo(name, 22, socket.AF_UNSPEC, socket.SOCK_STREAM, socket.IPPROTO_TCP))
 	except Exception:
 		return False
+
+
+def ssh(username: str, password: str, hostname: str, command: Union[str, List[str]], **kwargs: Any) -> subprocess.Popen:
+	cmd = [
+		"sshpass",
+		"-e",  # Password is passed as env-var "SSHPASS"
+		"ssh",
+		"-F", "none",
+		# "-o", "BatchMode=yes",  # conflicts with `sshpass`
+		"-o", "StrictHostKeyChecking=no",
+		"-o", "UserKnownHostsFile=/dev/null",
+		"-l", username,
+		hostname,
+		command if isinstance(command, str) else " ".join(quote(arg) for arg in command),
+	]
+	env = dict(kwargs.pop("env", os.environ), SSHPASS=password)
+	proc = subprocess.Popen(cmd, env=env, **kwargs)
+	return proc

@@ -31,14 +31,13 @@
 
 import logging
 import os
-import pipes
 import stat
 import subprocess
 from shutil import copyfile
 
 from univention_domain_join.join_steps.root_certificate_provider import RootCertificateProvider
-from univention_domain_join.utils.general import execute_as_root
-from univention_domain_join.utils.ldap import get_machines_ldap_dn, get_machines_udm_type
+from univention_domain_join.utils.general import execute_as_root, ssh
+from univention_domain_join.utils.ldap import PW, get_machines_ldap_dn, get_machines_udm_type
 
 userinfo_logger = logging.getLogger('userinfo')
 
@@ -90,19 +89,15 @@ class LdapConfigurator(ConflictChecker):
 			'/usr/sbin/udm',
 			get_machines_udm_type(dc_ip, admin_username, admin_pw, admin_dn),
 			'modify',
-			'--binddn', '%s' % (admin_dn,),
-			'--bindpwdfile', '/dev/shm/%sdomain-join' % (admin_username,),
+			'--binddn', admin_dn,
+			'--bindpwdfile', PW(admin_username),
 			'--dn', get_machines_ldap_dn(dc_ip, admin_username, admin_pw, admin_dn),
 			'--set', 'password=%s' % (password,),
 			'--set', 'operatingSystem=%s' % (release_id,),
 			'--set', 'operatingSystemVersion=%s' % (release,)
 		]
-		escaped_udm_command = ' '.join([pipes.quote(x) for x in udm_command])
-		ssh_process = subprocess.Popen(
-			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (admin_username, dc_ip), escaped_udm_command],
-			stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-		)
-		ssh_process.communicate(admin_pw.encode())
+		ssh_process = ssh(admin_username, admin_pw, dc_ip, udm_command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+		ssh_process.communicate()
 		if ssh_process.returncode != 0:
 			userinfo_logger.critical('Updating the old LDAP entry for this computer failed.')
 			raise LdapConfigutationException()
@@ -115,20 +110,16 @@ class LdapConfigurator(ConflictChecker):
 		# TODO: Also add MAC address. Which NIC's address should be used?
 		udm_command = [
 			'/usr/sbin/udm', 'computers/ubuntu', 'create',
-			'--binddn', '%s' % (admin_dn,),
-			'--bindpwdfile', '/dev/shm/%sdomain-join' % (admin_username,),
+			'--binddn', admin_dn,
+			'--bindpwdfile', PW(admin_username),
 			'--position', 'cn=computers,%s' % (ldap_base,),
 			'--set', 'name=%s' % (hostname,),
 			'--set', 'password=%s' % (password,),
 			'--set', 'operatingSystem=%s' % (release_id,),
 			'--set', 'operatingSystemVersion=%s' % (release,)
 		]
-		escaped_udm_command = ' '.join([pipes.quote(x) for x in udm_command])
-		ssh_process = subprocess.Popen(
-			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (admin_username, dc_ip), escaped_udm_command],
-			stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
-		)
-		stdout, _ = ssh_process.communicate(admin_pw.encode())
+		ssh_process = ssh(admin_username, admin_pw, dc_ip, udm_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+		stdout, _ = ssh_process.communicate()
 		if ssh_process.returncode != 0 or stdout.decode().startswith('E: '):
 			userinfo_logger.critical('Adding an LDAP object for this computer didn\'t work.')
 			userinfo_logger.critical(stdout.decode())
@@ -136,12 +127,9 @@ class LdapConfigurator(ConflictChecker):
 
 	def get_admin_dn(self, dc_ip: str, admin_username: str, admin_pw: str, ldap_base: str) -> str:
 		userinfo_logger.info('Getting the DN of the Administrator ')
-		ldap_command = 'ldapsearch -QLLL -Y GSSAPI uid=%s dn' % (pipes.quote(admin_username),)
-		ssh_process = subprocess.Popen(
-			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (admin_username, dc_ip), ldap_command],
-			stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
-		)
-		stdout, _ = ssh_process.communicate(admin_pw.encode())
+		ldap_command = ['ldapsearch', '-QLLLY', 'GSSAPI', 'uid=%s' % (admin_username,), 'dn']
+		ssh_process = ssh(admin_username, admin_pw, dc_ip, ldap_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+		stdout, _ = ssh_process.communicate()
 		if ssh_process.returncode != 0:
 			userinfo_logger.critical('get admin DN failed with: {}'.format(stdout.decode()))
 			raise LdapConfigutationException('get admin DN failed with: {}'.format(stdout.decode()))

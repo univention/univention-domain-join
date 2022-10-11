@@ -46,6 +46,8 @@ from univention_domain_join.utils.distributions import get_distribution
 from univention_domain_join.utils.domain import get_master_ip_through_dns, get_ucs_domainname
 from univention_domain_join.utils.general import execute_as_root
 
+LOG = '/var/log/univention/domain-join-gui.log'
+
 
 def check_if_run_as_root() -> None:
 	if os.getuid() != 0:
@@ -366,7 +368,7 @@ class FailedJoinDialog(QMessageBox):
 		self.setWindowIcon(QIcon(scriptDir + os.path.sep + 'univention_icon.svg'))
 		self.setStyleSheet("QMessageBox { messagebox-text-interaction-flags: 5; }")
 		self.setText(
-			'The domain join failed: {} For further information look at univention-domain-join-gui.log in the user home directory'.format(err)
+			'The domain join failed: {} For further information look at {}'.format(err, LOG)
 		)
 
 
@@ -511,7 +513,7 @@ if __name__ == '__main__':
 		os.seteuid(int(pkexec_uid))
 	elif sudo_uid:
 		os.seteuid(int(sudo_uid))
-	set_up_logging('/var/log/univention/domain-join-gui.log')
+	set_up_logging(LOG)
 	app = QApplication.setSetuidAllowed(True)
 	app = QApplication(sys.argv)
 	form = DomainJoinGui()

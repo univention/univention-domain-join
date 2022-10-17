@@ -74,11 +74,11 @@ class DnsConfigurator(object):
 	def configure_dns(self) -> None:
 		self.working_configurator.configure_dns(self.nameservers, self.domain)
 		if self.domain.endswith('.local'):
-			subprocess.check_call([
+			subprocess.check_output([
 				'sed', '-i', '-E',
 				r's/^(hosts: +.*)( mdns4_minimal)(.*)\[NOTFOUND=return\](.*)( dns)(.*)/\1\5\2\3[NOTFOUND=return]\4\6/',
 				'/etc/nsswitch.conf'
-			], close_fds=True)
+			], stderr=subprocess.STDOUT)
 		self.check_if_dns_works()
 
 	def check_if_dns_works(self) -> None:
@@ -116,12 +116,14 @@ class DnsConfiguratorTrusty(BaseDnsConfigurator):
 
 class DnsConfiguratorSystemd(BaseDnsConfigurator):
 	def works_on_this_system(self) -> bool:
-		ssh_process = subprocess.Popen(
-			['service', 'systemd-resolved', 'status'],
-			stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+		cmd = ['service', 'systemd-resolved', 'status']
+		proc = subprocess.Popen(
+			cmd,
+			stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE
 		)
-		ssh_process.communicate(b'')
-		return ssh_process.returncode == 0
+		_, stderr = proc.communicate()
+		logging.getLogger('debugging').debug("%r returned %d: %s", cmd, proc.returncode, stderr.decode())
+		return proc.returncode == 0
 
 	@execute_as_root
 	def backup(self, backup_dir: str) -> None:
@@ -142,25 +144,25 @@ class DnsConfiguratorSystemd(BaseDnsConfigurator):
 			conf_file.write('Domains=%s\n' % (domain,))
 
 		userinfo_logger.info('Restarting systemd-resolved.')
-		subprocess.check_call(['systemctl', 'restart', 'systemd-resolved'])
+		subprocess.check_output(['systemctl', 'restart', 'systemd-resolved'], stderr=subprocess.STDOUT)
 
 
 class DnsConfiguratorNetworkManager(BaseDnsConfigurator):
 	def works_on_this_system(self) -> bool:
 		# could also check lsb_release -sr here instead
-		p = subprocess.Popen(
+		proc = subprocess.Popen(
 			['nmcli', '-v'],
 			stdout=subprocess.PIPE, stderr=subprocess.PIPE
 		)
-		stdout, stderr = p.communicate()
-		if p.returncode != 0:
+		stdout, stderr = proc.communicate()
+		logging.getLogger('debugging').debug("%r returned %d: %s", proc.args, proc.returncode, stderr.decode())
+		if proc.returncode != 0:
 			return False
 		nmcli_version = stdout.split()[-1]
 		p = subprocess.Popen(
-			['dpkg', '--compare-versions', nmcli_version, 'gt', '1']
+			['dpkg', '--compare-versions', nmcli_version, 'gt', '1'],
 		)
-		p.wait()
-		return p.returncode == 0
+		return p.wait() == 0
 
 	@execute_as_root
 	def backup(self, backup_dir: str) -> None:
@@ -174,27 +176,25 @@ class DnsConfiguratorNetworkManager(BaseDnsConfigurator):
 			stdout=subprocess.PIPE, stderr=subprocess.PIPE
 		)
 		stdout, stderr = p.communicate()
+		logging.getLogger('debugging').debug("%r returned %d: %s", p.args, p.returncode, stderr.decode())
 		if p.returncode != 0:
 			raise DnsConfigurationException()
 		for line in stdout.decode().splitlines():
 			conn_name, conn_uuid, conn_dev = line.split(':')
 			userinfo_logger.info('Configuring ipv4 DNS servers for %s.' % conn_dev)
-			p = subprocess.Popen([
+			subprocess.call([
 				'nmcli', 'connection', 'modify', conn_uuid,
 				'ipv4.dns', " ".join(filter(lambda x: x, nameservers)).encode(),
 				'ipv4.ignore-auto-dns', 'yes',
 				'ipv4.dns-search', domain.encode()
 			])
-			p.wait()
 			userinfo_logger.info('Applying new settings to %s.' % conn_dev)
-			p = subprocess.Popen(
+			subprocess.call(
 				['nmcli', 'connection', 'down', conn_uuid.encode()]
 			)
-			p.wait()
-			p = subprocess.Popen(
+			subprocess.call(
 				['nmcli', 'connection', 'up', conn_uuid.encode()]
 			)
-			p.wait()
 
 
 class DnsConfiguratorOldNetworkManager(BaseDnsConfigurator):
@@ -205,6 +205,7 @@ class DnsConfiguratorOldNetworkManager(BaseDnsConfigurator):
 			stdout=subprocess.PIPE, stderr=subprocess.PIPE
 		)
 		stdout, stderr = p.communicate()
+		logging.getLogger('debugging').debug("%r returned %d: %s", p.args, p.returncode, stderr.decode())
 		if p.returncode != 0:
 			raise DnsConfigurationException()
 		for line in stdout.splitlines():
@@ -228,6 +229,7 @@ class DnsConfiguratorOldNetworkManager(BaseDnsConfigurator):
 			stdout=subprocess.PIPE, stderr=subprocess.PIPE
 		)
 		stdout, stderr = p.communicate()
+		logging.getLogger('debugging').debug("%r returned %d: %s", p.args, p.returncode, stderr.decode())
 		if p.returncode != 0:
 			raise DnsConfigurationException()
 		for line in stdout.splitlines():
@@ -241,7 +243,7 @@ class DnsConfiguratorOldNetworkManager(BaseDnsConfigurator):
 				Config.set('ipv4', 'ignore-auto-dns', 'true')
 				with open(fn, 'w') as f:
 					Config.write(f)
-		subprocess.check_call(['service', 'network-manager', 'restart'])
+		subprocess.check_output(['service', 'network-manager', 'restart'], stderr=subprocess.STDOUT)
 
 
 class DnsConfiguratorDHClient(BaseDnsConfigurator):
@@ -260,8 +262,9 @@ class DnsConfiguratorDHClient(BaseDnsConfigurator):
 		p = subprocess.Popen([
 			'grep', '-q', '^prepend domain-name-servers %s' % ns_string,
 			'/etc/dhcp/dhclient.conf'
-		])
-		p.wait()
+		], stderr=subprocess.PIPE)
+		_, stderr = p.communicate()
+		logging.getLogger('debugging').debug("%r returned %d: %s", p.args, p.returncode, stderr.decode())
 		if p.returncode == 0:
 			userinfo_logger.info('"prepend domain-name-servers" already in /etc/dhcp/dhclient.conf')
 			return
@@ -291,5 +294,5 @@ class DnsConfiguratorResolvconf(BaseDnsConfigurator):
 			conf_file.write('domain %s' % (domain,))
 
 		userinfo_logger.info('Applying new resolvconf settings.')
-		subprocess.check_call(['service', 'resolvconf', 'stop'])
-		subprocess.check_call(['service', 'resolvconf', 'start'])
+		subprocess.check_output(['service', 'resolvconf', 'stop'], stderr=subprocess.STDOUT)
+		subprocess.check_output(['service', 'resolvconf', 'start'], stderr=subprocess.STDOUT)

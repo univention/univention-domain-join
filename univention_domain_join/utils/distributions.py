@@ -34,3 +34,7 @@ import subprocess
 
 def get_distribution() -> str:
 	return subprocess.check_output(['lsb_release', '-is']).strip().decode()
+
+
+def get_release() -> str:
+	return subprocess.check_output(['lsb_release', '-rs']).strip().decode()

@@ -97,7 +97,7 @@ class KerberosConfigurator(ConflictChecker):
 	@execute_as_root
 	def synchronize_time_with_master(self, dc_ip: str) -> None:
 		userinfo_logger.info('Synchronizing time with the DC')
-		subprocess.check_call(
+		subprocess.check_output(
 			['ntpdate', '-bu', dc_ip],
-			stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+			stderr=subprocess.STDOUT
 		)

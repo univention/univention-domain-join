@@ -141,7 +141,7 @@ class PamConfigurator(ConflictChecker):
 
 		env = os.environ.copy()
 		env['DEBIAN_FRONTEND'] = 'noninteractive'
-		subprocess.check_call(
+		subprocess.check_output(
 			['pam-auth-update', '--force'],
-			env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+			env=env, stderr=subprocess.STDOUT
 		)

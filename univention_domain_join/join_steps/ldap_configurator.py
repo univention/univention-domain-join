@@ -36,6 +36,7 @@ from logging import getLogger
 from shutil import copyfile
 
 from univention_domain_join.join_steps.root_certificate_provider import RootCertificateProvider
+from univention_domain_join.utils.distributions import get_distribution, get_release
 from univention_domain_join.utils.general import execute_as_root, ssh
 from univention_domain_join.utils.ldap import PW, get_machines_udm
 
@@ -87,8 +88,8 @@ class LdapConfigurator(ConflictChecker):
 	def modify_machine_in_ldap(self, password: str, dc_ip: str, admin_username: str, admin_pw: str, admin_dn: str, udm_type: str, dn: str) -> None:
 		userinfo_logger.info('Updating old LDAP entry for this machine on the UCS DC')
 
-		release_id = subprocess.check_output(['lsb_release', '-is']).strip().decode()
-		release = subprocess.check_output(['lsb_release', '-rs']).strip().decode()
+		release_id = get_distribution()
+		release = get_release()
 
 		cmd = [
 			'/usr/sbin/udm',
@@ -111,8 +112,8 @@ class LdapConfigurator(ConflictChecker):
 	def add_machine_to_ldap(self, password: str, dc_ip: str, admin_username: str, admin_pw: str, ldap_base: str, admin_dn: str) -> str:
 		userinfo_logger.info('Adding LDAP entry for this machine on the UCS DC')
 		hostname = subprocess.check_output(['hostname', '-s']).strip().decode()
-		release_id = subprocess.check_output(['lsb_release', '-is']).strip().decode()
-		release = subprocess.check_output(['lsb_release', '-rs']).strip().decode()
+		release_id = get_distribution()
+		release = get_release()
 		# TODO: Also add MAC address. Which NIC's address should be used?
 		udm_command = [
 			'/usr/sbin/udm', 'computers/ubuntu', 'create',

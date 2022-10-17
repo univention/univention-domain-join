@@ -53,14 +53,14 @@ class RootCertificateProvider(object):
 		userinfo_logger.info('Downloading the UCS root certificate to /etc/univention/ssl/ucsCA/CAcert.pem')
 
 		os.makedirs('/etc/univention/ssl/ucsCA', exist_ok=True)
-		subprocess.check_call(
+		subprocess.check_output(
 			[
 				'wget',
 				'--no-check-certificate',
 				'-O', '/etc/univention/ssl/ucsCA/CAcert.pem',
 				'http://%s/ucs-root-ca.crt' % (dc_ip,)
 			],
-			stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+			stderr=subprocess.STDOUT
 		)
 
 	@execute_as_root
@@ -68,7 +68,7 @@ class RootCertificateProvider(object):
 		userinfo_logger.info('Adding the UCS root certificate to the certificate store')
 
 		os.symlink('/etc/univention/ssl/ucsCA/CAcert.pem', '/usr/local/share/ca-certificates/UCSdomain.crt')
-		subprocess.call(
+		subprocess.check_output(
 			['update-ca-certificates'],
-			stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+			stderr=subprocess.STDOUT
 		)

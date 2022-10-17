@@ -479,6 +479,7 @@ class JoinThread(QThread):
 		cmd = "true"
 		ssh_process = ssh(self.admin_username, self.admin_pw, self.dc_ip, cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
 		_, stderr = ssh_process.communicate()
+		logging.getLogger('debugging').debug("%r returned %d: %s", cmd, ssh_process.returncode, stderr.decode())
 		if ssh_process.returncode != 0:
 			if stderr.decode().strip().endswith(': No route to host'):
 				raise SshException('IP not reachable via SSH.')
@@ -489,13 +490,15 @@ class JoinThread(QThread):
 
 	def get_ucr_variables_from_dc(self) -> Optional[Dict[str, str]]:
 		cmd = "/usr/sbin/ucr shell"
-		ssh_process = ssh(self.admin_username, self.admin_pw, self.dc_ip, cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+		ssh_process = ssh(self.admin_username, self.admin_pw, self.dc_ip, cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 		assert ssh_process.stdout
 		ucr_variables = dict(
 			line.decode("utf-8", "replace").strip().split("=", 1)
 			for line in ssh_process.stdout
 		)
 
+		_, stderr = ssh_process.communicate()
+		logging.getLogger('debugging').debug("%r returned %d: %s", cmd, ssh_process.returncode, stderr.decode())
 		if ssh_process.wait() != 0:
 			getLogger("userinfo").critical('Fetching the UCR variables from the UCS DC failed.')
 			return None

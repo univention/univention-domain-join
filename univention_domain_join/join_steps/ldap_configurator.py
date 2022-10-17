@@ -29,17 +29,18 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-import logging
 import os
 import stat
 import subprocess
+from logging import getLogger
 from shutil import copyfile
 
 from univention_domain_join.join_steps.root_certificate_provider import RootCertificateProvider
 from univention_domain_join.utils.general import execute_as_root, ssh
 from univention_domain_join.utils.ldap import PW, get_machines_udm
 
-userinfo_logger = logging.getLogger('userinfo')
+userinfo_logger = getLogger('userinfo')
+log = getLogger("debugging")
 
 
 class LdapConfigutationException(Exception):
@@ -71,13 +72,17 @@ class LdapConfigurator(ConflictChecker):
 		self.create_ldap_conf_file(ldap_server_name, ldap_base)
 		self.create_machine_secret_file(password)
 
-	def modify_old_entry_or_add_machine_to_ldap(self, password: str, dc_ip: str, admin_username: str, admin_pw: str, ldap_base: str, admin_dn: str) -> None:
+	def modify_old_entry_or_add_machine_to_ldap(self, password: str, dc_ip: str, admin_username: str, admin_pw: str, ldap_base: str, admin_dn: str) -> str:
 		try:
 			udm_type, dn = get_machines_udm(dc_ip, admin_username, admin_pw, admin_dn)
+			log.info("Found existing LDAP entry %r of type %r", dn, udm_type)
 		except LookupError:
-			self.add_machine_to_ldap(password, dc_ip, admin_username, admin_pw, ldap_base, admin_dn)
+			dn = self.add_machine_to_ldap(password, dc_ip, admin_username, admin_pw, ldap_base, admin_dn)
+			log.info("Created LDAP entry %r", dn)
 		else:
 			self.modify_machine_in_ldap(password, dc_ip, admin_username, admin_pw, admin_dn, udm_type, dn)
+			log.info("Modified LDAP entry %r", dn)
+		return dn
 
 	def modify_machine_in_ldap(self, password: str, dc_ip: str, admin_username: str, admin_pw: str, admin_dn: str, udm_type: str, dn: str) -> None:
 		userinfo_logger.info('Updating old LDAP entry for this machine on the UCS DC')
@@ -85,7 +90,7 @@ class LdapConfigurator(ConflictChecker):
 		release_id = subprocess.check_output(['lsb_release', '-is']).strip().decode()
 		release = subprocess.check_output(['lsb_release', '-rs']).strip().decode()
 
-		udm_command = [
+		cmd = [
 			'/usr/sbin/udm',
 			udm_type,
 			'modify',
@@ -96,13 +101,14 @@ class LdapConfigurator(ConflictChecker):
 			'--set', 'operatingSystem=%s' % (release_id,),
 			'--set', 'operatingSystemVersion=%s' % (release,)
 		]
-		ssh_process = ssh(admin_username, admin_pw, dc_ip, udm_command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-		ssh_process.communicate()
+		ssh_process = ssh(admin_username, admin_pw, dc_ip, cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+		_, stderr = ssh_process.communicate()
 		if ssh_process.returncode != 0:
 			userinfo_logger.critical('Updating the old LDAP entry for this computer failed.')
+			log.critical("%r returned %d: %s", cmd, ssh_process.returncode, stderr.decode())
 			raise LdapConfigutationException()
 
-	def add_machine_to_ldap(self, password: str, dc_ip: str, admin_username: str, admin_pw: str, ldap_base: str, admin_dn: str) -> None:
+	def add_machine_to_ldap(self, password: str, dc_ip: str, admin_username: str, admin_pw: str, ldap_base: str, admin_dn: str) -> str:
 		userinfo_logger.info('Adding LDAP entry for this machine on the UCS DC')
 		hostname = subprocess.check_output(['hostname', '-s']).strip().decode()
 		release_id = subprocess.check_output(['lsb_release', '-is']).strip().decode()
@@ -118,12 +124,15 @@ class LdapConfigurator(ConflictChecker):
 			'--set', 'operatingSystem=%s' % (release_id,),
 			'--set', 'operatingSystemVersion=%s' % (release,)
 		]
-		ssh_process = ssh(admin_username, admin_pw, dc_ip, udm_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-		stdout, _ = ssh_process.communicate()
-		if ssh_process.returncode != 0 or stdout.decode().startswith('E: '):
+		ssh_process = ssh(admin_username, admin_pw, dc_ip, udm_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		stdout, stderr = ssh_process.communicate()
+		if ssh_process.returncode != 0 or stderr.decode().startswith('E: '):
 			userinfo_logger.critical('Adding an LDAP object for this computer didn\'t work.')
-			userinfo_logger.critical(stdout.decode())
+			userinfo_logger.critical(stderr.decode())
 			raise LdapConfigutationException()
+		prefix, _, dn = stdout.decode().strip().partition(": ")
+		assert prefix == "Object created"
+		return dn
 
 	def get_admin_dn(self, dc_ip: str, admin_username: str, admin_pw: str, ldap_base: str) -> str:
 		userinfo_logger.info('Getting the DN of the Administrator ')

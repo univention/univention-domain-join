@@ -37,7 +37,7 @@ from shutil import copyfile
 
 from univention_domain_join.join_steps.root_certificate_provider import RootCertificateProvider
 from univention_domain_join.utils.general import execute_as_root
-from univention_domain_join.utils.ldap import get_machines_ldap_dn
+from univention_domain_join.utils.ldap import get_machines_udm
 
 userinfo_logger = logging.getLogger('userinfo')
 
@@ -111,7 +111,7 @@ class SssdConfigurator(ConflictChecker):
 				'ldap_base': ldap_base,
 				'ldap_server_name': ldap_server_name,
 				'ldap_password': self.ldap_password,
-				'machines_ldap_dn': get_machines_ldap_dn(dc_ip, admin_username, admin_pw, admin_dn),
+				'machines_ldap_dn': get_machines_udm(dc_ip, admin_username, admin_pw, admin_dn)[1],
 			}
 		with open('/etc/sssd/sssd.conf', 'w') as conf_file:
 			conf_file.write(sssd_conf)

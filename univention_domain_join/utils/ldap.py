@@ -32,6 +32,7 @@
 import subprocess
 from logging import getLogger
 from socket import gethostname
+from typing import Tuple
 
 from ldap.filter import filter_format
 
@@ -66,20 +67,11 @@ def is_samba_dc(admin_username: str, admin_pw: str, dc_ip: str, admin_dn: str) -
 	return bool(stdout.lstrip())
 
 
-def get_machines_ldap_dn(dc_ip: str, admin_username: str, admin_pw: str, admin_dn: str) -> str:
+def get_machines_udm(dc_ip: str, admin_username: str, admin_pw: str, admin_dn: str) -> Tuple[str, str]:
 	for udm_type in ['computers/ubuntu', 'computers/linux', 'computers/ucc']:
 		try:
-			return get_machines_ldap_dn_given_the_udm_type(udm_type, dc_ip, admin_username, admin_pw, admin_dn)
-		except LookupError:
-			pass
-	raise LookupError(dc_ip)
-
-
-def get_machines_udm_type(dc_ip: str, admin_username: str, admin_pw: str, admin_dn: str) -> str:
-	for udm_type in ['computers/ubuntu', 'computers/linux', 'computers/ucc']:
-		try:
-			get_machines_ldap_dn_given_the_udm_type(udm_type, dc_ip, admin_username, admin_pw, admin_dn)
-			return udm_type
+			dn = get_machines_ldap_dn_given_the_udm_type(udm_type, dc_ip, admin_username, admin_pw, admin_dn)
+			return (udm_type, dn)
 		except LookupError:
 			pass
 	raise LookupError(dc_ip)

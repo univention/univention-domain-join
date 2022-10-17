@@ -37,7 +37,7 @@ from shutil import copyfile
 
 from univention_domain_join.join_steps.root_certificate_provider import RootCertificateProvider
 from univention_domain_join.utils.general import execute_as_root, ssh
-from univention_domain_join.utils.ldap import PW, get_machines_ldap_dn, get_machines_udm_type
+from univention_domain_join.utils.ldap import PW, get_machines_udm
 
 userinfo_logger = logging.getLogger('userinfo')
 
@@ -73,13 +73,13 @@ class LdapConfigurator(ConflictChecker):
 
 	def modify_old_entry_or_add_machine_to_ldap(self, password: str, dc_ip: str, admin_username: str, admin_pw: str, ldap_base: str, admin_dn: str) -> None:
 		try:
-			get_machines_ldap_dn(dc_ip, admin_username, admin_pw, admin_dn)
+			udm_type, dn = get_machines_udm(dc_ip, admin_username, admin_pw, admin_dn)
 		except LookupError:
 			self.add_machine_to_ldap(password, dc_ip, admin_username, admin_pw, ldap_base, admin_dn)
 		else:
-			self.modify_machine_in_ldap(password, dc_ip, admin_username, admin_pw, admin_dn)
+			self.modify_machine_in_ldap(password, dc_ip, admin_username, admin_pw, admin_dn, udm_type, dn)
 
-	def modify_machine_in_ldap(self, password: str, dc_ip: str, admin_username: str, admin_pw: str, admin_dn: str) -> None:
+	def modify_machine_in_ldap(self, password: str, dc_ip: str, admin_username: str, admin_pw: str, admin_dn: str, udm_type: str, dn: str) -> None:
 		userinfo_logger.info('Updating old LDAP entry for this machine on the UCS DC')
 
 		release_id = subprocess.check_output(['lsb_release', '-is']).strip().decode()
@@ -87,11 +87,11 @@ class LdapConfigurator(ConflictChecker):
 
 		udm_command = [
 			'/usr/sbin/udm',
-			get_machines_udm_type(dc_ip, admin_username, admin_pw, admin_dn),
+			udm_type,
 			'modify',
 			'--binddn', admin_dn,
 			'--bindpwdfile', PW(admin_username),
-			'--dn', get_machines_ldap_dn(dc_ip, admin_username, admin_pw, admin_dn),
+			'--dn', dn,
 			'--set', 'password=%s' % (password,),
 			'--set', 'operatingSystem=%s' % (release_id,),
 			'--set', 'operatingSystemVersion=%s' % (release,)

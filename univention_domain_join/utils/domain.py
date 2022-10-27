@@ -2,7 +2,7 @@
 #
 # Univention Domain Join
 #
-# Copyright 2017-2018 Univention GmbH
+# Copyright 2017-2022 Univention GmbH
 #
 # http://www.univention.de/
 #
@@ -29,27 +29,26 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-import IPy
-import dns.resolver
-import netifaces
-import os
 import socket
 import subprocess
+from typing import List, Set
 
-OUTPUT_SINK = open(os.devnull, 'w')
+import dns.resolver
+import IPy
+import netifaces
 
 
-def get_master_ip_through_dns(domain):
+def get_master_ip_through_dns(domain: str) -> str:
 	resolver = dns.resolver.Resolver()
 	try:
 		response = resolver.query('_domaincontroller_master._tcp.%s.' % (domain,), 'SRV')
 		master_fqdn = response[0].target.canonicalize().split(1)[0].to_text()
-	except:
-		return None
+	except Exception:
+		return ""
 	return socket.gethostbyname(master_fqdn)
 
 
-def get_ucs_domainname():
+def get_ucs_domainname() -> str:
 	domainname = get_ucs_domainname_via_local_configuration()
 	if not domainname:
 		domainname = get_ucs_domainname_via_reverse_dns()
@@ -58,15 +57,15 @@ def get_ucs_domainname():
 	return domainname
 
 
-def get_ucs_domainname_via_local_configuration():
+def get_ucs_domainname_via_local_configuration() -> str:
 	try:
 		domainname = socket.getfqdn().split('.', 1)[1]
-	except:
-		return None
+	except Exception:
+		return ""
 	return domainname
 
 
-def get_ucs_domainname_via_reverse_dns():
+def get_ucs_domainname_via_reverse_dns() -> str:
 	ip_addresses = get_all_ip_addresses()
 	possible_ucs_domainnames = set()
 	for ip_address in ip_addresses:
@@ -75,10 +74,10 @@ def get_ucs_domainname_via_reverse_dns():
 			possible_ucs_domainnames.add(domainname)
 	if len(possible_ucs_domainnames) == 1:
 		return possible_ucs_domainnames.pop()
-	return None
+	return ""
 
 
-def get_ucs_domainname_of_dns_server():
+def get_ucs_domainname_of_dns_server() -> str:
 	nameservers = get_nameservers()
 	possible_ucs_domainnames = set()
 	for nameserver in nameservers:
@@ -87,10 +86,10 @@ def get_ucs_domainname_of_dns_server():
 			possible_ucs_domainnames.add(domainname)
 	if len(possible_ucs_domainnames) == 1:
 		return possible_ucs_domainnames.pop()
-	return None
+	return ""
 
 
-def get_nameservers():
+def get_nameservers() -> Set[str]:
 	output = subprocess.check_output(['systemd-resolve', '--status'])
 
 	nameservers = set()
@@ -107,7 +106,7 @@ def get_nameservers():
 	return nameservers
 
 
-def is_only_ip(line):
+def is_only_ip(line: str) -> bool:
 	try:
 		IPy.IP(line.strip())
 		return True
@@ -115,7 +114,7 @@ def is_only_ip(line):
 		return False
 
 
-def get_all_ip_addresses():
+def get_all_ip_addresses() -> List[str]:
 	ip_addresses = []
 	for interface in netifaces.interfaces():
 		# Skip the loopback device.
@@ -126,7 +125,7 @@ def get_all_ip_addresses():
 	return ip_addresses
 
 
-def get_ipv4_addresses(interface):
+def get_ipv4_addresses(interface: str) -> List[str]:
 	short_addresses = []
 	if netifaces.AF_INET in netifaces.ifaddresses(interface):
 		ipv4_addresses = netifaces.ifaddresses(interface)[netifaces.AF_INET]
@@ -135,7 +134,7 @@ def get_ipv4_addresses(interface):
 	return short_addresses
 
 
-def get_ipv6_addresses(interface):
+def get_ipv6_addresses(interface: str) -> List[str]:
 	short_addresses = []
 	if netifaces.AF_INET6 in netifaces.ifaddresses(interface):
 		ipv6_addresses = netifaces.ifaddresses(interface)[netifaces.AF_INET6]
@@ -146,13 +145,13 @@ def get_ipv6_addresses(interface):
 	return short_addresses
 
 
-def get_ucs_domainname_from_fqdn(fqdn):
+def get_ucs_domainname_from_fqdn(fqdn: str) -> str:
 	try:
 		domainname = fqdn.split('.', 1)[1]
 		# Check if the _domaincontroller_master._tcp record exists, to ensure
 		# that this is an UCS domain.
 		resolver = dns.resolver.Resolver()
 		resolver.query('_domaincontroller_master._tcp.%s' % (domainname,), 'SRV')
-	except:
-		return None
+	except Exception:
+		return ""
 	return domainname

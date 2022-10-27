@@ -2,7 +2,7 @@
 #
 # Univention Domain Join
 #
-# Copyright 2017-2018 Univention GmbH
+# Copyright 2017-2022 Univention GmbH
 #
 # http://www.univention.de/
 #
@@ -29,39 +29,35 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-from getpass import getpass
 import argparse
 import importlib
 import logging
 import os
 import subprocess
 import sys
+from getpass import getpass
+from logging import getLogger
+from typing import Dict
 
+from univention_domain_join.distributions import AbstractJoiner
 from univention_domain_join.utils.distributions import get_distribution
-from univention_domain_join.utils.domain import get_master_ip_through_dns
-from univention_domain_join.utils.domain import get_ucs_domainname
-from univention_domain_join.utils.general import execute_as_root
-
-OUTPUT_SINK = open(os.devnull, 'w')
+from univention_domain_join.utils.domain import get_master_ip_through_dns, get_ucs_domainname
+from univention_domain_join.utils.general import execute_as_root, ssh
 
 
-def check_if_run_as_root():
+def check_if_run_as_root() -> None:
 	if os.getuid() != 0:
 		print('This tool must be executed as root.')
 		exit(1)
 
 
 @execute_as_root
-def set_up_logging():
-	global userinfo_logger
-	global debugging_logger
-
+def set_up_logging(logfile: str) -> None:
 	verbose_formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s %(message)s')
 	plain_formatter = logging.Formatter('%(message)s')
 
-	if not os.path.exists('/var/log/univention/'):
-		os.makedirs('/var/log/univention/')
-	logfile_handler = logging.FileHandler('/var/log/univention/domain-join-cli.log')
+	os.makedirs(os.path.dirname(logfile), exist_ok=True)
+	logfile_handler = logging.FileHandler(logfile)
 	logfile_handler.setLevel(logging.DEBUG)
 	logfile_handler.setFormatter(verbose_formatter)
 
@@ -79,7 +75,7 @@ def set_up_logging():
 	debugging_logger.addHandler(logfile_handler)
 
 
-def get_joiner_for_this_distribution(dc_ip, admin_username, admin_pw, skip_login_manager, force_ucs_dns):
+def get_joiner_for_this_distribution(dc_ip: str, admin_username: str, admin_pw: str, skip_login_manager: bool, force_ucs_dns: bool) -> AbstractJoiner:
 	distribution = get_distribution()
 	try:
 		distribution_join_module = importlib.import_module('univention_domain_join.distributions.%s' % (distribution.lower(),))
@@ -91,81 +87,88 @@ def get_joiner_for_this_distribution(dc_ip, admin_username, admin_pw, skip_login
 		ucr_variables = get_ucr_variables_from_dc(dc_ip, admin_username, admin_pw)
 		return distribution_join_module.Joiner(ucr_variables, admin_username, admin_pw, dc_ip, skip_login_manager, force_ucs_dns)
 	except ImportError:
-		userinfo_logger.critical('The used distribution "%s" is not supported.' % (distribution,))
+		getLogger("userinfo").critical('The used distribution "%s" is not supported.' % (distribution,))
 		exit(1)
 
 
-def get_admin_username():
+def get_admin_username() -> str:
 	return input('Please enter the user name of a domain administrator: ')
 
 
-def get_admin_password(admin_username):
+def get_admin_password(admin_username: str) -> str:
 	# TODO: Don't ask for the password if ssh works passwordless already.
 	return getpass(prompt='Please enter the password for %s: ' % (admin_username,))
 
 
-@execute_as_root
-def check_if_ssh_works_with_given_account(dc_ip, admin_username, admin_pw):
-	ssh_process = subprocess.Popen(
-		['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (admin_username, dc_ip), 'echo foo'],
-		stdin=subprocess.PIPE, stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
-	)
-	ssh_process.communicate(admin_pw.encode())
+def check_if_ssh_works_with_given_account(dc_ip: str, admin_username: str, admin_pw: str) -> None:
+	cmd = "true"
+	ssh_process = ssh(admin_username, admin_pw, dc_ip, cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+	_, stderr = ssh_process.communicate()
+	logging.getLogger('debugging').debug("%r returned %d: %s", cmd, ssh_process.returncode, stderr.decode())
 	if ssh_process.returncode != 0:
-		userinfo_logger.critical('It\'s not possible to connect to the UCS DC via ssh, with the given credentials.')
+		getLogger("userinfo").critical('It\'s not possible to connect to the UCS DC via ssh, with the given credentials.')
 		exit(1)
 
 
-@execute_as_root
-def get_ucr_variables_from_dc(dc_ip, admin_username, admin_pw):
-	ssh_process = subprocess.Popen(
-		['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (admin_username, dc_ip), '/usr/sbin/ucr shell | grep -v ^hostname='],
-		stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+def get_ucr_variables_from_dc(dc_ip: str, admin_username: str, admin_pw: str) -> Dict[str, str]:
+	cmd = "/usr/sbin/ucr shell"
+	ssh_process = ssh(admin_username, admin_pw, dc_ip, cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	assert ssh_process.stdout
+	ucr_variables = dict(
+		line.decode("utf-8", "replace").strip().split("=", 1)
+		for line in ssh_process.stdout
 	)
-	stdout, stderr = ssh_process.communicate(admin_pw.encode())
-	if ssh_process.returncode != 0:
-		userinfo_logger.critical('Fetching the UCR variables from the UCS DC failed.')
+
+	_, stderr = ssh_process.communicate()
+	logging.getLogger('debugging').debug("%r returned %d: %s", cmd, ssh_process.returncode, stderr.decode())
+	if ssh_process.wait() != 0:
+		getLogger("userinfo").critical('Fetching the UCR variables from the UCS DC failed.')
 		exit(1)
-	ucr_variables = {}
-	for raw_ucr_variable in stdout.splitlines():
-		key, value = raw_ucr_variable.decode('utf-8', 'replace').strip().split('=', 1)
-		ucr_variables[key] = value
+
+	ucr_variables.pop("hostname", None)
 	return ucr_variables
 
-if __name__ == '__main__':
-	check_if_run_as_root()
-	sudo_uid = os.environ.get('SUDO_UID')
-	if sudo_uid:
-		os.seteuid(int(sudo_uid))
 
-	set_up_logging()
+def parse_args() -> argparse.Namespace:
+	parser = argparse.ArgumentParser(
+		description='Tool for joining a client computer into an UCS domain.'
+	)
+	parser.add_argument('--username', help='User name of a domain administrator')
+	parser.add_argument('--password', help='Password for the domain administrator')
+	parser.add_argument('--password-file', help='Path to a file, containing the password for the domain administrator', metavar="FILE")
+	parser.add_argument('--skip-login-manager', action='store_true', help='Do not configure the login manager')
+	parser.add_argument('--domain', help='Domain name. Can be left out if the domain is configured for this system')
+	parser.add_argument('--dc-ip', help='IP address of the UCS domain controller to join to. Can be used if --domain does not work. If unsure, use the IP of the UCS Master', metavar="IP")
+	parser.add_argument('--force-ucs-dns', action='store_true', help='Change the system\'s DNS settings and set the UCS DC as DNS nameserver (default is to use the standard network settings, but make sure the your system can resolve the hostname of the UCS DC and the UCS master system)')
+	parser.add_argument("--logfile", "-L", help="Path to log file %(default)s", metavar="FILE", default="/var/log/univention/domain-join-cli.log")
+	args = parser.parse_args()
+	return args
+
+
+if __name__ == '__main__':
+	args = parse_args()
+
+	check_if_run_as_root()
+	ruid = int(os.environ.get('SUDO_UID', 0))
+	if ruid:
+		os.setresuid(ruid, ruid, 0)
+
+	set_up_logging(args.logfile)
 
 	try:
-		parser = argparse.ArgumentParser(
-			description='Tool for joining a client computer into an UCS domain.'
-		)
-		parser.add_argument('--username', help='User name of a domain administrator.')
-		parser.add_argument('--password', help='Password for the domain administrator.')
-		parser.add_argument('--password-file', help='Path to a file, containing the password for the domain administrator.')
-		parser.add_argument('--skip-login-manager', action='store_true', help='Do not configure the login manager.')
-		parser.add_argument('--domain', help='Domain name. Can be left out if the domain is configured for this system.')
-		parser.add_argument('--dc-ip', help='IP address of the UCS domain controller to join to. Can be used if --domain does not work. If unsure, use the IP of the UCS Master.')
-		parser.add_argument('--force-ucs-dns', action='store_true', help='Change the system\'s DNS settings and set the UCS DC as DNS nameserver (default is to use the standard network settings, but make sure the your system can resolve the hostname of the UCS DC and the UCS master system)')
-		args = parser.parse_args()
-
 		if not args.dc_ip:
 			if not args.domain:
 				args.domain = get_ucs_domainname()
-				userinfo_logger.info('Automatically detected the domain %r.' % (args.domain))
+				getLogger("userinfo").info('Automatically detected the domain %r.' % (args.domain))
 			if not args.domain:
-				userinfo_logger.critical(
+				getLogger("userinfo").critical(
 					'Unable to determine the UCS domain automatically. Please provide '
 					'it using the --domain parameter or use the tool with --dc-ip.'
 				)
 				exit(1)
 			args.dc_ip = get_master_ip_through_dns(args.domain)
 			if not args.dc_ip:
-				userinfo_logger.critical(
+				getLogger("userinfo").critical(
 					'No DNS record for the DC master could be found. Please make sure that '
 					'the DC master is the DNS server for this computer or use this tool with --dc-ip.'
 				)
@@ -178,7 +181,7 @@ if __name__ == '__main__':
 				with open(args.password_file) as password_file:
 					password = password_file.read().strip()
 			except IOError:
-				userinfo_logger.error('Error: The password file could not be read.')
+				getLogger("userinfo").error('Error: The password file could not be read.')
 				password = None
 		else:
 			password = None
@@ -188,6 +191,6 @@ if __name__ == '__main__':
 		distribution_joiner.create_backup_of_config_files()
 		distribution_joiner.join_domain()
 	except Exception as e:
-		userinfo_logger.critical('An error occurred: %s. Please check %s for more information.' % (str(e), debugging_logger.handlers[0].baseFilename,))
-		debugging_logger.critical(e, exc_info=True)
+		getLogger("userinfo").critical('An error occurred: %s. Please check %s for more information.' % (e, args.logfile))
+		getLogger("debugging").critical(e, exc_info=True)
 		exit(1)

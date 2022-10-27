@@ -2,7 +2,7 @@
 #
 # Univention Domain Join
 #
-# Copyright 2017-2018 Univention GmbH
+# Copyright 2017-2022 Univention GmbH
 #
 # http://www.univention.de/
 #
@@ -29,20 +29,18 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-from shutil import copyfile
 import logging
 import os
 import subprocess
+from shutil import copyfile
 
 from univention_domain_join.utils.general import execute_as_root
-
-OUTPUT_SINK = open(os.devnull, 'w')
 
 userinfo_logger = logging.getLogger('userinfo')
 
 
 class ConflictChecker(object):
-	def configuration_conflicts(self):
+	def configuration_conflicts(self) -> bool:
 		login_manager = self.determin_used_login_manager()
 		if login_manager in ['lightdm', 'gdm3', 'sddm']:
 			return False
@@ -55,7 +53,7 @@ class ConflictChecker(object):
 			userinfo_logger.error('       This error can be avoided by using the --skip-login-manager parameter.')
 		return True
 
-	def determin_used_login_manager(self):
+	def determin_used_login_manager(self) -> str:
 		with open('/etc/X11/default-display-manager', 'r') as login_manager_file:
 			login_manager = os.path.basename(login_manager_file.read()).strip()
 
@@ -67,19 +65,19 @@ class ConflictChecker(object):
 
 		return login_manager
 
-	def lightdm_config_file_exists(self):
+	def lightdm_config_file_exists(self) -> bool:
 		if os.path.isfile('/etc/lightdm/lightdm.conf.d/99-show-manual-userlogin.conf'):
 			userinfo_logger.warn('Warning: /etc/lightdm/lightdm.conf.d/99-show-manual-userlogin.conf already exists.')
 			return True
 		return False
 
-	def kde_greeter_is_installed(self):
+	def kde_greeter_is_installed(self) -> bool:
 		return 0 == subprocess.call(
 			['dpkg', '-s', 'lightdm-kde-greeter'],
-			stdout=OUTPUT_SINK, stderr=OUTPUT_SINK
+			stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
 		)
 
-	def theme_with_accountsservice_is_ok(self):
+	def theme_with_accountsservice_is_ok(self) -> bool:
 		if os.path.isfile('/etc/lightdm/lightdm-kde-greeter.conf'):
 			with open('/etc/lightdm/lightdm-kde-greeter.conf', 'r') as greeter_config_file:
 				for line in greeter_config_file:
@@ -93,21 +91,21 @@ class ConflictChecker(object):
 class LoginManagerConfigurator(ConflictChecker):
 
 	@execute_as_root
-	def backup(self, backup_dir):
+	def backup(self, backup_dir: str) -> None:
 		if self.lightdm_config_file_exists():
-			os.makedirs(os.path.join(backup_dir, 'etc/lightdm/lightdm.conf.d'))
+			os.makedirs(os.path.join(backup_dir, 'etc/lightdm/lightdm.conf.d'), exist_ok=True)
 			copyfile(
 				'/etc/lightdm/lightdm.conf.d/99-show-manual-userlogin.conf',
 				os.path.join(backup_dir, 'etc/lightdm/lightdm.conf.d/99-show-manual-userlogin.conf')
 			)
 
-	def enable_login_with_foreign_usernames(self):
+	def enable_login_with_foreign_usernames(self) -> None:
 		login_manager = self.determin_used_login_manager()
 		if login_manager == 'lightdm':
 			self.enable_login_with_foreign_usernames_for_lightdm()
 
 	@execute_as_root
-	def enable_login_with_foreign_usernames_for_lightdm(self):
+	def enable_login_with_foreign_usernames_for_lightdm(self) -> None:
 		userinfo_logger.info('Writing /etc/lightdm/lightdm.conf.d/99-show-manual-userlogin.conf ')
 
 		lightdm_config = \
@@ -115,8 +113,6 @@ class LoginManagerConfigurator(ConflictChecker):
 			'greeter-show-manual-login=true\n' \
 			'greeter-hide-users=true\n'
 
-		if not os.path.exists('/etc/lightdm/lightdm.conf.d'):
-			os.mkdir('/etc/lightdm/lightdm.conf.d')
-
+		os.makedirs('/etc/lightdm/lightdm.conf.d', exist_ok=True)
 		with open('/etc/lightdm/lightdm.conf.d/99-show-manual-userlogin.conf', 'w') as conf_file:
 			conf_file.write(lightdm_config)

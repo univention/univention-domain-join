@@ -1,3 +1,9 @@
+univention-domain-join (1.0-27ubuntu1) focal; urgency=medium
+
+  * Bug #52726: Fix resolving DC Primrary address
+
+ -- Philipp Hahn <hahn@univention.de>  Thu, 27 Oct 2022 16:18:16 +0200
+
 univention-domain-join (1.0-26ubuntu1) focal; urgency=medium
 
   * Bug #53025: Specify GSSAPI Mechanism in ldapsearch so that a

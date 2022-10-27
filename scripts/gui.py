@@ -509,12 +509,10 @@ class JoinThread(QThread):
 
 if __name__ == '__main__':
 	check_if_run_as_root()
-	sudo_uid = os.environ.get('SUDO_UID')
-	pkexec_uid = os.environ.get('PKEXEC_UID')
-	if pkexec_uid:
-		os.seteuid(int(pkexec_uid))
-	elif sudo_uid:
-		os.seteuid(int(sudo_uid))
+	ruid = int(os.environ.get('PKEXEC_UID', 0)) or int(os.environ.get('SUDO_UID', 0))
+	if ruid:
+		os.setresuid(ruid, ruid, 0)
+
 	set_up_logging(LOG)
 	app = QApplication.setSetuidAllowed(True)
 	app = QApplication(sys.argv)

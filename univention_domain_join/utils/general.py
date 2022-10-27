@@ -42,12 +42,12 @@ F = TypeVar('F', bound=Callable[..., Any])
 def execute_as_root(func: F) -> F:
 	@wraps(func)
 	def root_wrapper(*args: Any, **kwargs: Any) -> Any:
-		old_euid = os.geteuid()
-		os.seteuid(0)
+		(ruid, euid, suid) = os.getresuid()
+		os.setresuid(0, 0, suid)
 		try:
 			return_value = func(*args, **kwargs)
 		finally:
-			os.seteuid(old_euid)
+			os.setresuid(ruid, euid, suid)
 		return return_value
 	return cast(F, root_wrapper)
 

@@ -87,7 +87,7 @@ upload:gitlab:
         path: ucc/pgp/production/key
         field: secret
   script:
-    - install -o rooot -g root -m 0755 -d /var/log/apt
+    - install -o root -g root -m 0755 -d /var/log/apt
     - apt-get -qq update
     - apt-get -q --assume-yes --no-install-recommends install gpg devscripts python3-distro-info
     - gpg --batch --pinentry-mode loopback --passphrase-file "$GPG_SECRET" --import "$GPG_PRIVATE"

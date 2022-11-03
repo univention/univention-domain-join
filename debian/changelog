@@ -2,7 +2,7 @@ univention-domain-join (1.0-27ubuntu1) focal; urgency=medium
 
   * Bug #52726: Fix resolving DC Primrary address
 
- -- Philipp Hahn <hahn@univention.de>  Thu, 03 Nov 2022 14:29:05 +0100
+ -- Philipp Hahn <hahn@univention.de>  Thu, 03 Nov 2022 16:17:06 +0100
 
 univention-domain-join (1.0-26ubuntu1) focal; urgency=medium
 

@@ -77,17 +77,17 @@ upload:gitlab:
         engine:
           name: kv-v2
           path: secret
-        path: secret/ucc/pgp/production/key
+        path: ucc/pgp/production/key
         field: private
     GPG_SECRET:
       vault:
         engine:
           name: kv-v2
           path: secret
-        path: secret/ucc/pgp/production/key
+        path: ucc/pgp/production/key
         field: secret
   script:
-    - mkdir -p /var/log/apt
+    - install -o rooot -g root -m 0755 -d /var/log/apt
     - apt-get -qq update
     - apt-get -q --assume-yes --no-install-recommends install gpg devscripts python3-distro-info
     - gpg --batch --pinentry-mode loopback --passphrase-file "$GPG_SECRET" --import "$GPG_PRIVATE"

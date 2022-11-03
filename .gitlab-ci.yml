@@ -48,29 +48,27 @@ deb:
     paths:
       - "*univention-domain-join*_*.*"
 
-deploy:
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_PROTECTED == "true"
+.upload:
   interruptible: no
   variables:
     GIT_STRATEGY: none
   needs:
     - job: lint
+      artifacts: false
     - job: deb
   image: docker-registry.knut.univention.de/knut/dput
+
+upload:gitlab:
+  extends: .upload
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_PROTECTED == "true"
   script:
     - dput --force gitlab univention-domain-join_*_source.changes
     - dput --force gitlab univention-domain-join_*_amd64.changes
 
-upload:
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_PROTECTED == "true"
-      changes:
-        - debian/changelog
-      when: manual
-  interruptible: no
+.launchpad:
+  extends: .upload
   variables:
-    GIT_STRATEGY: none
     KEY: D523B8FD547C464C9EA89D5B5E9F163B66AA3A17  # Univention Corporate Client archive key <packages@univention.de>
     VAULT_AUTH_ROLE: ubuntu-ppa
   secrets:
@@ -88,15 +86,29 @@ upload:
           path: secret
         path: secret/ucc/pgp/production/key
         field: secret
-  needs:
-    - job: lint
-      artifacts: false
-    - job: deb
-  image: docker-registry.knut.univention.de/knut/dput
   script:
     - mkdir -p /var/log/apt
     - apt-get -qq update
     - apt-get -q --assume-yes --no-install-recommends install gpg devscripts python3-distro-info
     - gpg --batch --pinentry-mode loopback --passphrase-file "$GPG_SECRET" --import "$GPG_PRIVATE"
     - debsign --no-conf --no-re-sign -p "gpg --batch --pinentry-mode loopback --passphrase-file $GPG_SECRET" -k "$KEY" univention-domain-join_*_source.changes
-    - dput ppa:univention-dev/ppa univention-domain-join_*_source.changes
+    - dput "ppa:$PPA" univention-domain-join_*_source.changes
+
+upload:testing:
+  extends: .launchpad
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+      changes:
+        - debian/changelog
+  variables:
+    PPA: univention-dev/testing
+
+upload:public:
+  extends: .launchpad
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_PROTECTED == "true"
+      changes:
+        - debian/changelog
+      when: manual
+  variables:
+    PPA: univention-dev/ppa

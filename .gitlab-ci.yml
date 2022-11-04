@@ -1,0 +1,114 @@
+variables:
+  LANG: "C.UTF-8"
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_OPEN_MERGE_REQUESTS
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_PROTECTED == "true"
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_PIPELINE_SOURCE == "webide"
+
+lint:
+  image: python:3.8-slim-bullseye
+  variables:
+    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  cache:
+    paths:
+      - .cache/pip
+      - venv/
+  before_script:
+    - printf '\e[0Ksection_start:%d:%s[collapsed=true]\r\e[0K%s\n' "$(date +%s)" apt 'Install dependencies'
+    - python -V  # Print out python version for debugging
+    - pip install virtualenv
+    - virtualenv venv
+    - . venv/bin/activate
+    - pip install .[dev] --trusted-host git.knut.univention.de --find-links https://git.knut.univention.de/api/v4/projects/590/packages/pypi/simple/python-ldap/
+    - printf '\e[0Ksection_end:%d:%s\r\e[0K\n' "$(date +%s)" apt
+  script:
+    - flake8
+    - isort .
+    - mypy
+
+deb:
+  image: ubuntu:22.04
+  variables:
+    DEBIAN_FRONTEND: noninteractive
+  before_script:
+    - printf '\e[0Ksection_start:%d:%s[collapsed=true]\r\e[0K%s\n' "$(date +%s)" apt 'Install dependencies'
+    - apt-get -qq update
+    - apt-get -q --assume-yes install build-essential
+    - apt-get -q --assume-yes build-dep .
+    - printf '\e[0Ksection_end:%d:%s\r\e[0K\n' "$(date +%s)" apt
+    - find -exec touch -m -h -c -d "@${SOURCE_DATE_EPOCH:-$(dpkg-parsechangelog -STimestamp)}" {} +
+  script:
+    - dpkg-buildpackage --no-sign -S
+    - dpkg-buildpackage --no-sign -b
+    - mv ../*univention-domain-join*_*.* .
+  artifacts:
+    paths:
+      - "*univention-domain-join*_*.*"
+
+.upload:
+  interruptible: no
+  variables:
+    GIT_STRATEGY: none
+  needs:
+    - job: lint
+      artifacts: false
+    - job: deb
+  image: docker-registry.knut.univention.de/knut/dput
+
+upload:gitlab:
+  extends: .upload
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_PROTECTED == "true"
+  script:
+    - dput --force gitlab univention-domain-join_*_source.changes
+    - dput --force gitlab univention-domain-join_*_amd64.changes
+
+.launchpad:
+  extends: .upload
+  variables:
+    KEY: D523B8FD547C464C9EA89D5B5E9F163B66AA3A17  # Univention Corporate Client archive key <packages@univention.de>
+    VAULT_AUTH_ROLE: ubuntu-ppa
+  secrets:
+    GPG_PRIVATE:
+      vault:
+        engine:
+          name: kv-v2
+          path: secret
+        path: ucc/pgp/production/key
+        field: private
+    GPG_SECRET:
+      vault:
+        engine:
+          name: kv-v2
+          path: secret
+        path: ucc/pgp/production/key
+        field: secret
+  script:
+    - install -o root -g root -m 0755 -d /var/log/apt
+    - apt-get -qq update
+    - apt-get -q --assume-yes --no-install-recommends install gpg devscripts python3-distro-info
+    - gpg --batch --pinentry-mode loopback --passphrase-file "$GPG_SECRET" --import "$GPG_PRIVATE"
+    - debsign --no-conf --no-re-sign -p "gpg --batch --pinentry-mode loopback --passphrase-file $GPG_SECRET" -k "$KEY" univention-domain-join_*_source.changes
+    - dput "ppa:$PPA" univention-domain-join_*_source.changes
+
+upload:testing:
+  extends: .launchpad
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+      changes:
+        - debian/changelog
+  variables:
+    PPA: univention-dev/testing
+
+upload:public:
+  extends: .launchpad
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_PROTECTED == "true"
+      changes:
+        - debian/changelog
+      when: manual
+  variables:
+    PPA: univention-dev/ppa

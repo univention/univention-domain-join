@@ -2,7 +2,7 @@
 #
 # Univention Domain Join
 #
-# Copyright 2017-2018 Univention GmbH
+# Copyright 2017-2022 Univention GmbH
 #
 # http://www.univention.de/
 #
@@ -29,41 +29,27 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-from PyQt5.QtCore import QRegExp
-from PyQt5.QtCore import QThread
-from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import QAction
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtGui import QFontMetrics
-from PyQt5.QtWidgets import QFrame
-from PyQt5.QtWidgets import QHBoxLayout
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QLabel
-from PyQt5.QtWidgets import QLineEdit
-from PyQt5.QtWidgets import QMainWindow
-from PyQt5.QtWidgets import QMenuBar
-from PyQt5.QtWidgets import QMessageBox
-from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import QPushButton
-from PyQt5.QtGui import QRegExpValidator
-from PyQt5.QtWidgets import QVBoxLayout
-from PyQt5.QtWidgets import QWidget
-from PyQt5.QtWidgets import QCheckBox
 import importlib
 import logging
 import os
 import subprocess
 import sys
+from logging import getLogger
+from typing import Dict, Optional, Tuple
 
+from PyQt5.QtCore import QRegExp, QThread, pyqtSignal
+from PyQt5.QtGui import QFontMetrics, QIcon, QPixmap, QRegExpValidator
+from PyQt5.QtWidgets import QAction, QApplication, QBoxLayout, QCheckBox, QFrame, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMenuBar, QMessageBox, QPushButton, QVBoxLayout, QWidget
+
+from univention_domain_join.distributions import AbstractJoiner
 from univention_domain_join.utils.distributions import get_distribution
-from univention_domain_join.utils.domain import get_master_ip_through_dns
-from univention_domain_join.utils.domain import get_ucs_domainname
-from univention_domain_join.utils.general import execute_as_root
+from univention_domain_join.utils.domain import get_master_ip_through_dns, get_ucs_domainname
+from univention_domain_join.utils.general import execute_as_root, ssh
 
-OUTPUT_SINK = open(os.devnull, 'w')
+LOG = '/var/log/univention/domain-join-gui.log'
 
 
-def check_if_run_as_root():
+def check_if_run_as_root() -> None:
 	if os.getuid() != 0:
 		app = QApplication(sys.argv)
 		form = NotRootDialog()
@@ -72,15 +58,12 @@ def check_if_run_as_root():
 
 
 @execute_as_root
-def set_up_logging():
-	global userinfo_logger
-
+def set_up_logging(logfile: str) -> None:
 	verbose_formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s %(message)s')
 	plain_formatter = logging.Formatter('%(message)s')
 
-	if not os.path.exists('/var/log/univention/'):
-		os.makedirs('/var/log/univention/')
-	logfile_handler = logging.FileHandler('/var/log/univention/domain-join-gui.log')
+	os.makedirs(os.path.dirname(logfile), exist_ok=True)
+	logfile_handler = logging.FileHandler(logfile)
 	logfile_handler.setLevel(logging.DEBUG)
 	logfile_handler.setFormatter(verbose_formatter)
 
@@ -107,8 +90,8 @@ class DistributionException(Exception):
 
 
 class NotRootDialog(QMessageBox):
-	def __init__(self):
-		super(self.__class__, self).__init__()
+	def __init__(self) -> None:
+		super().__init__()
 		self.setWindowTitle('Univention Domain Join')
 		scriptDir = os.path.dirname(os.path.realpath(__file__))
 		self.setWindowIcon(QIcon(scriptDir + os.path.sep + 'univention_icon.svg'))
@@ -117,8 +100,8 @@ class NotRootDialog(QMessageBox):
 
 class DomainJoinGui(QMainWindow):
 
-	def __init__(self):
-		super(self.__class__, self).__init__()
+	def __init__(self) -> None:
+		super().__init__()
 
 		self.regex_ipv4 = r'(25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})(\.(25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})){3}'
 		self.regex_ipv6 = r'(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))'
@@ -136,7 +119,7 @@ class DomainJoinGui(QMainWindow):
 		self.setTabOrder(self.domainname_or_ip_input, self. admin_username_input)
 		self.setTabOrder(self.admin_username_input, self.admin_password_input)
 
-	def build_main_window(self):
+	def build_main_window(self) -> None:
 		main_layout = QVBoxLayout()
 
 		self.add_menu_bar()
@@ -151,7 +134,7 @@ class DomainJoinGui(QMainWindow):
 		central_widget.setLayout(main_layout)
 		self.setCentralWidget(central_widget)
 
-	def add_menu_bar(self):
+	def add_menu_bar(self) -> None:
 		menu_bar = QMenuBar(self)
 
 		help_menu = menu_bar.addMenu('Help')
@@ -161,7 +144,7 @@ class DomainJoinGui(QMainWindow):
 
 		self.setMenuBar(menu_bar)
 
-	def about(self):
+	def about(self) -> None:
 		self.about_dialog = QMessageBox.about(
 			self, 'About',
 			'<h1>Univention Domain Join</h1>'
@@ -172,7 +155,7 @@ class DomainJoinGui(QMainWindow):
 			'<p>Copyright: <a href="https://www.univention.com">Univention GmbH</a></p>'
 		)
 
-	def add_general_description_group(self, layout):
+	def add_general_description_group(self, layout: QBoxLayout) -> None:
 		description_group = QWidget()
 		description_group_layout = QHBoxLayout()
 		self.add_general_description(description_group_layout)
@@ -181,7 +164,7 @@ class DomainJoinGui(QMainWindow):
 		description_group.setLayout(description_group_layout)
 		layout.addWidget(description_group)
 
-	def add_general_description(self, layout):
+	def add_general_description(self, layout: QBoxLayout) -> None:
 		short_description = QLabel(
 			'<h3>Univention Domain Join Assistant</h3>'
 			'<p>Use this tool to configure this computer to be part of your UCS domain.</p>'
@@ -191,18 +174,18 @@ class DomainJoinGui(QMainWindow):
 		short_description.setWordWrap(True)
 		layout.addWidget(short_description, stretch=10)
 
-	def add_domain_join_icon(self, layout):
+	def add_domain_join_icon(self, layout: QBoxLayout) -> None:
 		icon = QLabel()
 		scriptDir = os.path.dirname(os.path.realpath(__file__))
 		icon.setPixmap(QPixmap(scriptDir + os.path.sep + 'domain.png'))
 		layout.addWidget(icon)
 
-	def add_hline(self, layout):
+	def add_hline(self, layout: QBoxLayout) -> None:
 		frame = QFrame()
 		frame.setFrameShape(QFrame.HLine)
 		layout.addWidget(frame)
 
-	def add_inputs_group(self, layout):
+	def add_inputs_group(self, layout: QBoxLayout) -> None:
 		inputs_box = QWidget()
 		inputs_box_layout = QVBoxLayout()
 		self.add_inputs_description(inputs_box_layout)
@@ -213,7 +196,7 @@ class DomainJoinGui(QMainWindow):
 		inputs_box.setLayout(inputs_box_layout)
 		layout.addWidget(inputs_box)
 
-	def add_inputs_description(self, layout):
+	def add_inputs_description(self, layout: QBoxLayout) -> None:
 		inputs_description = QLabel(
 			'To perform the domain join you need to provide the domain name or '
 			'the IP address of an UCS DC and the credentials of a domain administrator.'
@@ -221,7 +204,7 @@ class DomainJoinGui(QMainWindow):
 		inputs_description.setWordWrap(True)
 		layout.addWidget(inputs_description)
 
-	def add_domainname_or_ip_input(self, layout):
+	def add_domainname_or_ip_input(self, layout: QBoxLayout) -> None:
 		short_description = QLabel('Domain name or IP address:')
 		short_description.setWordWrap(True)
 		layout.addWidget(short_description)
@@ -236,14 +219,14 @@ class DomainJoinGui(QMainWindow):
 		layout.addWidget(self.domainname_or_ip_input)
 		self.try_filling_in_domainname()
 
-	def try_filling_in_domainname(self):
+	def try_filling_in_domainname(self) -> None:
 		self.domainname_thread = DomainnameDetectionThread()
 		self.domainname_or_ip_input.setPlaceholderText('Detecting domain name...')
 		self.domainname_thread.domain['QString'].connect(self.domainname_detection_successful)
 		self.domainname_thread.finished.connect(self.domainname_detection_finished)
 		self.domainname_thread.start()
 
-	def domainname_detection_successful(self, domainname):
+	def domainname_detection_successful(self, domainname: str) -> None:
 		domainname_qregex = QRegExp(self.regex_domainname)
 		# self.domainname_or_ip_input.text() is used to make sure the user
 		# didn't fill in the field already.
@@ -251,10 +234,10 @@ class DomainJoinGui(QMainWindow):
 			self.domainname_or_ip_input.setText(domainname)
 			self.admin_password_input.setFocus()
 
-	def domainname_detection_finished(self):
+	def domainname_detection_finished(self) -> None:
 		self.domainname_or_ip_input.setPlaceholderText('e.g. mydomain.com or 10.0.0.4')
 
-	def add_username_input(self, layout):
+	def add_username_input(self, layout: QBoxLayout) -> None:
 		short_description = QLabel('Domain administrator\'s username:')
 		short_description.setWordWrap(True)
 		layout.addWidget(short_description)
@@ -267,14 +250,14 @@ class DomainJoinGui(QMainWindow):
 		self.admin_username_input.setValidator(username_validator)
 		layout.addWidget(self.admin_username_input)
 
-	def add_force_ucs_dns(self, layout):
+	def add_force_ucs_dns(self, layout: QBoxLayout) -> None:
 		short_description = QLabel('Change the system\'s DNS settings and set the UCS DC as DNS nameserver (default is to use the standard network settings, but make sure the your system can resolve the hostname of the UCS DC and the UCS master system)')
 		short_description.setWordWrap(True)
 		layout.addWidget(short_description)
 		self.force_ucs_dns_input = QCheckBox('Set UCS DC as DNS server')
 		layout.addWidget(self.force_ucs_dns_input)
 
-	def add_password_input(self, layout):
+	def add_password_input(self, layout: QBoxLayout) -> None:
 		short_description = QLabel('Domain administrator\'s password:')
 		short_description.setWordWrap(True)
 		layout.addWidget(short_description)
@@ -288,7 +271,7 @@ class DomainJoinGui(QMainWindow):
 		self.admin_password_input.setValidator(password_validator)
 		layout.addWidget(self.admin_password_input)
 
-	def add_buttons(self, layout):
+	def add_buttons(self, layout: QBoxLayout) -> None:
 		button_widget = QWidget()
 		button_layout = QHBoxLayout()
 		button_layout.addStretch()
@@ -302,25 +285,23 @@ class DomainJoinGui(QMainWindow):
 		button_widget.setLayout(button_layout)
 		layout.addWidget(button_widget)
 
-	def join_domain_if_inputs_are_ok(self):
+	def join_domain_if_inputs_are_ok(self) -> None:
 		if (
 			self.domainname_or_ip_input.hasAcceptableInput() and
 			self.admin_username_input.hasAcceptableInput() and
 			self.admin_password_input.hasAcceptableInput()
 		):
 			dc_ip, domain = self.get_domainname_or_dc_ip()
-			if not dc_ip:
+			if not dc_ip and domain:
 				dc_ip = get_master_ip_through_dns(domain)
-				if dc_ip is None:
-					self.missing_inputs_dialog = DnsNotWorkingDialog()
-					self.missing_inputs_dialog.exec_()
-					return
+			if not dc_ip:
+				DnsNotWorkingDialog().exec_()
+				return
 			self.join_domain(dc_ip, str(self.admin_username_input.text()), str(self.admin_password_input.text()), self.force_ucs_dns_input.isChecked())
 		else:
-			self.missing_inputs_dialog = MissingInputsDialog()
-			self.missing_inputs_dialog.exec_()
+			MissingInputsDialog().exec_()
 
-	def get_domainname_or_dc_ip(self):
+	def get_domainname_or_dc_ip(self) -> Tuple[Optional[str], Optional[str]]:
 		input_text = self.domainname_or_ip_input.text()
 		domainname_qregex = QRegExp(self.regex_domainname)
 		ip_qregex = QRegExp('%s|%s' % (self.regex_ipv4, self.regex_ipv6))
@@ -331,7 +312,7 @@ class DomainJoinGui(QMainWindow):
 		else:
 			return None, None
 
-	def join_domain(self, dc_ip, admin_username, admin_pw, force_ucs_dns):
+	def join_domain(self, dc_ip: str, admin_username: str, admin_pw: str, force_ucs_dns: bool) -> None:
 		self.join_thread = JoinThread(dc_ip, admin_username, admin_pw, force_ucs_dns)
 		self.join_thread.join_started.connect(self.join_started)
 		self.join_thread.join_successful.connect(self.join_successful)
@@ -340,43 +321,39 @@ class DomainJoinGui(QMainWindow):
 		self.join_thread.dist_failed.connect(self.dist_failed)
 		self.join_thread.start()
 
-	def join_started(self):
+	def join_started(self) -> None:
 		self.join_button.setText('Joining...')
 		self.join_button.setEnabled(False)
 		self.cancel_button.setEnabled(False)
 
-	def join_successful(self):
+	def join_successful(self) -> None:
 		self.join_button.setText('Join')
 		self.cancel_button.setText('Close')
 		self.cancel_button.setEnabled(True)
-		self.successful_join_dialog = SuccessfulJoinDialog()
-		self.successful_join_dialog.exec_()
+		SuccessfulJoinDialog().exec_()
 
-	def join_failed(self, err):
+	def join_failed(self, err: str) -> None:
 		self.join_button.setText('Join')
 		self.join_button.setEnabled(True)
 		self.cancel_button.setEnabled(True)
-		self.successful_join_dialog = FailedJoinDialog(err)
-		self.successful_join_dialog.exec_()
+		FailedJoinDialog(err).exec_()
 
-	def ssh_failed(self):
+	def ssh_failed(self) -> None:
 		self.join_button.setText('Join')
 		self.join_button.setEnabled(True)
 		self.cancel_button.setEnabled(True)
-		self.successful_join_dialog = FailedSSHDialog()
-		self.successful_join_dialog.exec_()
+		FailedSSHDialog().exec_()
 
-	def dist_failed(self):
+	def dist_failed(self) -> None:
 		self.join_button.setText('Join')
 		self.join_button.setEnabled(False)
 		self.cancel_button.setEnabled(True)
-		self.successful_join_dialog = FailedDistDialog()
-		self.successful_join_dialog.exec_()
+		FailedDistDialog().exec_()
 
 
 class SuccessfulJoinDialog(QMessageBox):
-	def __init__(self):
-		super(self.__class__, self).__init__()
+	def __init__(self) -> None:
+		super().__init__()
 		self.setWindowTitle('Successful Join')
 		scriptDir = os.path.dirname(os.path.realpath(__file__))
 		self.setWindowIcon(QIcon(scriptDir + os.path.sep + 'univention_icon.svg'))
@@ -384,20 +361,20 @@ class SuccessfulJoinDialog(QMessageBox):
 
 
 class FailedJoinDialog(QMessageBox):
-	def __init__(self, err):
-		super(self.__class__, self).__init__()
+	def __init__(self, err: str) -> None:
+		super().__init__()
 		self.setWindowTitle('Failed Join')
 		scriptDir = os.path.dirname(os.path.realpath(__file__))
 		self.setWindowIcon(QIcon(scriptDir + os.path.sep + 'univention_icon.svg'))
 		self.setStyleSheet("QMessageBox { messagebox-text-interaction-flags: 5; }")
 		self.setText(
-			'The domain join failed: {} For further information look at univention-domain-join-gui.log in the user home directory'.format(err)
+			'The domain join failed: {} For further information look at {}'.format(err, LOG)
 		)
 
 
 class FailedSSHDialog(QMessageBox):
-	def __init__(self):
-		super(self.__class__, self).__init__()
+	def __init__(self) -> None:
+		super().__init__()
 		self.setWindowTitle('SSH Connection Failed')
 		scriptDir = os.path.dirname(os.path.realpath(__file__))
 		self.setWindowIcon(QIcon(scriptDir + os.path.sep + 'univention_icon.svg'))
@@ -407,8 +384,8 @@ class FailedSSHDialog(QMessageBox):
 
 
 class FailedDistDialog(QMessageBox):
-	def __init__(self):
-		super(self.__class__, self).__init__()
+	def __init__(self) -> None:
+		super().__init__()
 		self.setWindowTitle('Distribution Check Failed')
 		scriptDir = os.path.dirname(os.path.realpath(__file__))
 		self.setWindowIcon(QIcon(scriptDir + os.path.sep + 'univention_icon.svg'))
@@ -418,8 +395,8 @@ class FailedDistDialog(QMessageBox):
 
 
 class MissingInputsDialog(QMessageBox):
-	def __init__(self):
-		super(self.__class__, self).__init__()
+	def __init__(self) -> None:
+		super().__init__()
 		self.setWindowTitle('Missing Inputs')
 		scriptDir = os.path.dirname(os.path.realpath(__file__))
 		self.setWindowIcon(QIcon(scriptDir + os.path.sep + 'univention_icon.svg'))
@@ -430,8 +407,8 @@ class MissingInputsDialog(QMessageBox):
 
 
 class DnsNotWorkingDialog(QMessageBox):
-	def __init__(self):
-		super(self.__class__, self).__init__()
+	def __init__(self) -> None:
+		super().__init__()
 		self.setWindowTitle('DNS Not Working')
 		scriptDir = os.path.dirname(os.path.realpath(__file__))
 		self.setWindowIcon(QIcon(scriptDir + os.path.sep + 'univention_icon.svg'))
@@ -445,7 +422,7 @@ class DnsNotWorkingDialog(QMessageBox):
 class DomainnameDetectionThread(QThread):
 	domain = pyqtSignal('QString')
 
-	def run(self):
+	def run(self) -> None:
 		domainname = get_ucs_domainname()
 		if domainname:
 			self.domain.emit(domainname)
@@ -458,14 +435,14 @@ class JoinThread(QThread):
 	join_failed = pyqtSignal('QString')
 	join_successful = pyqtSignal()
 
-	def __init__(self, dc_ip, admin_username, admin_pw, force_ucs_dns):
-		super(self.__class__, self).__init__()
+	def __init__(self, dc_ip: str, admin_username: str, admin_pw: str, force_ucs_dns: bool) -> None:
+		super().__init__()
 		self.dc_ip = dc_ip
 		self.admin_username = admin_username
 		self.admin_pw = admin_pw
 		self.force_ucs_dns = force_ucs_dns
 
-	def run(self):
+	def run(self) -> None:
 		self.join_started.emit()
 		try:
 			try:
@@ -480,12 +457,12 @@ class JoinThread(QThread):
 			distribution_joiner.create_backup_of_config_files()
 			distribution_joiner.join_domain()
 		except Exception as e:
-			userinfo_logger.critical(e, exc_info=True)
+			getLogger("userinfo").critical(e, exc_info=True)
 			self.join_failed.emit(str(e))
 			return
 		self.join_successful.emit()
 
-	def get_joiner_for_this_distribution(self):
+	def get_joiner_for_this_distribution(self) -> AbstractJoiner:
 		distribution = get_distribution()
 		try:
 			distribution_join_module = importlib.import_module('univention_domain_join.distributions.%s' % (distribution.lower(),))
@@ -495,16 +472,14 @@ class JoinThread(QThread):
 				raise DomainJoinException()
 			return distribution_join_module.Joiner(ucr_variables, self.admin_username, self.admin_pw, self.dc_ip, False, self.force_ucs_dns)
 		except ImportError:
-			userinfo_logger.critical('The used distribution "%s" is not supported.' % (distribution,))
+			getLogger("userinfo").critical('The used distribution "%s" is not supported.' % (distribution,))
 			raise DistributionException()
 
-	@execute_as_root
-	def check_if_ssh_works_with_given_account(self):
-		ssh_process = subprocess.Popen(
-			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (self.admin_username, self.dc_ip), 'echo foo'],
-			stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-		)
-		stdout, stderr = ssh_process.communicate(self.admin_pw.encode())
+	def check_if_ssh_works_with_given_account(self) -> bool:
+		cmd = "true"
+		ssh_process = ssh(self.admin_username, self.admin_pw, self.dc_ip, cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+		_, stderr = ssh_process.communicate()
+		logging.getLogger('debugging').debug("%r returned %d: %s", cmd, ssh_process.returncode, stderr.decode())
 		if ssh_process.returncode != 0:
 			if stderr.decode().strip().endswith(': No route to host'):
 				raise SshException('IP not reachable via SSH.')
@@ -513,32 +488,32 @@ class JoinThread(QThread):
 			return False
 		return True
 
-	@execute_as_root
-	def get_ucr_variables_from_dc(self):
-		ssh_process = subprocess.Popen(
-			['sshpass', '-d0', 'ssh', '-o', 'StrictHostKeyChecking=no', '%s@%s' % (self.admin_username, self.dc_ip), '/usr/sbin/ucr shell | grep -v ^hostname='],
-			stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+	def get_ucr_variables_from_dc(self) -> Optional[Dict[str, str]]:
+		cmd = "/usr/sbin/ucr shell"
+		ssh_process = ssh(self.admin_username, self.admin_pw, self.dc_ip, cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		assert ssh_process.stdout
+		ucr_variables = dict(
+			line.decode("utf-8", "replace").strip().split("=", 1)
+			for line in ssh_process.stdout
 		)
-		stdout, stderr = ssh_process.communicate(self.admin_pw.encode())
-		if ssh_process.returncode != 0:
-			userinfo_logger.critical('Fetching the UCR variables from the UCS DC failed.')
+
+		_, stderr = ssh_process.communicate()
+		logging.getLogger('debugging').debug("%r returned %d: %s", cmd, ssh_process.returncode, stderr.decode())
+		if ssh_process.wait() != 0:
+			getLogger("userinfo").critical('Fetching the UCR variables from the UCS DC failed.')
 			return None
-		ucr_variables = {}
-		for raw_ucr_variable in stdout.decode('utf-8', 'replace').splitlines():
-			key, value = raw_ucr_variable.strip().split('=', 1)
-			ucr_variables[key] = value
+
+		ucr_variables.pop("hostname", None)
 		return ucr_variables
 
 
 if __name__ == '__main__':
 	check_if_run_as_root()
-	sudo_uid = os.environ.get('SUDO_UID')
-	pkexec_uid = os.environ.get('PKEXEC_UID')
-	if pkexec_uid:
-		os.seteuid(int(pkexec_uid))
-	elif sudo_uid:
-		os.seteuid(int(sudo_uid))
-	set_up_logging()
+	ruid = int(os.environ.get('PKEXEC_UID', 0)) or int(os.environ.get('SUDO_UID', 0))
+	if ruid:
+		os.setresuid(ruid, ruid, 0)
+
+	set_up_logging(LOG)
 	app = QApplication.setSetuidAllowed(True)
 	app = QApplication(sys.argv)
 	form = DomainJoinGui()

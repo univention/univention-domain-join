@@ -2,7 +2,7 @@
 #
 # Univention Domain Join
 #
-# Copyright 2017-2018 Univention GmbH
+# Copyright 2017-2022 Univention GmbH
 #
 # http://www.univention.de/
 #
@@ -29,12 +29,6 @@
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
 
-from setuptools import setup, find_packages
+from setuptools import setup
 
-
-setup(
-	name='univention-domain-join',
-	version='1.0',
-	packages=find_packages(),
-	install_requires=['dnspython', 'netifaces', 'IPy']
-)
+setup()

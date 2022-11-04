@@ -2,7 +2,7 @@
 #
 # Univention Domain Join
 #
-# Copyright 2017-2018 Univention GmbH
+# Copyright 2017-2022 Univention GmbH
 #
 # http://www.univention.de/
 #
@@ -31,23 +31,47 @@
 
 import os
 import socket
+import subprocess
+from functools import wraps
+from pipes import quote
+from typing import Any, Callable, List, TypeVar, Union, cast
+
+F = TypeVar('F', bound=Callable[..., Any])
 
 
-def execute_as_root(func):
-	def root_wrapper(*args, **kwargs):
-		old_euid = os.geteuid()
-		os.seteuid(0)
+def execute_as_root(func: F) -> F:
+	@wraps(func)
+	def root_wrapper(*args: Any, **kwargs: Any) -> Any:
+		(ruid, euid, suid) = os.getresuid()
+		os.setresuid(0, 0, suid)
 		try:
 			return_value = func(*args, **kwargs)
 		finally:
-			os.seteuid(old_euid)
+			os.setresuid(ruid, euid, suid)
 		return return_value
-	return root_wrapper
+	return cast(F, root_wrapper)
 
 
-def name_is_resolvable(name):
+def name_is_resolvable(name: str) -> bool:
 	try:
-		socket.gethostbyaddr(name)
-		return True
+		return bool(socket.getaddrinfo(name, 22, socket.AF_UNSPEC, socket.SOCK_STREAM, socket.IPPROTO_TCP))
 	except Exception:
 		return False
+
+
+def ssh(username: str, password: str, hostname: str, command: Union[str, List[str]], **kwargs: Any) -> subprocess.Popen:
+	cmd = [
+		"sshpass",
+		"-e",  # Password is passed as env-var "SSHPASS"
+		"ssh",
+		"-F", "none",
+		# "-o", "BatchMode=yes",  # conflicts with `sshpass`
+		"-o", "StrictHostKeyChecking=no",
+		"-o", "UserKnownHostsFile=/dev/null",
+		"-l", username,
+		hostname,
+		command if isinstance(command, str) else " ".join(quote(arg) for arg in command),
+	]
+	env = dict(kwargs.pop("env", os.environ), SSHPASS=password)
+	proc = subprocess.Popen(cmd, env=env, **kwargs)
+	return proc

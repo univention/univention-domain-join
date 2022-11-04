@@ -2,7 +2,7 @@
 #
 # Univention Domain Join
 #
-# Copyright 2017-2018 Univention GmbH
+# Copyright 2017-2022 Univention GmbH
 #
 # http://www.univention.de/
 #
@@ -30,6 +30,7 @@
 # <http://www.gnu.org/licenses/>.
 
 #DH_VERBOSE=1
+export PYBUILD_NAME=univention-domain-join
 
 # Prevent setuptools/distribute from accessing the internet.
 export http_proxy=http://127.0.0.1:9
@@ -37,4 +38,4 @@ export http_proxy=http://127.0.0.1:9
 # Use the setup.py to prepare the python modules for the
 # python-univention-domain-join binary package.
 %:
-	dh $@ --with python3
+	dh $@ --with python3 --buildsystem=pybuild

@@ -2,7 +2,7 @@
 #
 # Univention Domain Join
 #
-# Copyright 2017-2018 Univention GmbH
+# Copyright 2017-2022 Univention GmbH
 #
 # http://www.univention.de/
 #
@@ -32,5 +32,9 @@
 import subprocess
 
 
-def get_distribution():
+def get_distribution() -> str:
 	return subprocess.check_output(['lsb_release', '-is']).strip().decode()
+
+
+def get_release() -> str:
+	return subprocess.check_output(['lsb_release', '-rs']).strip().decode()

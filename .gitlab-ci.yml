@@ -9,7 +9,7 @@ workflow:
     - if: $CI_PIPELINE_SOURCE == "webide"
 
 lint:
-  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.10-slim-bullseye
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/python:3.10-bullseye
   variables:
     PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
   cache:
@@ -18,11 +18,13 @@ lint:
       - venv/
   before_script:
     - printf '\e[0Ksection_start:%d:%s[collapsed=true]\r\e[0K%s\n' "$(date +%s)" apt 'Install dependencies'
+    - apt-get -qq update
+    - apt-get -q install --assume-yes libdbus-1-dev libldap2-dev libsasl2-dev
     - python -V  # Print out python version for debugging
     - pip install virtualenv
     - virtualenv venv
     - . venv/bin/activate
-    - pip install .[dev] --trusted-host git.knut.univention.de --find-links https://git.knut.univention.de/api/v4/projects/590/packages/pypi/simple/python-ldap/
+    - pip install .[dev]
     - printf '\e[0Ksection_end:%d:%s\r\e[0K\n' "$(date +%s)" apt
   script:
     - flake8

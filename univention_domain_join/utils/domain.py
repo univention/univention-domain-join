@@ -31,7 +31,7 @@
 
 import socket
 import subprocess
-from typing import List, Set
+from typing import Iterable, List, Set
 
 import dns.resolver
 import IPy
@@ -66,27 +66,11 @@ def get_ucs_domainname_via_local_configuration() -> str:
 
 
 def get_ucs_domainname_via_reverse_dns() -> str:
-	ip_addresses = get_all_ip_addresses()
-	possible_ucs_domainnames = set()
-	for ip_address in ip_addresses:
-		domainname = get_ucs_domainname_from_fqdn(socket.getfqdn(ip_address))
-		if domainname:
-			possible_ucs_domainnames.add(domainname)
-	if len(possible_ucs_domainnames) == 1:
-		return possible_ucs_domainnames.pop()
-	return ""
+	return ips2name(get_all_ip_addresses())
 
 
 def get_ucs_domainname_of_dns_server() -> str:
-	nameservers = get_nameservers()
-	possible_ucs_domainnames = set()
-	for nameserver in nameservers:
-		domainname = get_ucs_domainname_from_fqdn(socket.getfqdn(nameserver))
-		if domainname:
-			possible_ucs_domainnames.add(domainname)
-	if len(possible_ucs_domainnames) == 1:
-		return possible_ucs_domainnames.pop()
-	return ""
+	return ips2name(get_nameservers())
 
 
 def get_nameservers() -> Set[str]:
@@ -143,6 +127,15 @@ def get_ipv6_addresses(interface: str) -> List[str]:
 			if '%' not in ipv6_address['addr']:
 				short_addresses.append(ipv6_address['addr'])
 	return short_addresses
+
+
+def ips2name(addrs: Iterable[str]) -> str:
+	for addr in addrs:
+		fqdn = socket.getfqdn(addr)
+		domainname = get_ucs_domainname_from_fqdn(fqdn)
+		if domainname:
+			return domainname
+	return ""
 
 
 def get_ucs_domainname_from_fqdn(fqdn: str) -> str:

@@ -48,11 +48,11 @@ sudo apt-get update
 sudo DEBIAN_FRONTEND=noninteractive apt-get install univention-domain-join
 ```
 
-Run the assistant using the start menu. 
+Run the assistant using the start menu.
 
-There is also a command line tool, which you can run with
-`univention-domain-join-cli`. The command line tool can be installed separately
+There is also a command line tool `univention-domain-join-cli`, which can be installed separately
 with the package `univention-domain-join-cli`.
+Run `sudo univention-domain-join-cli --help` for more details.
 
 # License
 

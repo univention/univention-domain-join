@@ -1,0 +1,8 @@
+debian/debhelper-build-stamp
+debian/files
+debian/*.debhelper
+debian/*.substvars
+debian/*/
+!debian/source/
+*.changes
+univention_domain_join.egg-info/

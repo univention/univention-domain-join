@@ -45,8 +45,8 @@ deb:
     - printf '\e[0Ksection_end:%d:%s\r\e[0K\n' "$(date +%s)" apt
     - find -exec touch -m -h -c -d "@${SOURCE_DATE_EPOCH:-$(dpkg-parsechangelog -STimestamp)}" {} +
   script:
-    - dpkg-buildpackage --no-sign -S
-    - dpkg-buildpackage --no-sign -b
+    - dpkg-buildpackage --no-sign
+    - dpkg-genchanges -S -Ounivention-domain-join_$(dpkg-parsechangelog -SVersion)_source.changes
     - mv ../*univention-domain-join*_*.* .
   artifacts:
     paths:
@@ -67,7 +67,6 @@ upload:gitlab:
   rules:
     - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_PROTECTED == "true"
   script:
-    - dput --force gitlab univention-domain-join_*_source.changes
     - dput --force gitlab univention-domain-join_*_amd64.changes
 
 .launchpad:

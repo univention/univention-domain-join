@@ -44,13 +44,19 @@ deb:
     - apt-get -q --assume-yes build-dep .
     - printf '\e[0Ksection_end:%d:%s\r\e[0K\n' "$(date +%s)" apt
     - find -exec touch -m -h -c -d "@${SOURCE_DATE_EPOCH:-$(dpkg-parsechangelog -STimestamp)}" {} +
-  script:
-    - dpkg-buildpackage --no-sign
-    - dpkg-genchanges -S -Ounivention-domain-join_$(dpkg-parsechangelog -SVersion)_source.changes
-    - mv ../*univention-domain-join*_*.* .
+  script: |
+    echo src=$(dpkg-parsechangelog -SSource) >.env
+    echo ver=$(dpkg-parsechangelog -SVersion) >>.env
+    echo dist=$(dpkg-parsechangelog -SDistribution) >>.env
+    . .env
+    dpkg-buildpackage --no-sign
+    dpkg-genchanges -S -O"${src}_${ver}_source.changes"
+    mv ../*univention-domain-join*_*.* .
   artifacts:
     paths:
       - "*univention-domain-join*_*.*"
+    reports:
+      dotenv: .env
 
 .upload:
   interruptible: no
@@ -67,9 +73,6 @@ upload:gitlab:
   rules:
     - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_PROTECTED == "true"
   script: |
-    src=$(dpkg-parsechangelog -SSource)
-    ver=$(dpkg-parsechangelog -SVersion)
-    dist=$(dpkg-parsechangelog -SDistribution)
     URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/debian_distributions?codename=${dist}"
     curl --fail --head "$URL" ||
       curl --fail --request POST --user "PRIVATE-TOKEN:${CI_JOB_TOKEN}" "$URL"
@@ -100,8 +103,8 @@ upload:gitlab:
     - apt-get -qq update
     - apt-get -q --assume-yes --no-install-recommends install gpg devscripts python3-distro-info
     - gpg --batch --pinentry-mode loopback --passphrase-file "$GPG_SECRET" --import "$GPG_PRIVATE"
-    - debsign --no-conf --no-re-sign -p "gpg --batch --pinentry-mode loopback --passphrase-file $GPG_SECRET" -k "$KEY" univention-domain-join_*_source.changes
-    - dput "ppa:$PPA" univention-domain-join_*_source.changes
+    - debsign --no-conf --no-re-sign -p "gpg --batch --pinentry-mode loopback --passphrase-file $GPG_SECRET" -k "$KEY" "${src}_${ver}_source.changes"
+    - dput "ppa:$PPA" "${src}_${ver}_source.changes"
 
 upload:testing:
   extends: .launchpad

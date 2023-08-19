@@ -66,8 +66,14 @@ upload:gitlab:
   extends: .upload
   rules:
     - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_PROTECTED == "true"
-  script:
-    - dput --force gitlab univention-domain-join_*_amd64.changes
+  script: |
+    src=$(dpkg-parsechangelog -SSource)
+    ver=$(dpkg-parsechangelog -SVersion)
+    dist=$(dpkg-parsechangelog -SDistribution)
+    URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/debian_distributions?codename=${dist}"
+    curl --fail --head "$URL" ||
+      curl --fail --request POST --user "PRIVATE-TOKEN:${CI_JOB_TOKEN}" "$URL"
+    dput --force gitlab "${src}_${ver}_amd64.changes"
 
 .launchpad:
   extends: .upload

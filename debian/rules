@@ -12,3 +12,6 @@ export http_proxy=http://127.0.0.1:9
 # python-univention-domain-join binary package.
 %:
 	dh $@ --with python3 --buildsystem=pybuild
+
+override_dh_builddeb:
+	dh_builddeb -- -Zxz

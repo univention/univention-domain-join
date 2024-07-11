@@ -16,6 +16,8 @@ Server (UCS) domains. It will perform the following steps for you:
 
 Univention Domain Join supports the following Linux distributions:
 
+- `ubuntu24.04`
+  - Ubuntu 24.04 LTS ("Noble Numbat")
 - `ubuntu22.04`
   - Ubuntu 22.04 LTS („Jammy Jellyfish“)
   - Linux Mint 21 („Vanessa“)
@@ -57,6 +59,10 @@ Run the assistant using the start menu.
 There is also a command line tool `univention-domain-join-cli`, which can be installed separately
 with the package `univention-domain-join-cli`.
 Run `sudo univention-domain-join-cli --help` for more details.
+
+# Doc
+
+Documentation on how to build and release this package to launchpad can be found [here](doc/dev.md)
 
 # License
 

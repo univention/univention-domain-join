@@ -33,7 +33,7 @@ Depends: python3-univention-domain-join,
  libpam-sss,
  libsss-sudo,
  heimdal-clients,
- ntpdate,
+ ntpsec-ntpdate,
  sshpass,
  python3 (>= 3.7),
  ${misc:Depends}

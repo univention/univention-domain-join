@@ -1,4 +1,4 @@
-univention-domain-join (1.0-28ubuntu2) unstable; urgency=medium
+univention-domain-join (1.0-29ubuntu1) noble; urgency=medium
 
   * Bug #57441: Add support for Ubuntu 24.04
 

@@ -4,7 +4,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 -->
 # Univention Domain Join
 
-This is an assistant for joining [Ubuntu](https://ubuntu.com/about/release-cycle) and [Linux Mint](https://www.linuxmint.com/download_all.php) computers into Univention Corporate
+This is an assistant for joining [Ubuntu](https://ubuntu.com/about/release-cycle), [Linux Mint](https://www.linuxmint.com/download_all.php), and [Rocky Linux](https://rockylinux.org/) computers into Univention Corporate
 Server (UCS) domains. It will perform the following steps for you:
 
 - Create an LDAP object for your Ubuntu computer on UCS
@@ -16,23 +16,27 @@ Server (UCS) domains. It will perform the following steps for you:
 
 Univention Domain Join supports the following Linux distributions:
 
+- `rocky9`
+  - Rocky Linux 9
+- `rocky8`
+  - Rocky Linux 8
 - `ubuntu24.04`
   - Ubuntu 24.04 LTS ("Noble Numbat")
 - `ubuntu22.04`
-  - Ubuntu 22.04 LTS („Jammy Jellyfish“)
-  - Linux Mint 21 („Vanessa“)
+  - Ubuntu 22.04 LTS („Jammy Jellyfish")
+  - Linux Mint 21 („Vanessa")
 - `ubuntu20.04`
-  - Ubuntu 20.04 LTS („Focal Fossa“)
-  - Linux Mint 20 („Ulyana“)
+  - Ubuntu 20.04 LTS („Focal Fossa")
+  - Linux Mint 20 („Ulyana")
 - `ubuntu18.04`
-  - Ubuntu 18.04 LTS („Bionic Beaver“)
-  - Linux Mint 19.2 („Tara“)
+  - Ubuntu 18.04 LTS („Bionic Beaver")
+  - Linux Mint 19.2 („Tara")
 - `ubuntu17.10`
-  - Ubuntu 17.10 („Artful Aardvark“)
+  - Ubuntu 17.10 („Artful Aardvark")
 - `ubuntu16.04`
-  - Ubuntu 16.04 LTS („Xenial Xerus“)
+  - Ubuntu 16.04 LTS („Xenial Xerus")
 - `ubuntu14.04`
-  - Ubuntu 14.04 LTS („Trusty Tahr“)
+  - Ubuntu 14.04 LTS („Trusty Tahr")
 
 The actual source code for the different Ubuntu releases can be found in
 the corresponding git branches.
@@ -59,6 +63,21 @@ Run the assistant using the start menu.
 There is also a command line tool `univention-domain-join-cli`, which can be installed separately
 with the package `univention-domain-join-cli`.
 Run `sudo univention-domain-join-cli --help` for more details.
+
+## Rocky Linux Installation
+
+For Rocky Linux, you can use the provided `setup-rocky.sh` script to join the UCS domain using LDAP authentication:
+
+```shell
+sudo ./setup-rocky.sh
+```
+
+This script will:
+1. Install the necessary packages
+2. Configure LDAP authentication
+3. Set up SSSD for user authentication
+4. Configure PAM for home directory creation
+5. Handle SELinux settings
 
 # Doc
 

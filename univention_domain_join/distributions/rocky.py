@@ -221,7 +221,7 @@ class Joiner(AbstractJoiner):
             'ldap_idmap_autorid_compat = True\n' \
             '\n' \
             '# Home directory configuration\n' \
-            'fallback_homedir = /home/%%u\n' \
+            'fallback_homedir = /nfs/home/%%u\n' \
             'default_shell = /bin/bash\n' \
             '\n' \
             'cache_credentials = true\n' \

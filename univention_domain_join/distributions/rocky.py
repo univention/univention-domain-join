@@ -197,10 +197,33 @@ class Joiner(AbstractJoiner):
             'ldap_default_authtok_type = password\n' \
             'ldap_default_authtok = %(ldap_password)s\n' \
             'ldap_schema = rfc2307bis\n' \
-            'ldap_user_member_of = memberOf\n' \
+            '\n' \
+            '# User attribute mappings\n' \
+            'ldap_user_object_class = posixAccount\n' \
+            'ldap_user_name = uid\n' \
+            'ldap_user_uid_number = uidNumber\n' \
+            'ldap_user_gid_number = gidNumber\n' \
+            'ldap_user_home_directory = homeDirectory\n' \
+            'ldap_user_shell = loginShell\n' \
             'ldap_user_gecos = displayName\n' \
+            'ldap_user_member_of = memberOf\n' \
             'ldap_user_uuid = entryUUID\n' \
+            '\n' \
+            '# Group mappings\n' \
+            'ldap_group_object_class = posixGroup\n' \
+            'ldap_group_name = cn\n' \
+            'ldap_group_gid_number = gidNumber\n' \
+            'ldap_group_member = uniqueMember\n' \
             'ldap_group_uuid = entryUUID\n' \
+            '\n' \
+            '# ID mapping\n' \
+            'ldap_id_mapping = False\n' \
+            'ldap_idmap_autorid_compat = True\n' \
+            '\n' \
+            '# Home directory configuration\n' \
+            'fallback_homedir = /home/%%u\n' \
+            'default_shell = /bin/bash\n' \
+            '\n' \
             'cache_credentials = true\n' \
             'enumerate = true\n' \
             % {

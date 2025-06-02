@@ -95,10 +95,35 @@ ldap_default_bind_dn = $machine_dn
 ldap_default_authtok_type = password
 ldap_default_authtok = $password
 ldap_schema = rfc2307bis
-ldap_user_member_of = memberOf
+
+# User attribute mappings
+ldap_user_object_class = posixAccount
+ldap_user_name = uid
+ldap_user_uid_number = uidNumber
+ldap_user_gid_number = gidNumber
+ldap_user_home_directory = homeDirectory
+ldap_user_shell = loginShell
 ldap_user_gecos = displayName
+ldap_user_member_of = memberOf
 ldap_user_uuid = entryUUID
+
+# Group mappings
+ldap_group_object_class = posixGroup
+ldap_group_name = cn
+ldap_group_gid_number = gidNumber
+ldap_group_member = uniqueMember
 ldap_group_uuid = entryUUID
+
+# ID mapping
+ldap_id_mapping = False
+ldap_idmap_autorid_compat = True
+
+# Home directory configuration
+fallback_homedir = /home/%u
+default_shell = /bin/bash
+# Uncomment the next line if you want to override all home directories
+# override_homedir = /home/%u
+
 cache_credentials = true
 enumerate = true
 EOF

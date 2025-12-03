@@ -4,7 +4,6 @@
 
 import subprocess
 from logging import getLogger
-from socket import gethostname
 from typing import Tuple
 
 from ldap.filter import filter_format
@@ -51,7 +50,7 @@ def get_machines_udm(dc_ip: str, admin_username: str, admin_pw: str, admin_dn: s
 
 
 def get_machines_ldap_dn_given_the_udm_type(udm_type: str, dc_ip: str, admin_username: str, admin_pw: str, admin_dn: str) -> str:
-    hostname = gethostname()
+    hostname = subprocess.check_output(['hostname', '-s']).strip().decode()
     cmd = ['/usr/sbin/udm', udm_type, 'list', '--binddn', admin_dn, '--bindpwdfile', PW(admin_username), '--filter', 'name=%s' % (hostname,)]
     ssh_process = ssh(admin_username, admin_pw, dc_ip, cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     assert ssh_process.stdout

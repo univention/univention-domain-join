@@ -6,7 +6,7 @@ import os
 import socket
 import subprocess
 from functools import wraps
-from pipes import quote
+from shlex import quote
 from typing import Any, Callable, List, TypeVar, Union, cast
 
 F = TypeVar('F', bound=Callable[..., Any])

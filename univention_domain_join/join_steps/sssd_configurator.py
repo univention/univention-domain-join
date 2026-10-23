@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 # SPDX-FileCopyrightText: 2017-2025 Univention GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
+"""Write /etc/sssd/sssd.conf and (re)start the sssd service.
+
+SSSD provides NSS/PAM access to the UCS domain: LDAP (over the UCS port
+7389) as the identity provider and Kerberos as the authentication
+provider, binding with the machine account created during the LDAP step.
+"""
 
 import logging
 import os
@@ -16,7 +22,10 @@ userinfo_logger = logging.getLogger('userinfo')
 
 
 class ConflictChecker(object):
+    """Detects pre-existing configuration that this step would overwrite."""
+
     def sssd_conf_file_exists(self) -> bool:
+        """Return True (and warn) if /etc/sssd/sssd.conf already exists."""
         if os.path.isfile('/etc/sssd/sssd.conf'):
             userinfo_logger.warn('Warning: /etc/sssd/sssd.conf already exists.')
             return True
@@ -24,9 +33,11 @@ class ConflictChecker(object):
 
 
 class SssdConfigurator(ConflictChecker):
+    """Writes /etc/sssd/sssd.conf for the UCS domain and restarts sssd."""
 
     @execute_as_root
     def backup(self, backup_dir: str) -> None:
+        """Back up an existing /etc/sssd/sssd.conf."""
         if self.sssd_conf_file_exists():
             os.makedirs(os.path.join(backup_dir, 'etc/sssd'), exist_ok=True)
             copyfile(
@@ -36,14 +47,24 @@ class SssdConfigurator(ConflictChecker):
 
     @execute_as_root
     def setup_sssd(self, dc_ip: str, ldap_master: str, ldap_server_name: str, admin_username: str, admin_pw: str, ldap_base: str, kerberos_realm: str, admin_dn: str, is_samba_dc: bool) -> None:
+        """Run the full SSSD step: root CA, sssd.conf, service restart.
+
+        Reads the machine account password written by the LDAP step from
+        /etc/machine.secret.
+        """
         self.ldap_password = open('/etc/machine.secret').read().strip()
         RootCertificateProvider().provide_ucs_root_certififcate(dc_ip)
         self.write_sssd_conf(dc_ip, ldap_master, ldap_server_name, admin_username, admin_pw, ldap_base, kerberos_realm, admin_dn, is_samba_dc)
-        self.configure_sssd()
         self.restart_sssd()
 
     @execute_as_root
     def write_sssd_conf(self, dc_ip: str, ldap_master: str, ldap_server_name: str, admin_username: str, admin_pw: str, ldap_base: str, kerberos_realm: str, admin_dn: str, is_samba_dc: bool) -> None:
+        """Write /etc/sssd/sssd.conf (mode 0600, it contains the machine password).
+
+        LDAP over the UCS port 7389 is the identity provider, Kerberos the
+        auth provider; kpasswd points at the Samba DC if we joined against
+        one, otherwise at the UCS master.
+        """
         userinfo_logger.info('Writing /etc/sssd/sssd.conf ')
         if is_samba_dc:
             kpasswd_server = ldap_server_name
@@ -86,24 +107,28 @@ class SssdConfigurator(ConflictChecker):
                 'ldap_password': self.ldap_password,
                 'machines_ldap_dn': get_machines_udm(dc_ip, admin_username, admin_pw, admin_dn)[1],
             }
+        os.makedirs('/etc/sssd', exist_ok=True)
         with open('/etc/sssd/sssd.conf', 'w') as conf_file:
             conf_file.write(sssd_conf)
         os.chmod('/etc/sssd/sssd.conf', stat.S_IREAD | stat.S_IWRITE)
 
     @execute_as_root
-    def configure_sssd(self) -> None:
-        userinfo_logger.info('Configuring auth config profile for sssd')
-
-        subprocess.check_output(
-            ['pam-auth-update', '--enable', 'mkhomedir'],
-            stderr=subprocess.STDOUT
-        )
-
-    @execute_as_root
     def restart_sssd(self) -> None:
+        """Enable sssd at boot and (re)start it to pick up the new config.
+
+        On failure the systemctl output is logged, because the actual
+        reason (e.g. a missing sssd-ldap/sssd-krb5 provider package, or a
+        config error) is otherwise invisible.
+        """
         userinfo_logger.info('Restarting sssd')
 
-        subprocess.check_output(
-            ['service', 'sssd', 'restart'],
-            stderr=subprocess.STDOUT
-        )
+        for cmd in (['systemctl', 'enable', 'sssd'], ['systemctl', 'restart', 'sssd']):
+            try:
+                subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+            except subprocess.CalledProcessError as e:
+                userinfo_logger.critical(
+                    '%r failed:\n%s\nCheck "journalctl -u sssd" for details. A common cause on '
+                    'minimal installations is a missing provider package (dnf install sssd-ldap sssd-krb5).'
+                    % (cmd, e.output.decode('utf-8', 'replace'))
+                )
+                raise

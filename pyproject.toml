@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "univention-domain-join-cli"
+description = "Assistant for joining RPM based Linux clients into Univention Corporate Server (UCS) domains"
+readme = "README.md"
+license = {text = "AGPL-3.0-only"}
+authors = [
+    {name = "Univention GmbH"},
+]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: System Administrators",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: System :: Systems Administration :: Authentication/Directory :: LDAP",
+]
+dependencies = [
+    "python-ldap",
+    "dnspython",
+]
+dynamic = ["version"]
+
+[project.scripts]
+univention-domain-join-cli = "univention_domain_join.cli:main"
+
+[tool.setuptools]
+packages = ["univention_domain_join", "univention_domain_join.join_steps", "univention_domain_join.utils"]
+
+[tool.setuptools.dynamic]
+version = {attr = "univention_domain_join.__version__"}

@@ -16,6 +16,8 @@ Server (UCS) domains. It will perform the following steps for you:
 
 Univention Domain Join supports the following Linux distributions:
 
+- `ubuntu26.04`
+  - Ubuntu 26.04 LTS ("Resolute Raccoon")
 - `ubuntu24.04`
   - Ubuntu 24.04 LTS ("Noble Numbat")
 - `ubuntu22.04`

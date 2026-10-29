@@ -13,7 +13,8 @@ Standards-Version: 3.6.1
 Package: univention-domain-join
 Architecture: all
 Depends: univention-domain-join-cli,
- policykit-1,
+ polkitd,
+ pkexec,
  python3 (>= 3.7),
  python3-pyqt5,
  ${misc:Depends}

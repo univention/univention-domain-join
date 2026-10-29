@@ -17,14 +17,13 @@ lint:
   cache:
     paths:
       - .cache/pip
-      - venv/
   before_script:
     - printf '\e[0Ksection_start:%d:%s[collapsed=true]\r\e[0K%s\n' "$(date +%s)" apt 'Install dependencies'
     - apt-get -qq update
     - apt-get -q install --assume-yes libdbus-1-dev libldap2-dev libsasl2-dev
     - python -V  # Print out python version for debugging
     - pip install virtualenv
-    - virtualenv venv
+    - virtualenv --clear venv
     - . venv/bin/activate
     - pip install .[dev]
     - printf '\e[0Ksection_end:%d:%s\r\e[0K\n' "$(date +%s)" apt

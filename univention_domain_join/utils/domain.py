@@ -14,7 +14,7 @@ import netifaces
 def get_master_ip_through_dns(domain: str) -> str:
     resolver = dns.resolver.Resolver()
     try:
-        response = resolver.query('_domaincontroller_master._tcp.%s.' % (domain,), 'SRV')
+        response = resolver.resolve('_domaincontroller_master._tcp.%s.' % (domain,), 'SRV')
         master_fqdn = response[0].target.canonicalize().split(1)[0].to_text()
     except Exception:
         return ""
@@ -117,7 +117,7 @@ def get_ucs_domainname_from_fqdn(fqdn: str) -> str:
         # Check if the _domaincontroller_master._tcp record exists, to ensure
         # that this is an UCS domain.
         resolver = dns.resolver.Resolver()
-        resolver.query('_domaincontroller_master._tcp.%s' % (domainname,), 'SRV')
+        resolver.resolve('_domaincontroller_master._tcp.%s' % (domainname,), 'SRV')
     except Exception:
         return ""
     return domainname

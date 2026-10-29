@@ -57,7 +57,7 @@ class DnsConfigurator(object):
     def check_if_dns_works(self) -> None:
         resolver = dns.resolver.Resolver()
         try:
-            resolver.query('_domaincontroller_master._tcp.%s.' % (self.domain,), 'SRV')
+            resolver.resolve('_domaincontroller_master._tcp.%s.' % (self.domain,), 'SRV')
         except dns.resolver.NXDOMAIN:
             userinfo_logger.critical(
                 'Setting up DNS did not work. Try removing any DNS settings in '

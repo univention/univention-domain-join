@@ -1,3 +1,9 @@
+univention-domain-join (1.0-30ubuntu1) resolute; urgency=medium
+
+  * Bug #59468: Add support for Ubuntu 26.04
+
+ -- Dominik Pflegerl <pflegerl@sonn.at>  Wed, 07 Oct 2026 15:52:01 +0200
+
 univention-domain-join (1.0-29ubuntu1) noble; urgency=medium
 
   * Bug #57441: Add support for Ubuntu 24.04

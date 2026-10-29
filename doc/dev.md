@@ -2,7 +2,7 @@
 
 # Building packages for Launchpad
 1. Clone the git repo ([https://git.knut.univention.de/univention/univention-domain-join])
-2. Checkout branch: `git checkout ubuntu24.04`
+2. Checkout branch: `git checkout ubuntu26.04`
 3. Build the source package `dpkg-buildpackage -S -us -uc`
 4. Sign the source package
    - On omar, as root: `debsign -k D523B8FD547C464C9EA89D5B5E9F163B66AA3A17 *.changes`, Passwort: /etc/archive-keys/ucc.txt

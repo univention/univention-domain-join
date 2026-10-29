@@ -34,7 +34,7 @@ lint:
     - mypy
 
 deb:
-  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/ubuntu:22.04
+  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/ubuntu:26.04
   variables:
     DEBIAN_FRONTEND: noninteractive
   before_script:

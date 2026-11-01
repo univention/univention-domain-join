@@ -156,18 +156,25 @@ def check_if_ssh_works_with_given_account(dc_ip: str, admin_username: str, admin
 
 
 def get_ucr_variables_from_dc(dc_ip: str, admin_username: str, admin_pw: str) -> Dict[str, str]:
-    """Fetch all UCR variables from the DC via `ucr shell` over SSH.
+    """Fetch all UCR variables from the DC via `ucr dump` over SSH.
 
-    The 'hostname' variable is dropped because it is the DC's host name,
-    not this client's.
+    `ucr dump` prints plain 'key: value' lines. (`ucr shell` would emit
+    bash-compatible, possibly quoted/escaped values, which must not be put
+    into a dict without eval'ing them.) Keys are normalized from the dump's
+    'ldap/master' form to the 'ldap_master' form used throughout this tool
+    (and emitted by `ucr shell`). The 'hostname' variable is dropped
+    because it is the DC's host name, not this client's. Variables that are
+    not set at all do not appear in the output — use .get() for optional
+    ones.
     """
-    cmd = "/usr/sbin/ucr shell"
+    cmd = "/usr/sbin/ucr dump"
     ssh_process = ssh(admin_username, admin_pw, dc_ip, cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     assert ssh_process.stdout
-    ucr_variables = dict(
-        line.decode("utf-8", "replace").strip().split("=", 1)
-        for line in ssh_process.stdout
-    )
+    ucr_variables = {}
+    for line in ssh_process.stdout:
+        key, _, value = line.decode("utf-8", "replace").strip().partition(': ')
+        if key:
+            ucr_variables[key.replace('/', '_')] = value
 
     _, stderr = ssh_process.communicate()
     logging.getLogger('debugging').debug("%r returned %d: %s", cmd, ssh_process.returncode, stderr.decode())
@@ -238,7 +245,7 @@ def get_admin_credentials(args: argparse.Namespace) -> tuple:
         try:
             with open(args.password_file) as password_file:
                 password = password_file.read().strip()
-        except IOError:
+        except OSError:
             getLogger("userinfo").error('Error: The password file could not be read.')
     if not args.username:
         args.username = get_admin_username()
@@ -300,9 +307,9 @@ def main() -> None:
         joiner.check_if_join_is_possible_without_problems()
         joiner.create_backup_of_config_files()
         joiner.join_domain()
-    except Exception as e:
-        getLogger("userinfo").critical('An error occurred: %s. Please check %s for more information.' % (e, args.logfile))
-        getLogger("debugging").critical(e, exc_info=True)
+    except Exception as exc:
+        getLogger("userinfo").critical('An error occurred: %s. Please check %s for more information.' % (exc, args.logfile))
+        getLogger("debugging").exception('unhandled error')
         exit(1)
 
 

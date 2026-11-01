@@ -17,6 +17,7 @@ from typing import List
 
 import dns.resolver
 
+from univention_domain_join.utils.domain import srv_query
 from univention_domain_join.utils.general import execute_as_root
 
 userinfo_logger = logging.getLogger('userinfo')
@@ -76,9 +77,9 @@ class DnsConfigurator(object):
         if not self.domain.endswith('.local'):
             return
         try:
-            with open('/etc/nsswitch.conf') as f:
-                content = f.read()
-        except IOError:
+            with open('/etc/nsswitch.conf') as fd:
+                content = fd.read()
+        except OSError:
             return
         if 'mdns4_minimal' not in content:
             return
@@ -90,10 +91,8 @@ class DnsConfigurator(object):
 
     def check_if_dns_works(self) -> None:
         """Verify the UCS SRV record resolves with the new settings; raise if not."""
-        resolver = dns.resolver.Resolver()
-        query = getattr(resolver, 'resolve', None) or resolver.query
         try:
-            query('_domaincontroller_master._tcp.%s.' % (self.domain,), 'SRV')
+            srv_query('_domaincontroller_master._tcp.%s.' % (self.domain,))
         except dns.resolver.NXDOMAIN:
             userinfo_logger.critical(
                 'Setting up DNS did not work. Try removing any DNS settings in '

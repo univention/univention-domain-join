@@ -19,7 +19,7 @@ from shutil import copyfile
 from univention_domain_join.join_steps.root_certificate_provider import RootCertificateProvider
 from univention_domain_join.utils.distributions import get_distribution, get_release
 from univention_domain_join.utils.general import execute_as_root, ssh
-from univention_domain_join.utils.ldap import PW, UDM_CREATE_TYPE, get_machines_udm
+from univention_domain_join.utils.ldap import PW, UDM_COMPUTER_TYPE, get_machines_udm
 
 userinfo_logger = getLogger('userinfo')
 log = getLogger("debugging")
@@ -111,7 +111,7 @@ class LdapConfigurator(ConflictChecker):
         release = get_release()
         # TODO: Also add MAC address. Which NIC's address should be used?
         udm_command = [
-            '/usr/sbin/udm', UDM_CREATE_TYPE, 'create',
+            '/usr/sbin/udm', UDM_COMPUTER_TYPE, 'create',
             '--binddn', admin_dn,
             '--bindpwdfile', PW(admin_username),
             '--position', 'cn=computers,%s' % (ldap_base,),

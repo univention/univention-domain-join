@@ -125,10 +125,10 @@ class SssdConfigurator(ConflictChecker):
         for cmd in (['systemctl', 'enable', 'sssd'], ['systemctl', 'restart', 'sssd']):
             try:
                 subprocess.check_output(cmd, stderr=subprocess.STDOUT)
-            except subprocess.CalledProcessError as e:
+            except subprocess.CalledProcessError as exc:
                 userinfo_logger.critical(
                     '%r failed:\n%s\nCheck "journalctl -u sssd" for details. A common cause on '
                     'minimal installations is a missing provider package (dnf install sssd-ldap sssd-krb5).'
-                    % (cmd, e.output.decode('utf-8', 'replace'))
+                    % (cmd, exc.output.decode('utf-8', 'replace'))
                 )
                 raise

@@ -1,5 +1,5 @@
 Name:           univention-domain-join-cli
-Version:        1.0.0
+Version:        1.4.0
 Release:        1%{?dist}
 Summary:        Assistant for joining RPM based Linux clients into UCS domains
 
@@ -58,5 +58,13 @@ This is a port of univention-domain-join for Debian/Ubuntu based systems.
 %{python3_sitelib}/univention_domain_join_cli-%{version}.dist-info/
 
 %changelog
+* Sun Nov 01 2026 Univention domain join RPM port - 1.4.0-1
+- Address upstream PR review: ucr dump instead of ucr shell, shared SRV
+  query helper, UDM_COMPUTER_TYPE rename, ifcfg value unescaping, modern
+  typing, style cleanups
+- Add --sudo-groups / --sudo-groups-nopasswd (sudoers drop-in for domain groups)
+- Add --disjoin with DNS record removal and local cleanup
+- Add --register-dns (A/PTR records for statically configured hosts)
+
 * Mon Oct 20 2026 Univention domain join RPM port - 1.0.0-1
 - Initial RPM release, ported from univention-domain-join (ubuntu24.04 branch)

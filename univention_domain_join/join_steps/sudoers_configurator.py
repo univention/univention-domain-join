@@ -13,13 +13,14 @@ the sudoers syntax. The drop-in is validated with visudo before it is put
 in place — a broken sudoers would break sudo for everyone.
 """
 
+from __future__ import annotations
+
 import logging
 import os
 import stat
 import subprocess
 import tempfile
 from shutil import copyfile
-from typing import List, Optional
 
 from univention_domain_join.utils.general import execute_as_root
 
@@ -46,7 +47,7 @@ class SudoersConfigurator(ConflictChecker):
     sudo_groups get passworded rules, nopasswd_groups get NOPASSWD rules.
     """
 
-    def __init__(self, sudo_groups: Optional[List[str]] = None, nopasswd_groups: Optional[List[str]] = None) -> None:
+    def __init__(self, sudo_groups: list[str] | None = None, nopasswd_groups: list[str] | None = None) -> None:
         self.sudo_groups = sudo_groups or []
         self.nopasswd_groups = nopasswd_groups or []
 
@@ -109,7 +110,7 @@ class SudoersConfigurator(ConflictChecker):
             'Writing %s for the domain groups: %s'
             % (SUDOERS_DROP_IN, ', '.join(self.sudo_groups + ['%s (nopasswd)' % g for g in self.nopasswd_groups]))
         )
-        with open(SUDOERS_DROP_IN, 'w') as f:
-            f.write(content)
+        with open(SUDOERS_DROP_IN, 'w') as fd:
+            fd.write(content)
         # sudoers.d files must be mode 0440, otherwise sudo ignores them.
         os.chmod(SUDOERS_DROP_IN, stat.S_IRUSR | stat.S_IRGRP)

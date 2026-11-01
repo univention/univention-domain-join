@@ -28,11 +28,11 @@ def _os_release() -> dict:
     """Parse /etc/os-release into a dict; empty if the file is unreadable."""
     values = {}
     try:
-        with open(OS_RELEASE) as f:
-            for line in f:
+        with open(OS_RELEASE) as fd:
+            for line in fd:
                 key, _, value = line.partition('=')
                 values[key.strip()] = value.strip().strip('"')
-    except IOError:
+    except OSError:
         pass
     return values
 

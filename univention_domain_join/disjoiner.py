@@ -284,13 +284,13 @@ class Disjoiner(object):
         group_conf = '/etc/security/group.conf'
         if not os.path.isfile(group_conf):
             return
-        with open(group_conf) as f:
-            lines = f.readlines()
+        with open(group_conf) as fd:
+            lines = fd.readlines()
         kept = [line for line in lines if not line.startswith('*;*;*;Al0000-2400;')]
         if len(kept) != len(lines):
             userinfo_logger.info('Removing the domain groups entry from %s' % group_conf)
-            with open(group_conf, 'w') as f:
-                f.writelines(kept)
+            with open(group_conf, 'w') as fd:
+                fd.writelines(kept)
 
     @execute_as_root
     def revert_network_manager_dns(self) -> None:

@@ -22,9 +22,9 @@ PW = "/dev/shm/{}domain-join".format
 log = getLogger('debugging')
 
 # UDM computer types to probe when looking for an existing entry of this
-# machine. New entries are created as UDM_CREATE_TYPE.
+# machine. New entries are created as UDM_COMPUTER_TYPE.
 UDM_LOOKUP_TYPES = ['computers/linux', 'computers/ucc', 'computers/ubuntu']
-UDM_CREATE_TYPE = 'computers/linux'
+UDM_COMPUTER_TYPE = 'computers/linux'
 
 
 def authenticate_admin(dc_ip: str, admin_username: str, admin_pw: str) -> None:

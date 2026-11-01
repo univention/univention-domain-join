@@ -40,8 +40,8 @@ Build the RPM and install it — all dependencies are pulled in automatically:
 sudo dnf install rpm-build python3-devel python3-setuptools python3-pip -y
 pip install build
 python3 -m build --sdist .            # or: python3 setup.py sdist
-rpmbuild -ta dist/univention-domain-join-cli-1.0.0.tar.gz
-sudo dnf install ~/rpmbuild/RPMS/noarch/univention-domain-join-cli-1.0.0-1.*.noarch.rpm
+rpmbuild -ta dist/univention-domain-join-cli-1.4.0.tar.gz
+sudo dnf install ~/rpmbuild/RPMS/noarch/univention-domain-join-cli-1.4.0-1.*.noarch.rpm
 ``` -->
 
 ### With pip

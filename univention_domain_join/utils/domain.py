@@ -16,8 +16,12 @@ from typing import Iterable, List, Set
 import dns.resolver
 
 
-def _srv_query(name: str) -> list:
-    """Query SRV records; works with dnspython 1.x (RHEL 8) and 2.x alike."""
+def srv_query(name: str) -> list:
+    """Query SRV records; works with dnspython 1.x (RHEL 8) and 2.x alike.
+
+    Shared by the domain auto-detection here and the post-join DNS check
+    in join_steps/dns_configurator.py.
+    """
     # dnspython < 2.0 (e.g. RHEL 8's python3-dns) only knows query(),
     # newer versions renamed it to resolve().
     resolver = dns.resolver.Resolver()
@@ -28,7 +32,7 @@ def _srv_query(name: str) -> list:
 def get_master_ip_through_dns(domain: str) -> str:
     """Return the IP of the UCS DC master via its SRV record, or '' on failure."""
     try:
-        response = _srv_query('_domaincontroller_master._tcp.%s.' % (domain,))
+        response = srv_query('_domaincontroller_master._tcp.%s.' % (domain,))
         master_fqdn = response[0].target.canonicalize().split(1)[0].to_text()
     except Exception:
         return ""
@@ -73,12 +77,12 @@ def get_nameservers() -> Set[str]:
     """Return the nameserver IPs configured in /etc/resolv.conf."""
     nameservers = set()
     try:
-        with open('/etc/resolv.conf') as f:
-            for line in f:
+        with open('/etc/resolv.conf') as fd:
+            for line in fd:
                 parts = line.split()
                 if len(parts) >= 2 and parts[0] == 'nameserver' and is_only_ip(parts[1]):
                     nameservers.add(parts[1])
-    except IOError:
+    except OSError:
         pass
     return nameservers
 
@@ -135,7 +139,7 @@ def get_ucs_domainname_from_fqdn(fqdn: str) -> str:
         domainname = fqdn.split('.', 1)[1]
         # Check if the _domaincontroller_master._tcp record exists, to ensure
         # that this is an UCS domain.
-        _srv_query('_domaincontroller_master._tcp.%s' % (domainname,))
+        srv_query('_domaincontroller_master._tcp.%s' % (domainname,))
     except Exception:
         return ""
     return domainname

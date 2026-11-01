@@ -5,4 +5,4 @@
 # RPM port of univention-domain-join (https://github.com/univention/univention-domain-join)
 """Assistant for joining RPM based Linux clients into a UCS domain."""
 
-__version__ = '1.0.0'
+__version__ = '1.4.0'

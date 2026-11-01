@@ -40,7 +40,7 @@ Only the CLI of the upstream project was ported — the GUI was not.
      `--username`/`--password`/`--password-file` are given) and verify SSH
      access to the DC with them.
    - Fetch all UCR (Univention Configuration Registry) variables from the
-     DC by running `ucr shell` over SSH.
+     DC by running `ucr dump` over SSH.
 2. **Joiner** (`univention_domain_join/joiner.py`):
    - Check for conflicting configurations (unsupported login manager).
    - Back up every configuration file that will be modified to

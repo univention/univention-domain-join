@@ -11,7 +11,7 @@ configuration files before anything is modified.
 import logging
 import os
 import time
-from typing import Dict
+from typing import Dict, List, Optional
 
 from univention_domain_join.join_steps.dns_configurator import DnsConfigurator
 from univention_domain_join.join_steps.dns_record_registrar import DnsRecordRegistrar
@@ -43,7 +43,7 @@ class Joiner(object):
     name, Kerberos realm) plus the CLI credentials and options.
     """
 
-    def __init__(self, ucr_variables: Dict[str, str], admin_username: str, admin_pw: str, dc_ip: str, skip_login_manager: bool, force_ucs_dns: bool, register_dns: bool = False, sudo_groups: list = None, sudo_groups_nopasswd: list = None) -> None:
+    def __init__(self, ucr_variables: Dict[str, str], admin_username: str, admin_pw: str, dc_ip: str, skip_login_manager: bool, force_ucs_dns: bool, register_dns: bool = False, sudo_groups: Optional[List[str]] = None, sudo_groups_nopasswd: Optional[List[str]] = None) -> None:
         self.admin_username = admin_username
         self.admin_pw = admin_pw
         self.dc_ip = dc_ip
@@ -53,10 +53,11 @@ class Joiner(object):
         self.sudo_groups = sudo_groups or []
         self.sudo_groups_nopasswd = sudo_groups_nopasswd or []
         self.domain = ucr_variables['domainname']
+        # Optional variables may be missing from the `ucr dump` output entirely.
         self.nameservers = [
-            ucr_variables['nameserver1'] if ucr_variables['nameserver1'] != "''" else '',
-            ucr_variables['nameserver2'] if ucr_variables['nameserver2'] != "''" else '',
-            ucr_variables['nameserver3'] if ucr_variables['nameserver3'] != "''" else ''
+            ucr_variables.get('nameserver1', ''),
+            ucr_variables.get('nameserver2', ''),
+            ucr_variables.get('nameserver3', '')
         ]
         self.ldap_master = ucr_variables['ldap_master']
         self.ldap_base = ucr_variables['ldap_base']

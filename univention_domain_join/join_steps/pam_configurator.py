@@ -111,7 +111,7 @@ class PamConfigurator(ConflictChecker):
         try:
             with open(GROUP_CONF, 'r') as groups_file:
                 return group_conf_line in groups_file.read().splitlines(keepends=True)
-        except IOError:
+        except OSError:
             return False
 
     @execute_as_root
@@ -146,8 +146,8 @@ class PamConfigurator(ConflictChecker):
             path = os.path.join(AUTHSELECT_PROFILE_DIR, pam_file)
             if not os.path.isfile(path):
                 continue
-            with open(path) as f:
-                lines = f.readlines()
+            with open(path) as fd:
+                lines = fd.readlines()
             if any('pam_group.so' in line for line in lines):
                 continue
             pam_group_line = 'auth        required      pam_group.so use_first_pass\n'
@@ -157,8 +157,8 @@ class PamConfigurator(ConflictChecker):
                 len(lines)
             )
             lines.insert(insert_at, pam_group_line)
-            with open(path, 'w') as f:
-                f.writelines(lines)
+            with open(path, 'w') as fd:
+                fd.writelines(lines)
 
     @execute_as_root
     def setup_authconfig(self) -> None:

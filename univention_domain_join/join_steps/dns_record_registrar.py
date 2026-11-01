@@ -20,6 +20,7 @@ the temporary /dev/shm password file created by authenticate_admin()).
 
 import logging
 import os
+import shlex
 import shutil
 import subprocess
 from typing import Optional
@@ -70,8 +71,8 @@ class DnsRecordRegistrar(object):
             output = subprocess.check_output(['ip', 'route', 'get', dc_ip], stderr=subprocess.STDOUT).decode()
             # e.g. "10.250.250.1 dev ens192 src 10.250.250.50 uid 0"
             return output.split()[output.split().index('src') + 1]
-        except (subprocess.CalledProcessError, ValueError, IndexError) as e:
-            log.debug("Determining the primary IP address failed: %s", e)
+        except (subprocess.CalledProcessError, ValueError, IndexError) as exc:
+            log.debug("Determining the primary IP address failed: %s", exc)
             return ''
 
     def ip_is_static(self, ip: str) -> Optional[bool]:
@@ -124,28 +125,49 @@ class DnsRecordRegistrar(object):
             candidates.append(os.path.join('/etc/sysconfig/network-scripts', 'ifcfg-%s' % device))
         try:
             candidates.extend(
-                os.path.join('/etc/sysconfig/network-scripts', f)
-                for f in os.listdir('/etc/sysconfig/network-scripts') if f.startswith('ifcfg-')
+                os.path.join('/etc/sysconfig/network-scripts', fd)
+                for fd in os.listdir('/etc/sysconfig/network-scripts') if fd.startswith('ifcfg-')
             )
         except OSError:
             return None
         for path in candidates:
             try:
-                with open(path) as f:
-                    content = f.read()
-            except IOError:
-                continue
-            if 'IPADDR=%s' % ip not in content and 'IPADDR="%s"' % ip not in content:
+                with open(path) as fd:
+                    content = fd.read()
+            except OSError:
                 continue
             bootproto = ''
+            ip_matches = False
             for line in content.splitlines():
-                if line.upper().startswith('BOOTPROTO='):
-                    bootproto = line.partition('=')[2].strip().strip('"').lower()
+                key, sep, raw_value = line.partition('=')
+                if not sep:
+                    continue
+                key = key.strip().upper()
+                value = self.unescape_ifcfg_value(raw_value.strip())
+                if key == 'IPADDR' and value == ip:
+                    ip_matches = True
+                elif key == 'BOOTPROTO':
+                    bootproto = value.lower()
+            if not ip_matches:
+                continue
             if bootproto in ('none', 'static'):
                 return True
             if bootproto in ('dhcp', 'bootp'):
                 return False
         return None
+
+    @staticmethod
+    def unescape_ifcfg_value(value: str) -> str:
+        """Remove shell quoting/escaping from an ifcfg value.
+
+        ifcfg files are sourced by the network scripts, so values may be
+        quoted or contain escaped characters (e.g. IPADDR="10.0.0.2").
+        """
+        try:
+            parts = shlex.split(value, posix=True)
+        except ValueError:
+            return value
+        return parts[0] if parts else ''
 
     def register_forward_record(self, dc_ip: str, admin_username: str, admin_pw: str, ldap_base: str, admin_dn: str, domain: str, ip: str) -> None:
         """Set the ip property and the forward zone entry on the machine's

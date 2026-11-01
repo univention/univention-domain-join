@@ -95,12 +95,12 @@ class KerberosConfigurator(ConflictChecker):
         userinfo_logger.info('Synchronizing time with the DC')
         try:
             self.sync_time(dc_ip)
-        except subprocess.CalledProcessError as e:
+        except subprocess.CalledProcessError as exc:
             # Don't fail the whole join at the last step because of this;
             # everything else is already configured at this point.
             userinfo_logger.warn(
                 'Warning: time synchronization with the DC failed (%s).\n'
-                'Kerberos requires the clocks of the client and the DC to be within 5 minutes of each other.' % (e,)
+                'Kerberos requires the clocks of the client and the DC to be within 5 minutes of each other.' % (exc,)
             )
 
     def sync_time(self, dc_ip: str) -> None:

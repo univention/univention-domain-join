@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
 # SPDX-FileCopyrightText: 2017-2025 Univention GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
+"""Write /etc/krb5.conf and synchronize the client's clock with the DC.
+
+Kerberos requires the client and DC clocks to be within 5 minutes of each
+other, so a one-shot time sync against the DC finishes this step.
+"""
 
 import logging
 import os
+import shutil
 import subprocess
 from shutil import copyfile
 
@@ -13,7 +19,10 @@ userinfo_logger = logging.getLogger('userinfo')
 
 
 class ConflictChecker(object):
+    """Detects pre-existing configuration that this step would overwrite."""
+
     def config_file_exists(self) -> bool:
+        """Return True (and warn) if /etc/krb5.conf already exists."""
         if os.path.isfile('/etc/krb5.conf'):
             userinfo_logger.warn('Warning: /etc/krb5.conf already exists.')
             return True
@@ -21,8 +30,11 @@ class ConflictChecker(object):
 
 
 class KerberosConfigurator(ConflictChecker):
+    """Writes /etc/krb5.conf for the UCS realm and syncs the clock with the DC."""
+
     @execute_as_root
     def backup(self, backup_dir: str) -> None:
+        """Back up an existing /etc/krb5.conf."""
         if self.config_file_exists():
             os.makedirs(os.path.join(backup_dir, 'etc'), exist_ok=True)
             copyfile(
@@ -31,11 +43,17 @@ class KerberosConfigurator(ConflictChecker):
             )
 
     def configure_kerberos(self, kerberos_realm: str, ldap_master: str, ldap_server_name: str, is_samba_dc: bool, dc_ip: str) -> None:
+        """Write the Kerberos config, then synchronize the time with the DC."""
         self.write_config_file(kerberos_realm, ldap_master, ldap_server_name, is_samba_dc)
         self.synchronize_time_with_master(dc_ip)
 
     @execute_as_root
     def write_config_file(self, kerberos_realm: str, ldap_master: str, ldap_server_name: str, is_samba_dc: bool) -> None:
+        """Write /etc/krb5.conf.
+
+        The kpasswd service lives on the Samba DC itself if we joined
+        against one, otherwise on the UCS master.
+        """
         userinfo_logger.info('Writing /etc/krb5.conf ')
         if is_samba_dc:
             kpasswd_name = ldap_server_name
@@ -69,8 +87,49 @@ class KerberosConfigurator(ConflictChecker):
 
     @execute_as_root
     def synchronize_time_with_master(self, dc_ip: str) -> None:
+        """Synchronize the clock with the DC, warning (not failing) on errors.
+
+        Runs at the very end of the join, when everything else is already
+        configured, so a failed time sync must not abort the whole join.
+        """
         userinfo_logger.info('Synchronizing time with the DC')
-        subprocess.check_output(
-            ['ntpdate', '-b', '-u', '-t', '5', dc_ip],
-            stderr=subprocess.STDOUT
-        )
+        try:
+            self.sync_time(dc_ip)
+        except subprocess.CalledProcessError as exc:
+            # Don't fail the whole join at the last step because of this;
+            # everything else is already configured at this point.
+            userinfo_logger.warn(
+                'Warning: time synchronization with the DC failed (%s).\n'
+                'Kerberos requires the clocks of the client and the DC to be within 5 minutes of each other.' % (exc,)
+            )
+
+    def sync_time(self, dc_ip: str) -> None:
+        """One-shot time sync against the DC: ntpdate → sntp → chronyd.
+
+        ntpdate is deprecated and not shipped on modern RPM distributions,
+        so the first available tool wins. If chronyd is already running as
+        a service, a one-shot `chronyd -q` would fail; chronyc is used to
+        steer the running daemon instead.
+        """
+        # ntpdate is deprecated and not shipped on modern RPM distributions,
+        # so try the available tools in order.
+        if shutil.which('ntpdate'):
+            cmds = [['ntpdate', '-b', '-u', '-t', '5', dc_ip]]
+        elif shutil.which('sntp'):
+            cmds = [['sntp', '-sS', dc_ip]]
+        elif shutil.which('chronyd'):
+            if subprocess.call(['chronyc', 'tracking'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0:
+                # chronyd is already running; a one-shot `chronyd -q` would
+                # fail, so talk to the running daemon via chronyc instead.
+                cmds = [
+                    ['chronyc', 'add server %s iburst' % (dc_ip,)],
+                    ['chronyc', 'burst 4/4'],
+                    ['chronyc', 'makestep'],
+                ]
+            else:
+                cmds = [['chronyd', '-q', 'server %s iburst' % (dc_ip,)]]
+        else:
+            userinfo_logger.warn('Warning: no NTP client found (tried ntpdate, sntp, chronyd). Skipping time synchronization.')
+            return
+        for cmd in cmds:
+            subprocess.check_output(cmd, stderr=subprocess.STDOUT)
